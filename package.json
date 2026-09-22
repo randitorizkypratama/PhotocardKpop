@@ -1,0 +1,17 @@
+{
+  "name": "kpop-photocard",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "bun run --cwd apps/web dev",
+    "build": "bun run --cwd apps/web build",
+    "generate": "bun run --cwd apps/web generate",
+    "preview": "bun run --cwd apps/web preview",
+    "typecheck": "bun run --cwd apps/web typecheck"
+  },
+  "engines": {
+    "bun": ">=1.1.0"
+  }
+}
