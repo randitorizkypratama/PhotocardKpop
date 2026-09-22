@@ -99,85 +99,95 @@ const visiblePages = computed(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-background">
+  <div class="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50 dark:from-slate-950 dark:via-purple-950 dark:to-slate-950">
     <!-- Header -->
-    <header class="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div class="container mx-auto flex h-14 items-center px-4">
-        <NuxtLink to="/" class="flex items-center space-x-2">
-          <span class="text-xl font-bold">K-Pop PC</span>
+    <header class="sticky top-0 z-50 glass border-b border-white/20">
+      <div class="container mx-auto flex h-16 items-center justify-between px-4">
+        <NuxtLink to="/" class="flex items-center gap-2">
+          <span class="text-xl">✨</span>
+          <span class="text-lg font-bold text-foreground">K-Pop PC</span>
         </NuxtLink>
-        <nav class="ml-auto flex items-center space-x-4">
-          <NuxtLink to="/" class="text-sm font-medium hover:underline">Home</NuxtLink>
-          <NuxtLink to="/browse" class="text-sm font-medium hover:underline">Browse</NuxtLink>
-          <NuxtLink to="/collection" class="text-sm font-medium hover:underline">Collection</NuxtLink>
+        <nav class="flex items-center gap-6">
+          <NuxtLink to="/" class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">Home</NuxtLink>
+          <NuxtLink to="/browse" class="text-sm font-medium text-foreground">Browse</NuxtLink>
+          <NuxtLink to="/collection" class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">Collection</NuxtLink>
         </nav>
       </div>
     </header>
 
-    <main class="container mx-auto px-4 py-6">
-      <div class="mb-6 flex items-center justify-between">
-        <h1 class="text-2xl font-bold">Browse Photocards</h1>
-        <span v-if="!loading" class="text-sm text-muted-foreground">
-          {{ total.toLocaleString() }} cards
-        </span>
+    <main class="container mx-auto px-4 py-8">
+      <!-- Page Header -->
+      <div class="mb-8">
+        <h1 class="text-3xl font-bold text-foreground">Browse Photocards</h1>
+        <p class="mt-1 text-muted-foreground">
+          <template v-if="!loading && total > 0">
+            {{ total.toLocaleString() }} cards from Pocamarket
+          </template>
+          <template v-else>
+            Explore the photocard collection
+          </template>
+        </p>
       </div>
 
-      <!-- Group Tabs -->
-      <div class="mb-4 flex flex-wrap gap-2">
-        <button
-          v-for="group in groups"
-          :key="group"
-          :class="[
-            'px-4 py-2 rounded-md text-sm font-medium transition-colors',
-            selectedGroup === group
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
-          ]"
-          @click="selectedGroup = group"
-        >
-          {{ group }}
-        </button>
-      </div>
+      <!-- Filters -->
+      <div class="mb-8 space-y-4">
+        <!-- Group Tabs -->
+        <div class="flex flex-wrap gap-2">
+          <button
+            v-for="group in groups"
+            :key="group"
+            :class="[
+              'rounded-full px-5 py-2.5 text-sm font-medium transition-all',
+              selectedGroup === group
+                ? 'gradient-primary text-white shadow-lg shadow-primary/30'
+                : 'glass-card text-foreground hover:shadow-md'
+            ]"
+            @click="selectedGroup = group"
+          >
+            {{ group }}
+          </button>
+        </div>
 
-      <!-- Member Filter -->
-      <div class="mb-6 flex flex-wrap gap-2">
-        <button
-          :class="[
-            'px-3 py-1 rounded-full text-xs font-medium transition-colors',
-            selectedMember === null
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
-          ]"
-          @click="selectedMember = null"
-        >
-          All Members
-        </button>
-        <button
-          v-for="member in members[selectedGroup]"
-          :key="member"
-          :class="[
-            'px-3 py-1 rounded-full text-xs font-medium transition-colors',
-            selectedMember === member
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
-          ]"
-          @click="selectedMember = member"
-        >
-          {{ member }}
-        </button>
+        <!-- Member Filter -->
+        <div class="flex flex-wrap gap-2">
+          <button
+            :class="[
+              'rounded-full px-4 py-2 text-sm font-medium transition-all',
+              selectedMember === null
+                ? 'bg-foreground text-background'
+                : 'glass-card text-foreground hover:shadow-md'
+            ]"
+            @click="selectedMember = null"
+          >
+            All
+          </button>
+          <button
+            v-for="member in members[selectedGroup]"
+            :key="member"
+            :class="[
+              'rounded-full px-4 py-2 text-sm font-medium transition-all',
+              selectedMember === member
+                ? 'bg-foreground text-background'
+                : 'glass-card text-foreground hover:shadow-md'
+            ]"
+            @click="selectedMember = member"
+          >
+            {{ member }}
+          </button>
+        </div>
       </div>
 
       <!-- Loading Skeleton -->
       <div v-if="loading" class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-        <div v-for="i in pageSize" :key="i" class="rounded-lg border bg-card shadow-sm overflow-hidden">
-          <div class="aspect-square bg-muted animate-pulse" />
-          <div class="p-3 space-y-2">
-            <div class="h-4 bg-muted rounded w-1/3 animate-pulse" />
-            <div class="h-4 bg-muted rounded w-full animate-pulse" />
-            <div class="h-4 bg-muted rounded w-2/3 animate-pulse" />
+        <div v-for="i in pageSize" :key="i" class="glass-card overflow-hidden rounded-2xl">
+          <div class="aspect-square animate-pulse bg-gradient-to-br from-purple-200 to-pink-200 dark:from-purple-800 dark:to-pink-800" />
+          <div class="p-4 space-y-3">
+            <div class="h-3 w-1/3 animate-pulse rounded-full bg-muted" />
+            <div class="h-4 w-full animate-pulse rounded-full bg-muted" />
+            <div class="h-4 w-2/3 animate-pulse rounded-full bg-muted" />
             <div class="flex justify-between">
-              <div class="h-6 bg-muted rounded w-1/4 animate-pulse" />
-              <div class="h-4 bg-muted rounded w-1/4 animate-pulse" />
+              <div class="h-6 w-1/4 animate-pulse rounded-full bg-muted" />
+              <div class="h-4 w-1/4 animate-pulse rounded-full bg-muted" />
             </div>
           </div>
         </div>
@@ -189,83 +199,100 @@ const visiblePages = computed(() => {
           v-for="card in cards"
           :key="card.id"
           :to="`/card/${card.id}`"
-          class="group rounded-lg border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md"
+          class="group glass-card overflow-hidden rounded-2xl card-hover"
         >
-          <div class="aspect-square overflow-hidden rounded-t-lg">
+          <div class="relative aspect-square overflow-hidden">
             <img
               :src="card.image"
               :alt="card.name"
-              class="h-full w-full object-cover transition-transform group-hover:scale-105"
+              class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
               loading="lazy"
             />
+            <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+            
+            <!-- Quick badge -->
+            <div class="absolute top-2 right-2 rounded-full bg-black/50 px-2 py-1 text-xs font-medium text-white backdrop-blur">
+              {{ card.card_type }}
+            </div>
+            
+            <!-- Promo badge -->
+            <div v-if="card.is_in_promotion" class="absolute top-2 left-2 rounded-full bg-green-500 px-2 py-1 text-xs font-bold text-white">
+              -{{ card.discount_rate }}%
+            </div>
           </div>
-          <div class="p-3">
-            <div class="mb-1 flex items-center justify-between">
-              <span class="text-xs text-muted-foreground">{{ card.group_name }}</span>
-              <span class="rounded-full bg-secondary px-2 py-0.5 text-xs">{{ card.card_type }}</span>
+          
+          <div class="p-4">
+            <p class="mb-1 text-xs font-medium text-primary">{{ card.member_name }}</p>
+            <h3 class="line-clamp-2 text-sm font-semibold text-foreground">{{ card.name }}</h3>
+            <div class="mt-3 flex items-center justify-between">
+              <span class="text-xl font-bold text-foreground">${{ card.discounted_price || card.price }}</span>
+              <div class="flex items-center gap-1 text-xs text-muted-foreground">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+                {{ card.wish_count }}
+              </div>
             </div>
-            <h3 class="line-clamp-2 text-sm font-medium">{{ card.name }}</h3>
-            <div class="mt-2 flex items-center justify-between">
-              <span class="text-lg font-bold">${{ card.discounted_price || card.price }}</span>
-              <span v-if="card.is_in_promotion" class="text-xs text-green-600">-{{ card.discount_rate }}%</span>
-            </div>
-            <p class="text-xs text-muted-foreground">{{ card.member_name }}</p>
-            <div class="mt-2 flex items-center space-x-2 text-xs text-muted-foreground">
-              <span>{{ card.wish_count }} wishes</span>
+            <div class="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
               <span>{{ card.stocked_count }} in stock</span>
             </div>
           </div>
         </NuxtLink>
       </div>
 
-      <div v-if="!loading && cards.length === 0" class="py-12 text-center">
-        <p class="mb-4 text-lg text-muted-foreground">No cards found for {{ selectedMember || selectedGroup }}</p>
+      <!-- Empty State -->
+      <div v-if="!loading && cards.length === 0" class="py-16 text-center">
+        <div class="gradient-primary mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-3xl text-4xl text-white">
+          🔍
+        </div>
+        <h3 class="mb-2 text-xl font-semibold text-foreground">No cards found</h3>
+        <p class="mb-6 text-muted-foreground">Try selecting a different member or group</p>
         <NuxtLink
           to="/admin/sync"
-          class="inline-flex rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          class="gradient-primary inline-flex items-center gap-2 rounded-full px-6 py-3 font-medium text-white shadow-lg shadow-primary/30 transition-all hover:scale-105"
         >
-          Sync Cards First
+          Sync Cards
         </NuxtLink>
       </div>
 
       <!-- Pagination -->
-      <div v-if="!loading && totalPages > 1" class="mt-8 flex flex-col items-center gap-4">
-        <p class="text-sm text-muted-foreground">
-          Page {{ currentPage }} of {{ totalPages.toLocaleString() }} ({{ total.toLocaleString() }} cards)
-        </p>
-        
-        <div class="flex items-center gap-1">
-          <button
-            :disabled="currentPage === 1"
-            class="px-3 py-2 rounded-md text-sm font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 disabled:opacity-50 disabled:cursor-not-allowed"
-            @click="prevPage"
-          >
-            Previous
-          </button>
+      <div v-if="!loading && totalPages > 1" class="mt-12">
+        <div class="glass-card flex flex-col items-center gap-4 rounded-2xl p-6">
+          <p class="text-sm text-muted-foreground">
+            Page {{ currentPage }} of {{ totalPages.toLocaleString() }}
+          </p>
           
-          <template v-for="(page, index) in visiblePages" :key="index">
-            <span v-if="page === '...'" class="px-2 text-muted-foreground">...</span>
+          <div class="flex items-center gap-2">
             <button
-              v-else
-              :class="[
-                'min-w-[40px] px-3 py-2 rounded-md text-sm font-medium',
-                page === currentPage
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
-              ]"
-              @click="goToPage(page as number)"
+              :disabled="currentPage === 1"
+              class="glass-card rounded-full px-4 py-2 text-sm font-medium text-foreground transition-all hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+              @click="prevPage"
             >
-              {{ page }}
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
             </button>
-          </template>
-          
-          <button
-            :disabled="currentPage === totalPages"
-            class="px-3 py-2 rounded-md text-sm font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 disabled:opacity-50 disabled:cursor-not-allowed"
-            @click="nextPage"
-          >
-            Next
-          </button>
+            
+            <template v-for="(page, index) in visiblePages" :key="index">
+              <span v-if="page === '...'" class="px-2 text-muted-foreground">...</span>
+              <button
+                v-else
+                :class="[
+                  'min-w-[40px] rounded-full px-4 py-2 text-sm font-medium transition-all',
+                  page === currentPage
+                    ? 'bg-foreground text-background'
+                    : 'glass-card text-foreground hover:shadow-md'
+                ]"
+                @click="goToPage(page as number)"
+              >
+                {{ page }}
+              </button>
+            </template>
+            
+            <button
+              :disabled="currentPage === totalPages"
+              class="glass-card rounded-full px-4 py-2 text-sm font-medium text-foreground transition-all hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+              @click="nextPage"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+            </button>
+          </div>
         </div>
       </div>
     </main>
