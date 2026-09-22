@@ -8,15 +8,44 @@ export default defineEventHandler(async (event) => {
   
   // Check if we have recent data (less than 1 hour old)
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+  
+  let cacheSql = 'SELECT * FROM cards WHERE group_name = ? AND updated_at > ?'
+  let cacheArgs: (string | number)[] = [group, oneHourAgo]
+  
+  if (member) {
+    cacheSql += ' AND UPPER(member_name) = ?'
+    cacheArgs.push(member.toUpperCase())
+  }
+  
+  cacheSql += ' ORDER BY last_wish_count DESC LIMIT 50'
+  
   const existingCards = await db.execute({
-    sql: 'SELECT * FROM cards WHERE group_name = ? AND updated_at > ? LIMIT 50',
-    args: [group, oneHourAgo],
+    sql: cacheSql,
+    args: cacheArgs,
   })
   
   if (existingCards.rows.length > 0) {
     return {
       success: true,
-      data: existingCards.rows,
+      data: existingCards.rows.map(card => ({
+        id: card.id,
+        name: card.name,
+        image: card.image,
+        group_name: card.group_name,
+        member_name: card.member_name,
+        group_image: card.group_image,
+        member_image: card.member_image,
+        card_type: card.card_type,
+        price: card.last_price,
+        discounted_price: card.last_discounted_price,
+        discount_rate: card.last_discounted_price < card.last_price 
+          ? Math.round((1 - card.last_discounted_price / card.last_price) * 100) 
+          : 0,
+        is_in_promotion: card.last_discounted_price < card.last_price,
+        wish_count: card.last_wish_count,
+        sales_volume: card.last_sales_volume,
+        stocked_count: card.last_stocked_count,
+      })),
       source: 'cache',
     }
   }
