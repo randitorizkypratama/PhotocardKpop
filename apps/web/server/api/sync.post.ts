@@ -3,6 +3,8 @@ const GROUPS = ['IVE', 'aespa', 'Hearts2Hearts']
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const groupFilter = query.group as string | undefined
+  const maxPages = parseInt(query.maxPages as string) || 30
+  const startPage = parseInt(query.startPage as string) || 1
   
   const db = getTursoClient()
   const now = new Date().toISOString()
@@ -18,11 +20,12 @@ export default defineEventHandler(async (event) => {
     
     try {
       let synced = 0
-      let page = 1
+      let page = startPage
       let hasMore = true
       let totalCards = 0
+      let pagesProcessed = 0
       
-      while (hasMore) {
+      while (hasMore && pagesProcessed < maxPages) {
         const response = await fetchPocamarketCards(group, page)
         
         if (!response.success || response.data.results.length === 0) {
@@ -101,9 +104,19 @@ export default defineEventHandler(async (event) => {
         
         hasMore = response.data.next_page !== null
         page++
+        pagesProcessed++
       }
       
-      results.push({ group, status: 'success', synced, total: totalCards })
+      results.push({
+        group,
+        status: 'success',
+        synced,
+        total: totalCards,
+        pagesProcessed,
+        lastPage: page - 1,
+        hasMore,
+        nextPage: hasMore ? page : null,
+      })
     } catch (error) {
       results.push({ group, status: 'error', message: String(error) })
     }
