@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {
   ChevronLeft, ChevronRight, Heart, Package, Search, Sparkles,
-  SlidersHorizontal, X, ArrowUpDown, DollarSign, Tag, RefreshCw
+  SlidersHorizontal, X, ArrowUpDown, DollarSign, Tag, RefreshCw, TrendingUp
 } from 'lucide-vue-next'
 
 const groups = ['IVE', 'aespa', 'Hearts2Hearts']
@@ -33,6 +33,7 @@ const cards = ref<any[]>([])
 const loading = ref(true)
 const total = ref(0)
 const totalPages = ref(0)
+const exchangeRates = ref<any>(null)
 
 const activeFilterCount = computed(() => {
   let count = 0
@@ -44,7 +45,21 @@ const activeFilterCount = computed(() => {
   return count
 })
 
-onMounted(() => { loadCards() })
+onMounted(() => {
+  loadCards()
+  loadExchangeRates()
+})
+
+async function loadExchangeRates() {
+  try {
+    const response = await $fetch<any>('/api/exchangerate')
+    if (response.success) {
+      exchangeRates.value = response.data
+    }
+  } catch (e) {
+    console.error('Failed to load exchange rates:', e)
+  }
+}
 
 watch(selectedGroup, () => {
   selectedMember.value = null
@@ -133,6 +148,26 @@ const visiblePages = computed(() => {
         </nav>
       </div>
     </header>
+
+    <!-- Exchange Rate Bar -->
+    <div v-if="exchangeRates" class="glass border-b border-white/10">
+      <div class="container mx-auto flex items-center justify-center gap-6 px-4 py-2 text-xs">
+        <div class="flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
+          <TrendingUp class="h-3 w-3 text-green-500" />
+          <span class="font-medium">Kurs BI:</span>
+        </div>
+        <div class="flex items-center gap-4">
+          <span class="text-slate-700 dark:text-slate-300">
+            1 USD = <span class="font-semibold text-slate-900 dark:text-white">{{ exchangeRates.usd?.midRate?.toLocaleString('id-ID') }}</span> IDR
+          </span>
+          <span class="text-slate-300 dark:text-slate-600">|</span>
+          <span class="text-slate-700 dark:text-slate-300">
+            1 MYR = <span class="font-semibold text-slate-900 dark:text-white">{{ exchangeRates.myr?.midRate?.toLocaleString('id-ID') }}</span> IDR
+          </span>
+        </div>
+        <span class="text-[10px] text-slate-400 dark:text-slate-500">{{ exchangeRates.date }}</span>
+      </div>
+    </div>
 
     <main class="container mx-auto px-4 py-8">
       <div class="mb-8 flex items-center justify-between">
@@ -254,7 +289,12 @@ const visiblePages = computed(() => {
             <p class="mb-1 text-xs font-medium text-purple-600 dark:text-purple-400">{{ card.member_name }}</p>
             <h3 class="line-clamp-2 text-sm font-semibold text-slate-900 dark:text-white">{{ card.name }}</h3>
             <div class="mt-3 flex items-center justify-between">
-              <span class="text-xl font-bold text-slate-900 dark:text-white">${{ card.discounted_price || card.price }}</span>
+              <div>
+                <span class="text-xl font-bold text-slate-900 dark:text-white">${{ card.discounted_price || card.price }}</span>
+                <p v-if="exchangeRates?.usd?.midRate" class="text-[10px] text-slate-400 dark:text-slate-500">
+                  ~Rp {{ ((card.discounted_price || card.price) * exchangeRates.usd.midRate).toLocaleString('id-ID', { maximumFractionDigits: 0 }) }}
+                </p>
+              </div>
               <div class="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
                 <Heart class="h-3 w-3" />
                 {{ card.wish_count }}
