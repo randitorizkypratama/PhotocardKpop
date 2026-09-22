@@ -2,19 +2,25 @@
 
 Track K-pop photocard prices from Pocamarket for IVE, aespa, and Hearts2Hearts.
 
+**Live:** [kpop-tracker.vercel.app](https://kpop-tracker-seven-sepia-33.vercel.app)
+
 ## Features
 
-- Browse photocards by group and member
+- Browse 16,000+ photocards by group and member
+- Filter by card type, price range, and sort options
 - Track price history and trends
 - Manage your collection (owned/wishlist)
-- Real-time price updates from Pocamarket API
+- Daily auto-sync from Pocamarket at 00:00 WIB
+- Modern glassmorphism UI with dark mode support
 
 ## Tech Stack
 
-- **Frontend**: Nuxt 3 + Vue 3 + Tailwind CSS
+- **Frontend**: Nuxt 4.5 + Vue 3 + Tailwind CSS v3
 - **Database**: Turso (libSQL)
 - **API**: Pocamarket Public API
-- **Deploy**: Vercel
+- **Icons**: Lucide Vue Next
+- **Deploy**: Vercel (with Cron Jobs)
+- **Analytics**: Vercel Analytics
 
 ## Setup
 
@@ -48,7 +54,9 @@ curl -X POST http://localhost:3000/api/init
 ### 5. Sync Cards
 
 ```bash
-curl -X POST http://localhost:3000/api/sync
+curl "http://localhost:3000/api/sync/group?group=IVE"
+curl "http://localhost:3000/api/sync/group?group=aespa"
+curl "http://localhost:3000/api/sync/group?group=Hearts2Hearts"
 ```
 
 ### 6. Start Development
@@ -59,21 +67,34 @@ bun run dev
 
 ## API Endpoints
 
-- `GET /api/cards?group=IVE&page=1` - Browse cards
-- `GET /api/cards/:id` - Get card details
-- `GET /api/cards/:id/history` - Get price history
-- `GET /api/collection` - Get collection
-- `POST /api/collection` - Add to collection
-- `DELETE /api/collection/:id` - Remove from collection
-- `POST /api/sync` - Sync cards from Pocamarket
-- `POST /api/init` - Initialize database
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/cards` | Browse cards from DB |
+| GET | `/api/cards/:id` | Get card details |
+| GET | `/api/cards/:id/history` | Get price history |
+| GET | `/api/collection` | Get collection |
+| POST | `/api/collection` | Add to collection |
+| DELETE | `/api/collection/:id` | Remove from collection |
+| GET | `/api/sync/group` | Sync group to DB |
+| POST | `/api/cron/sync` | Daily cron sync |
+| POST | `/api/init` | Initialize database |
 
-## Deploy to Vercel
+## Database
+
+- **cards** - 16,200+ photocards
+- **price_history** - Price tracking
+- **collections** - User collection (wishlist/owned)
+
+## Cron Job
+
+Daily sync at 00:00 WIB (17:00 UTC) via Vercel Cron Jobs. Free on Vercel Hobby plan.
+
+## Deploy
 
 1. Push to GitHub
-2. Import project to Vercel
-3. Set environment variables
-4. Deploy!
+2. Import to Vercel
+3. Set env vars: `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `CRON_SECRET`
+4. Deploy
 
 ## License
 

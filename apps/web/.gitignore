@@ -23,4 +23,6 @@ logs
 .env.*
 !.env.example
 
+# Vercel
 .vercel
+.env.local
