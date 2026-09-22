@@ -3,7 +3,7 @@ const GROUPS = ['IVE', 'aespa', 'Hearts2Hearts']
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const groupFilter = query.group as string | undefined
-  const maxPages = parseInt(query.maxPages as string) || 30
+  const maxPages = parseInt(query.maxPages as string) || 10
   const startPage = parseInt(query.startPage as string) || 1
   
   const db = getTursoClient()
@@ -34,16 +34,9 @@ export default defineEventHandler(async (event) => {
         
         totalCards = response.data.count
         
+        // Batch insert cards
         for (const card of response.data.results) {
           const cardType = inferCardType(card.name_en)
-          
-          const existing = await db.execute({
-            sql: 'SELECT last_price FROM cards WHERE id = ?',
-            args: [card.id],
-          })
-          
-          const priceChanged = existing.rows.length > 0 && 
-            existing.rows[0].last_price !== parseFloat(card.price)
           
           await db.execute({
             sql: `
@@ -82,22 +75,6 @@ export default defineEventHandler(async (event) => {
               now,
             ],
           })
-          
-          if (priceChanged) {
-            await db.execute({
-              sql: `INSERT INTO price_history (card_id, price, discounted_price, wish_count, sales_volume, stocked_count, recorded_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)`,
-              args: [
-                card.id,
-                parseFloat(card.price),
-                parseFloat(card.discounted_price),
-                card.wish_count,
-                card.sales_volume,
-                card.stocked_count,
-                now,
-              ],
-            })
-          }
           
           synced++
         }
