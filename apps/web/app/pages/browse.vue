@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import {
   ChevronLeft, ChevronRight, Heart, Package, Search, Sparkles,
-  SlidersHorizontal, X, ArrowUpDown, DollarSign, Tag, Loader2
+  SlidersHorizontal, X, ArrowUpDown, DollarSign, Tag, RefreshCw
 } from 'lucide-vue-next'
 
 const groups = ['IVE', 'aespa', 'Hearts2Hearts']
 const members: Record<string, string[]> = {
-  IVE: ['WONYOUNG', 'LIZ', 'GAEUL', 'REI', 'YUJIN', 'LEESEO'],
+  IVE: ['WONYONG', 'LIZ', 'GAEUL', 'REI', 'YUJIN', 'LEESEO'],
   aespa: ['KARINA', 'WINTER', 'GISELLE', 'NINGNING'],
   Hearts2Hearts: ['IAN', 'JIWOO', 'YE-ON', 'Carmen', 'Stella', 'YUHA'],
 }
@@ -31,13 +31,8 @@ const pageSize = 20
 
 const cards = ref<any[]>([])
 const loading = ref(true)
-const syncing = ref(false)
-const syncProgress = ref('')
 const total = ref(0)
 const totalPages = ref(0)
-
-// Track which groups have been synced
-const syncedGroups = ref<Set<string>>(new Set())
 
 const activeFilterCount = computed(() => {
   let count = 0
@@ -63,30 +58,7 @@ watch([selectedMember, selectedCardType, selectedSort, minPrice, maxPrice], () =
   loadCards()
 })
 
-async function syncGroup(group: string) {
-  syncing.value = true
-  syncProgress.value = `Fetching all ${group} cards from Pocamarket...`
-
-  try {
-    const response = await $fetch<any>(`/api/sync/group?group=${group}`)
-    if (response.success) {
-      syncedGroups.value.add(group)
-      syncProgress.value = `Synced ${response.totalSynced} cards`
-    }
-  } catch (e) {
-    console.error('Sync failed:', e)
-    syncProgress.value = 'Sync failed'
-  } finally {
-    syncing.value = false
-  }
-}
-
 async function loadCards() {
-  // If group not synced yet, sync first
-  if (!syncedGroups.value.has(selectedGroup.value)) {
-    await syncGroup(selectedGroup.value)
-  }
-
   loading.value = true
   try {
     const params = new URLSearchParams({
@@ -167,16 +139,9 @@ const visiblePages = computed(() => {
         <div>
           <h1 class="text-3xl font-bold text-slate-900 dark:text-white">Browse Photocards</h1>
           <p class="mt-1 text-slate-500 dark:text-slate-400">
-            {{ syncing ? syncProgress : (loading ? 'Loading...' : `${total.toLocaleString()} cards`) }}
+            {{ loading ? 'Loading...' : `${total.toLocaleString()} cards` }}
           </p>
         </div>
-      </div>
-
-      <!-- Syncing Banner -->
-      <div v-if="syncing" class="mb-6 glass-card rounded-2xl p-6 text-center">
-        <Loader2 class="mx-auto mb-3 h-8 w-8 animate-spin text-purple-500" />
-        <p class="text-lg font-semibold text-slate-900 dark:text-white">{{ syncProgress }}</p>
-        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">This may take a moment on first load...</p>
       </div>
 
       <!-- Group Tabs -->
@@ -188,8 +153,6 @@ const visiblePages = computed(() => {
             : 'glass-card text-slate-700 hover:shadow-md dark:text-slate-300'
         ]" @click="selectedGroup = group">
           {{ group }}
-          <Loader2 v-if="syncing && selectedGroup === group" class="ml-1 inline h-3 w-3 animate-spin" />
-          <span v-else-if="syncedGroups.has(group)" class="ml-1 inline h-1.5 w-1.5 rounded-full bg-green-400"></span>
         </button>
       </div>
 
@@ -202,7 +165,7 @@ const visiblePages = computed(() => {
         </button>
 
         <div class="relative">
-          <select v-model="selectedSort" :disabled="syncing" class="appearance-none rounded-full bg-white/80 px-4 py-2 pr-8 text-sm font-medium text-slate-700 backdrop-blur transition-all hover:shadow-md disabled:opacity-50 dark:bg-black/50 dark:text-slate-300">
+          <select v-model="selectedSort" class="appearance-none rounded-full bg-white/80 px-4 py-2 pr-8 text-sm font-medium text-slate-700 backdrop-blur transition-all hover:shadow-md dark:bg-black/50 dark:text-slate-300">
             <option v-for="opt in sortOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
           </select>
           <ArrowUpDown class="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
@@ -263,7 +226,7 @@ const visiblePages = computed(() => {
       </Transition>
 
       <!-- Loading -->
-      <div v-if="loading || syncing" class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+      <div v-if="loading" class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
         <div v-for="i in pageSize" :key="i" class="glass-card overflow-hidden rounded-2xl">
           <div class="aspect-square animate-pulse bg-gradient-to-br from-purple-200 to-pink-200 dark:from-purple-800 dark:to-pink-800" />
           <div class="space-y-3 p-4">
@@ -306,19 +269,19 @@ const visiblePages = computed(() => {
       </div>
 
       <!-- Empty -->
-      <div v-if="!loading && !syncing && cards.length === 0" class="py-16 text-center">
+      <div v-if="!loading && cards.length === 0" class="py-16 text-center">
         <div class="gradient-primary mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-3xl text-white">
           <Search class="h-10 w-10" />
         </div>
         <h3 class="mb-2 text-xl font-semibold text-slate-900 dark:text-white">No cards found</h3>
-        <p class="mb-6 text-slate-500 dark:text-slate-400">Try adjusting your filters</p>
+        <p class="mb-6 text-slate-500 dark:text-slate-400">Database is syncing daily at 00:00 WIB. Check back later!</p>
         <button class="gradient-primary inline-flex items-center gap-2 rounded-full px-6 py-3 font-medium text-white shadow-lg shadow-purple-500/30 transition-all hover:scale-105" @click="clearFilters">
           Clear Filters
         </button>
       </div>
 
       <!-- Pagination -->
-      <div v-if="!loading && !syncing && totalPages > 1" class="mt-12">
+      <div v-if="!loading && totalPages > 1" class="mt-12">
         <div class="glass-card flex flex-col items-center gap-4 rounded-2xl p-6">
           <p class="text-sm text-slate-500 dark:text-slate-400">Page {{ currentPage }} of {{ totalPages.toLocaleString() }} ({{ total.toLocaleString() }} cards)</p>
           <div class="flex items-center gap-2">
