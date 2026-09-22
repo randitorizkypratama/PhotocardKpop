@@ -33,7 +33,7 @@ export function useCards() {
   const currentPage = ref(1)
   const hasNextPage = ref(false)
 
-  async function fetchCards(group: string = 'IVE', page: number = 1, member?: string) {
+  async function fetchCards(group: string = 'IVE', page: number = 1, member?: string, append: boolean = false) {
     loading.value = true
     error.value = null
 
@@ -44,13 +44,13 @@ export function useCards() {
       const response = await $fetch<CardsResponse>(`/api/cards?${queryParams}`)
 
       if (response.success) {
-        if (page === 1) {
-          cards.value = response.data
-        } else {
+        if (append && page > 1) {
           cards.value = [...cards.value, ...response.data]
+        } else {
+          cards.value = response.data
         }
-        total.value = response.total
-        currentPage.value = response.page
+        total.value = response.total || cards.value.length
+        currentPage.value = page
         hasNextPage.value = response.next_page !== null
       }
     } catch (e) {
@@ -62,7 +62,7 @@ export function useCards() {
 
   function loadMore(group: string, member?: string) {
     if (hasNextPage.value && !loading.value) {
-      fetchCards(group, currentPage.value + 1, member)
+      fetchCards(group, currentPage.value + 1, member, true)
     }
   }
 
