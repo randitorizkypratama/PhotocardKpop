@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {
   ChevronLeft, ChevronRight, Heart, Package, Search, Sparkles,
-  SlidersHorizontal, X, ArrowUpDown, DollarSign, Tag
+  SlidersHorizontal, X, ArrowUpDown, DollarSign, Tag, Loader2
 } from 'lucide-vue-next'
 
 const groups = ['IVE', 'aespa', 'Hearts2Hearts']
@@ -15,7 +15,6 @@ const sortOptions = [
   { value: 'popular', label: 'Most Popular' },
   { value: 'price_asc', label: 'Price: Low → High' },
   { value: 'price_desc', label: 'Price: High → Low' },
-  { value: 'newest', label: 'Newest First' },
   { value: 'stock', label: 'Most Stock' },
   { value: 'name', label: 'Name A-Z' },
 ]
@@ -32,8 +31,13 @@ const pageSize = 20
 
 const cards = ref<any[]>([])
 const loading = ref(true)
+const syncing = ref(false)
+const syncProgress = ref('')
 const total = ref(0)
 const totalPages = ref(0)
+
+// Track which groups have been synced
+const syncedGroups = ref<Set<string>>(new Set())
 
 const activeFilterCount = computed(() => {
   let count = 0
@@ -59,7 +63,30 @@ watch([selectedMember, selectedCardType, selectedSort, minPrice, maxPrice], () =
   loadCards()
 })
 
+async function syncGroup(group: string) {
+  syncing.value = true
+  syncProgress.value = `Fetching all ${group} cards from Pocamarket...`
+
+  try {
+    const response = await $fetch<any>(`/api/sync/group?group=${group}`)
+    if (response.success) {
+      syncedGroups.value.add(group)
+      syncProgress.value = `Synced ${response.totalSynced} cards`
+    }
+  } catch (e) {
+    console.error('Sync failed:', e)
+    syncProgress.value = 'Sync failed'
+  } finally {
+    syncing.value = false
+  }
+}
+
 async function loadCards() {
+  // If group not synced yet, sync first
+  if (!syncedGroups.value.has(selectedGroup.value)) {
+    await syncGroup(selectedGroup.value)
+  }
+
   loading.value = true
   try {
     const params = new URLSearchParams({
@@ -140,9 +167,16 @@ const visiblePages = computed(() => {
         <div>
           <h1 class="text-3xl font-bold text-slate-900 dark:text-white">Browse Photocards</h1>
           <p class="mt-1 text-slate-500 dark:text-slate-400">
-            {{ loading ? 'Explore the photocard collection' : `${total.toLocaleString()} cards found` }}
+            {{ syncing ? syncProgress : (loading ? 'Loading...' : `${total.toLocaleString()} cards`) }}
           </p>
         </div>
+      </div>
+
+      <!-- Syncing Banner -->
+      <div v-if="syncing" class="mb-6 glass-card rounded-2xl p-6 text-center">
+        <Loader2 class="mx-auto mb-3 h-8 w-8 animate-spin text-purple-500" />
+        <p class="text-lg font-semibold text-slate-900 dark:text-white">{{ syncProgress }}</p>
+        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">This may take a moment on first load...</p>
       </div>
 
       <!-- Group Tabs -->
@@ -154,27 +188,26 @@ const visiblePages = computed(() => {
             : 'glass-card text-slate-700 hover:shadow-md dark:text-slate-300'
         ]" @click="selectedGroup = group">
           {{ group }}
+          <Loader2 v-if="syncing && selectedGroup === group" class="ml-1 inline h-3 w-3 animate-spin" />
+          <span v-else-if="syncedGroups.has(group)" class="ml-1 inline h-1.5 w-1.5 rounded-full bg-green-400"></span>
         </button>
       </div>
 
       <!-- Filter Bar -->
       <div class="mb-6 flex flex-wrap items-center gap-3">
-        <!-- Toggle Filters -->
         <button class="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all glass-card text-slate-700 hover:shadow-md dark:text-slate-300" @click="showFilters = !showFilters">
           <SlidersHorizontal class="h-4 w-4" />
           Filters
           <span v-if="activeFilterCount > 0" class="flex h-5 w-5 items-center justify-center rounded-full bg-purple-500 text-[10px] font-bold text-white">{{ activeFilterCount }}</span>
         </button>
 
-        <!-- Sort -->
         <div class="relative">
-          <select v-model="selectedSort" class="appearance-none rounded-full bg-white/80 px-4 py-2 pr-8 text-sm font-medium text-slate-700 backdrop-blur transition-all hover:shadow-md dark:bg-black/50 dark:text-slate-300">
+          <select v-model="selectedSort" :disabled="syncing" class="appearance-none rounded-full bg-white/80 px-4 py-2 pr-8 text-sm font-medium text-slate-700 backdrop-blur transition-all hover:shadow-md disabled:opacity-50 dark:bg-black/50 dark:text-slate-300">
             <option v-for="opt in sortOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
           </select>
           <ArrowUpDown class="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
         </div>
 
-        <!-- Active filter chips -->
         <div v-if="selectedMember" class="flex items-center gap-1 rounded-full bg-purple-100 px-3 py-1 text-xs font-medium text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
           {{ selectedMember }}
           <button @click="selectedMember = null"><X class="h-3 w-3" /></button>
@@ -197,7 +230,6 @@ const visiblePages = computed(() => {
       <Transition name="slide">
         <div v-if="showFilters" class="mb-6 glass-card rounded-2xl p-6">
           <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            <!-- Member -->
             <div>
               <label class="mb-2 flex items-center gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">
                 <Heart class="h-3.5 w-3.5 text-pink-500" /> Member
@@ -207,8 +239,6 @@ const visiblePages = computed(() => {
                 <button v-for="m in members[selectedGroup]" :key="m" :class="['rounded-full px-3 py-1.5 text-xs font-medium transition-all', selectedMember === m ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700']" @click="selectedMember = m">{{ m }}</button>
               </div>
             </div>
-
-            <!-- Card Type -->
             <div>
               <label class="mb-2 flex items-center gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">
                 <Tag class="h-3.5 w-3.5 text-purple-500" /> Card Type
@@ -218,8 +248,6 @@ const visiblePages = computed(() => {
                 <button v-for="t in cardTypes" :key="t" :class="['rounded-full px-3 py-1.5 text-xs font-medium transition-all', selectedCardType === t ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700']" @click="selectedCardType = t">{{ t }}</button>
               </div>
             </div>
-
-            <!-- Price Range -->
             <div>
               <label class="mb-2 flex items-center gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">
                 <DollarSign class="h-3.5 w-3.5 text-green-500" /> Price Range (USD)
@@ -235,7 +263,7 @@ const visiblePages = computed(() => {
       </Transition>
 
       <!-- Loading -->
-      <div v-if="loading" class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+      <div v-if="loading || syncing" class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
         <div v-for="i in pageSize" :key="i" class="glass-card overflow-hidden rounded-2xl">
           <div class="aspect-square animate-pulse bg-gradient-to-br from-purple-200 to-pink-200 dark:from-purple-800 dark:to-pink-800" />
           <div class="space-y-3 p-4">
@@ -278,7 +306,7 @@ const visiblePages = computed(() => {
       </div>
 
       <!-- Empty -->
-      <div v-if="!loading && cards.length === 0" class="py-16 text-center">
+      <div v-if="!loading && !syncing && cards.length === 0" class="py-16 text-center">
         <div class="gradient-primary mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-3xl text-white">
           <Search class="h-10 w-10" />
         </div>
@@ -290,9 +318,9 @@ const visiblePages = computed(() => {
       </div>
 
       <!-- Pagination -->
-      <div v-if="!loading && totalPages > 1" class="mt-12">
+      <div v-if="!loading && !syncing && totalPages > 1" class="mt-12">
         <div class="glass-card flex flex-col items-center gap-4 rounded-2xl p-6">
-          <p class="text-sm text-slate-500 dark:text-slate-400">Page {{ currentPage }} of {{ totalPages.toLocaleString() }}</p>
+          <p class="text-sm text-slate-500 dark:text-slate-400">Page {{ currentPage }} of {{ totalPages.toLocaleString() }} ({{ total.toLocaleString() }} cards)</p>
           <div class="flex items-center gap-2">
             <button :disabled="currentPage === 1" class="glass-card rounded-full p-2 text-slate-700 transition-all hover:shadow-md disabled:opacity-50 dark:text-slate-300" @click="prevPage">
               <ChevronLeft class="h-5 w-5" />
@@ -319,15 +347,7 @@ const visiblePages = computed(() => {
 </template>
 
 <style scoped>
-.slide-enter-active, .slide-leave-active {
-  transition: all 0.3s ease;
-}
-.slide-enter-from, .slide-leave-to {
-  opacity: 0;
-  transform: translateY(-10px);
-  max-height: 0;
-}
-.slide-enter-to, .slide-leave-from {
-  max-height: 500px;
-}
+.slide-enter-active, .slide-leave-active { transition: all 0.3s ease; }
+.slide-enter-from, .slide-leave-to { opacity: 0; transform: translateY(-10px); max-height: 0; }
+.slide-enter-to, .slide-leave-from { max-height: 500px; }
 </style>
