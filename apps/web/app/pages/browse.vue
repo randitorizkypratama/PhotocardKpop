@@ -218,8 +218,14 @@ const visiblePages = computed(() => {
         </NuxtLink>
       </div>
 
-      <div v-if="!loading && cards.length === 0" class="py-8 text-center text-muted-foreground">
-        No cards found. Try syncing data first.
+      <div v-if="!loading && cards.length === 0" class="py-12 text-center">
+        <p class="mb-4 text-lg text-muted-foreground">No cards found for {{ selectedMember || selectedGroup }}</p>
+        <NuxtLink
+          to="/admin/sync"
+          class="inline-flex rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          Sync Cards First
+        </NuxtLink>
       </div>
 
       <!-- Pagination -->
