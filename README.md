@@ -2,7 +2,7 @@
 
 Track K-pop photocard prices from Pocamarket for IVE, aespa, and Hearts2Hearts.
 
-**Live:** [kpop-tracker.vercel.app](https://kpop-tracker-seven-sepia-33.vercel.app)
+**Live:** [kpop-tracker-six.vercel.app](https://kpop-tracker-six.vercel.app)
 
 ## Features
 
