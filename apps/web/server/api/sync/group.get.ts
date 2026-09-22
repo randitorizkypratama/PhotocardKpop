@@ -1,4 +1,5 @@
 const GROUPS = ['IVE', 'aespa', 'Hearts2Hearts']
+const BATCH_SIZE = 10
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
@@ -11,50 +12,40 @@ export default defineEventHandler(async (event) => {
   const db = getTursoClient()
   const now = new Date().toISOString()
 
-  let page = 1
-  let hasMore = true
+  // Get total count first
+  const firstPage = await fetchPocamarketCards(group, 1)
+  if (!firstPage.success) {
+    throw createError({ statusCode: 500, statusMessage: 'Failed to fetch from Pocamarket' })
+  }
+
+  const totalCards = firstPage.data.count
+  const totalPages = Math.ceil(totalCards / 20)
   let totalSynced = 0
-  let totalCards = 0
 
-  while (hasMore) {
-    try {
-      const response = await fetchPocamarketCards(group, page)
-      if (!response.success || response.data.results.length === 0) break
+  // Insert first page
+  const firstMapped = mapCards(firstPage.data.results)
+  await batchUpsert(db, firstMapped, now)
+  totalSynced += firstMapped.length
 
-      totalCards = response.data.count
+  // Fetch remaining pages in batches of BATCH_SIZE
+  for (let startPage = 2; startPage <= totalPages; startPage += BATCH_SIZE) {
+    const endPage = Math.min(startPage + BATCH_SIZE - 1, totalPages)
+    const promises: Promise<any>[] = []
 
-      for (const card of response.data.results) {
-        const cardType = inferCardType(card.name_en)
+    for (let p = startPage; p <= endPage; p++) {
+      promises.push(
+        fetchPocamarketCards(group, p)
+          .then(res => res.success ? mapCards(res.data.results) : [])
+          .catch(() => [])
+      )
+    }
 
-        await db.execute({
-          sql: `
-            INSERT INTO cards (id, name, image, group_name, member_name, group_image, member_image,
-                             card_type, last_price, last_discounted_price, last_wish_count,
-                             last_sales_volume, last_stocked_count, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(id) DO UPDATE SET
-              name = excluded.name, image = excluded.image, member_name = excluded.member_name,
-              group_image = excluded.group_image, member_image = excluded.member_image,
-              card_type = excluded.card_type, last_price = excluded.last_price,
-              last_discounted_price = excluded.last_discounted_price, last_wish_count = excluded.last_wish_count,
-              last_sales_volume = excluded.last_sales_volume, last_stocked_count = excluded.last_stocked_count,
-              updated_at = excluded.updated_at
-          `,
-          args: [
-            card.id, card.name_en, card.image, card.group_name_en, card.member_name_en,
-            card.group_image, card.member_image, cardType,
-            parseFloat(card.price), parseFloat(card.discounted_price),
-            card.wish_count, card.sales_volume, card.stocked_count, now,
-          ],
-        })
+    const results = await Promise.all(promises)
+    const allCards = results.flat()
 
-        totalSynced++
-      }
-
-      hasMore = response.data.next_page !== null
-      page++
-    } catch {
-      break
+    if (allCards.length > 0) {
+      await batchUpsert(db, allCards, now)
+      totalSynced += allCards.length
     }
   }
 
@@ -63,6 +54,54 @@ export default defineEventHandler(async (event) => {
     group,
     totalSynced,
     totalCards,
-    pages: page - 1,
+    pages: totalPages,
   }
 })
+
+function mapCards(results: any[]) {
+  return results.map(card => ({
+    id: card.id,
+    name: card.name_en,
+    image: card.image,
+    group_name: card.group_name_en,
+    member_name: card.member_name_en,
+    group_image: card.group_image,
+    member_image: card.member_image,
+    card_type: inferCardType(card.name_en),
+    price: parseFloat(card.price),
+    discounted_price: parseFloat(card.discounted_price),
+    wish_count: card.wish_count,
+    sales_volume: card.sales_volume,
+    stocked_count: card.stocked_count,
+  }))
+}
+
+async function batchUpsert(db: any, cards: any[], now: string) {
+  const stmts = cards.map(card => ({
+    sql: `
+      INSERT INTO cards (id, name, image, group_name, member_name, group_image, member_image,
+                       card_type, last_price, last_discounted_price, last_wish_count,
+                       last_sales_volume, last_stocked_count, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        name = excluded.name, image = excluded.image, member_name = excluded.member_name,
+        group_image = excluded.group_image, member_image = excluded.member_image,
+        card_type = excluded.card_type, last_price = excluded.last_price,
+        last_discounted_price = excluded.last_discounted_price, last_wish_count = excluded.last_wish_count,
+        last_sales_volume = excluded.last_sales_volume, last_stocked_count = excluded.last_stocked_count,
+        updated_at = excluded.updated_at
+    `,
+    args: [
+      card.id, card.name, card.image, card.group_name, card.member_name,
+      card.group_image, card.member_image, card.card_type,
+      card.price, card.discounted_price,
+      card.wish_count, card.sales_volume, card.stocked_count, now,
+    ],
+  }))
+
+  // Execute in chunks of 50 to avoid overwhelming the DB
+  for (let i = 0; i < stmts.length; i += 50) {
+    const chunk = stmts.slice(i, i + 50)
+    await db.batch(chunk)
+  }
+}
