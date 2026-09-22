@@ -2,7 +2,7 @@
 import {
   ArrowLeft, Sparkles, TrendingUp, TrendingDown, Minus,
   Heart, ShoppingCart, Package, Tag, DollarSign,
-  X, Check, Clock
+  X, Check, Clock, TrendingUp as TrendingUpIcon
 } from 'lucide-vue-next'
 
 const route = useRoute()
@@ -17,13 +17,20 @@ const error = ref<string | null>(null)
 const showAddDialog = ref(false)
 const addToStatus = ref<'owned' | 'wishlist'>('wishlist')
 const boughtPrice = ref<number | null>(null)
+const exchangeRates = ref<any>(null)
 
 onMounted(async () => {
   try {
-    const response = await $fetch(`/api/cards/${cardId}`)
-    if (response.success) {
-      card.value = response.data
+    const [cardRes, ratesRes] = await Promise.all([
+      $fetch(`/api/cards/${cardId}`),
+      $fetch<any>('/api/exchangerate').catch(() => ({ success: false, data: null })),
+    ])
+    if (cardRes.success) {
+      card.value = cardRes.data
       await fetchPriceHistory(cardId)
+    }
+    if (ratesRes.success) {
+      exchangeRates.value = ratesRes.data
     }
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Failed to fetch card'
@@ -95,6 +102,9 @@ function formatDate(dateString: string) {
               <div>
                 <p class="text-sm text-slate-500 dark:text-slate-400">Current Price</p>
                 <p class="text-4xl font-bold text-slate-900 dark:text-white">${{ card.discounted_price || card.price }}</p>
+                <p v-if="exchangeRates?.usd?.rate" class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                  ~Rp {{ ((card.discounted_price || card.price) * exchangeRates.usd.rate).toLocaleString('id-ID', { maximumFractionDigits: 0 }) }}
+                </p>
               </div>
               <div v-if="card.is_in_promotion" class="text-right">
                 <p class="text-sm text-slate-400 line-through">${{ card.price }}</p>

@@ -158,11 +158,11 @@ const visiblePages = computed(() => {
         </div>
         <div class="flex items-center gap-4">
           <span class="text-slate-700 dark:text-slate-300">
-            1 USD = <span class="font-semibold text-slate-900 dark:text-white">{{ exchangeRates.usd?.midRate?.toLocaleString('id-ID') }}</span> IDR
+            1 USD = <span class="font-semibold text-slate-900 dark:text-white">{{ Math.round(exchangeRates.usd?.rate)?.toLocaleString('id-ID') }}</span> IDR
           </span>
           <span class="text-slate-300 dark:text-slate-600">|</span>
           <span class="text-slate-700 dark:text-slate-300">
-            1 MYR = <span class="font-semibold text-slate-900 dark:text-white">{{ exchangeRates.myr?.midRate?.toLocaleString('id-ID') }}</span> IDR
+            1 MYR = <span class="font-semibold text-slate-900 dark:text-white">{{ Math.round(exchangeRates.myr?.rate)?.toLocaleString('id-ID') }}</span> IDR
           </span>
         </div>
         <span class="text-[10px] text-slate-400 dark:text-slate-500">{{ exchangeRates.date }}</span>
@@ -291,8 +291,8 @@ const visiblePages = computed(() => {
             <div class="mt-3 flex items-center justify-between">
               <div>
                 <span class="text-xl font-bold text-slate-900 dark:text-white">${{ card.discounted_price || card.price }}</span>
-                <p v-if="exchangeRates?.usd?.midRate" class="text-[10px] text-slate-400 dark:text-slate-500">
-                  ~Rp {{ ((card.discounted_price || card.price) * exchangeRates.usd.midRate).toLocaleString('id-ID', { maximumFractionDigits: 0 }) }}
+                <p v-if="exchangeRates?.usd?.rate" class="text-[10px] text-slate-400 dark:text-slate-500">
+                  ~Rp {{ ((card.discounted_price || card.price) * exchangeRates.usd.rate).toLocaleString('id-ID', { maximumFractionDigits: 0 }) }}
                 </p>
               </div>
               <div class="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">

@@ -1,8 +1,6 @@
 export interface ExchangeRate {
-  currency: string
-  buyRate: number
-  sellRate: number
-  midRate: number
+  rate: number
+  convertedToIDR: number
 }
 
 export interface ExchangeRateResponse {
@@ -20,39 +18,32 @@ export async function fetchExchangeRates(): Promise<ExchangeRateResponse | null>
     if (!response.ok) return null
 
     const data = await response.json()
-    const graph = data['@graph'] || []
-    const rates: any[] = []
 
-    for (const item of graph) {
-      if (item.rates) {
-        for (const rate of item.rates) {
-          rates.push(rate)
-        }
-      }
+    const findRate = (quote: string) => {
+      return data.find((r: any) => r.quote === quote)
     }
 
-    const findRate = (currency: string) => {
-      const rate = rates.find((r: any) => r.currency === currency)
-      if (!rate) return null
-      const buy = parseFloat(rate.buyRate || rate.value || '0')
-      const sell = parseFloat(rate.sellRate || rate.value || '0')
-      return {
-        currency,
-        buyRate: buy,
-        sellRate: sell,
-        midRate: (buy + sell) / 2 || buy || sell,
-      }
-    }
+    const idrRate = findRate('IDR')
+    const usdRate = findRate('USD')
+    const myrRate = findRate('MYR')
 
-    const usd = findRate('USD')
-    const myr = findRate('MYR')
+    if (!idrRate) return null
 
-    if (!usd && !myr) return null
+    const eurToIDR = idrRate.rate
+
+    const usdToIDR = usdRate ? eurToIDR / usdRate.rate : 0
+    const myrToIDR = myrRate ? eurToIDR / myrRate.rate : 0
 
     return {
-      date: rates[0]?.date || new Date().toISOString().split('T')[0],
-      usd: usd || { currency: 'USD', buyRate: 0, sellRate: 0, midRate: 0 },
-      myr: myr || { currency: 'MYR', buyRate: 0, sellRate: 0, midRate: 0 },
+      date: idrRate.date,
+      usd: {
+        rate: usdToIDR,
+        convertedToIDR: usdToIDR,
+      },
+      myr: {
+        rate: myrToIDR,
+        convertedToIDR: myrToIDR,
+      },
       fetchedAt: new Date().toISOString(),
     }
   } catch {
