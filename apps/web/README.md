@@ -1,30 +1,75 @@
-# K-Pop Photocard Tracker - Web App
+# Nuxt Minimal Starter
 
-Nuxt 4.5 web app for browsing and tracking K-pop photocards.
+Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
 
-## Quick Start
+## Setup
+
+Make sure to install dependencies:
 
 ```bash
+# npm
+npm install
+
+# pnpm
+pnpm install
+
+# yarn
+yarn install
+
+# bun
 bun install
+```
+
+## Development Server
+
+Start the development server on `http://localhost:3000`:
+
+```bash
+# npm
+npm run dev
+
+# pnpm
+pnpm dev
+
+# yarn
+yarn dev
+
+# bun
 bun run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000)
+## Production
 
-## Environment Variables
-
-```env
-TURSO_DATABASE_URL=libsql://your-db-name.turso.io
-TURSO_AUTH_TOKEN=your-auth-token
-CRON_SECRET=your-cron-secret
-```
-
-## Build
+Build the application for production:
 
 ```bash
+# npm
+npm run build
+
+# pnpm
+pnpm build
+
+# yarn
+yarn build
+
+# bun
 bun run build
 ```
 
-## Deploy
+Locally preview production build:
 
-Connected to Vercel. Auto-deploys on push to main.
+```bash
+# npm
+npm run preview
+
+# pnpm
+pnpm preview
+
+# yarn
+yarn preview
+
+# bun
+bun run preview
+```
+
+Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
