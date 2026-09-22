@@ -4,12 +4,16 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
 
   modules: [
-    '@nuxtjs/tailwindcss',
     '@nuxtjs/google-fonts',
   ],
 
-  tailwindcss: {
-    cssPath: '~/assets/css/main.css',
+  css: ['~/assets/css/main.css'],
+
+  postcss: {
+    plugins: {
+      tailwindcss: {},
+      autoprefixer: {},
+    },
   },
 
   googleFonts: {

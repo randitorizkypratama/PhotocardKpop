@@ -1,6 +1,3 @@
-import { getTursoClient } from '../utils/turso'
-import { fetchPocamarketCards, inferCardType } from '../utils/pocamarket'
-
 const GROUPS = ['IVE', 'aespa', 'Hearts2Hearts']
 
 export default defineEventHandler(async (event) => {

@@ -1,5 +1,3 @@
-import { initializeDatabase } from '../utils/turso'
-
 export default defineEventHandler(async () => {
   try {
     await initializeDatabase()

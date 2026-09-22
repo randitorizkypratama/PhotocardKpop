@@ -1,5 +1,3 @@
-import { getTursoClient } from '../../../utils/turso'
-
 export default defineEventHandler(async (event) => {
   const id = parseInt(getRouterParam(event, 'id') as string)
   

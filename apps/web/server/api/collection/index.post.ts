@@ -1,5 +1,3 @@
-import { getTursoClient } from '../utils/turso'
-
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   

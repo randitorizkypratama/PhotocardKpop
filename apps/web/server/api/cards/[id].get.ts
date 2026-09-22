@@ -1,6 +1,3 @@
-import { getTursoClient } from '../../utils/turso'
-import { fetchPocamarketCards, inferCardType } from '../../utils/pocamarket'
-
 export default defineEventHandler(async (event) => {
   const id = parseInt(getRouterParam(event, 'id') as string)
   
