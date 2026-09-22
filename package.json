@@ -5,11 +5,11 @@
     "apps/*"
   ],
   "scripts": {
-    "dev": "bun run --cwd apps/web dev",
-    "build": "bun run --cwd apps/web build",
-    "generate": "bun run --cwd apps/web generate",
-    "preview": "bun run --cwd apps/web preview",
-    "typecheck": "bun run --cwd apps/web typecheck"
+    "dev": "bun run --cwd apps/kpop-tracker dev",
+    "build": "bun run --cwd apps/kpop-tracker build",
+    "generate": "bun run --cwd apps/kpop-tracker generate",
+    "preview": "bun run --cwd apps/kpop-tracker preview",
+    "typecheck": "bun run --cwd apps/kpop-tracker typecheck"
   },
   "engines": {
     "bun": ">=1.1.0"
