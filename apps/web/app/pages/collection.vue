@@ -32,7 +32,7 @@ function formatPrice(price: number) {
     <header class="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div class="container mx-auto flex h-14 items-center px-4">
         <NuxtLink to="/" class="flex items-center space-x-2">
-          <span class="text-xl font-bold">🎴 K-Pop PC</span>
+          <span class="text-xl font-bold">K-Pop PC</span>
         </NuxtLink>
         <nav class="ml-auto flex items-center space-x-4">
           <NuxtLink to="/" class="text-sm font-medium hover:underline">Home</NuxtLink>
@@ -102,9 +102,16 @@ function formatPrice(price: number) {
         </button>
       </div>
 
-      <!-- Loading -->
-      <div v-if="loading" class="flex justify-center py-8">
-        <div class="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+      <!-- Loading Skeleton -->
+      <div v-if="loading" class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+        <div v-for="i in 6" :key="i" class="rounded-lg border bg-card shadow-sm overflow-hidden">
+          <div class="aspect-square bg-muted animate-pulse" />
+          <div class="p-3 space-y-2">
+            <div class="h-4 bg-muted rounded w-1/3 animate-pulse" />
+            <div class="h-4 bg-muted rounded w-full animate-pulse" />
+            <div class="h-4 bg-muted rounded w-2/3 animate-pulse" />
+          </div>
+        </div>
       </div>
 
       <!-- Empty State -->
@@ -154,6 +161,7 @@ function formatPrice(price: number) {
                 :src="item.image"
                 :alt="item.name"
                 class="h-full w-full object-cover transition-transform group-hover:scale-105"
+                loading="lazy"
               />
             </div>
             <div class="p-3">

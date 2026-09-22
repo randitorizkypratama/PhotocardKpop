@@ -3,19 +3,65 @@ const groups = ['IVE', 'aespa', 'Hearts2Hearts']
 const selectedGroup = ref('IVE')
 const searchQuery = ref('')
 
-const { cards, loading, fetchCards } = useCards()
+const cards = ref<any[]>([])
+const loading = ref(true)
 
 onMounted(() => {
-  fetchCards(selectedGroup.value)
+  loadCards()
 })
 
-watch(selectedGroup, (group) => {
-  fetchCards(group)
+watch(selectedGroup, () => {
+  searchQuery.value = ''
+  loadCards()
 })
 
-function handleSearch() {
-  if (searchQuery.value.trim()) {
-    fetchCards(searchQuery.value)
+async function loadCards() {
+  loading.value = true
+  
+  try {
+    const params = new URLSearchParams({
+      group: selectedGroup.value,
+      page: '1',
+      limit: '20',
+    })
+    
+    const response = await $fetch<any>(`/api/cards?${params}`)
+    
+    if (response.success) {
+      cards.value = response.data
+    }
+  } catch (e) {
+    console.error('Failed to load cards:', e)
+  } finally {
+    loading.value = false
+  }
+}
+
+async function handleSearch() {
+  if (!searchQuery.value.trim()) {
+    loadCards()
+    return
+  }
+  
+  loading.value = true
+  
+  try {
+    const params = new URLSearchParams({
+      group: selectedGroup.value,
+      search: searchQuery.value,
+      page: '1',
+      limit: '20',
+    })
+    
+    const response = await $fetch<any>(`/api/cards?${params}`)
+    
+    if (response.success) {
+      cards.value = response.data
+    }
+  } catch (e) {
+    console.error('Search failed:', e)
+  } finally {
+    loading.value = false
   }
 }
 </script>
@@ -26,7 +72,7 @@ function handleSearch() {
     <header class="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div class="container mx-auto flex h-14 items-center px-4">
         <NuxtLink to="/" class="flex items-center space-x-2">
-          <span class="text-xl font-bold">🎴 K-Pop PC</span>
+          <span class="text-xl font-bold">K-Pop PC</span>
         </NuxtLink>
         <nav class="ml-auto flex items-center space-x-4">
           <NuxtLink to="/" class="text-sm font-medium hover:underline">Home</NuxtLink>
@@ -78,11 +124,23 @@ function handleSearch() {
         </form>
       </div>
 
-      <!-- Cards Grid -->
-      <div v-if="loading" class="flex justify-center py-8">
-        <div class="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+      <!-- Loading Skeleton -->
+      <div v-if="loading" class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+        <div v-for="i in 10" :key="i" class="rounded-lg border bg-card shadow-sm overflow-hidden">
+          <div class="aspect-square bg-muted animate-pulse" />
+          <div class="p-3 space-y-2">
+            <div class="h-4 bg-muted rounded w-1/3 animate-pulse" />
+            <div class="h-4 bg-muted rounded w-full animate-pulse" />
+            <div class="h-4 bg-muted rounded w-2/3 animate-pulse" />
+            <div class="flex justify-between">
+              <div class="h-6 bg-muted rounded w-1/4 animate-pulse" />
+              <div class="h-4 bg-muted rounded w-1/4 animate-pulse" />
+            </div>
+          </div>
+        </div>
       </div>
 
+      <!-- Cards Grid -->
       <div v-else class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
         <NuxtLink
           v-for="card in cards"
@@ -95,6 +153,7 @@ function handleSearch() {
               :src="card.image"
               :alt="card.name"
               class="h-full w-full object-cover transition-transform group-hover:scale-105"
+              loading="lazy"
             />
           </div>
           <div class="p-3">
@@ -113,7 +172,17 @@ function handleSearch() {
       </div>
 
       <div v-if="!loading && cards.length === 0" class="py-8 text-center text-muted-foreground">
-        No cards found
+        No cards found. Try syncing data first.
+      </div>
+
+      <!-- View More -->
+      <div v-if="!loading && cards.length > 0" class="mt-8 text-center">
+        <NuxtLink
+          to="/browse"
+          class="inline-flex rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          View All Cards
+        </NuxtLink>
       </div>
     </main>
   </div>

@@ -2,19 +2,27 @@ const GROUPS = ['IVE', 'aespa', 'Hearts2Hearts']
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
-  const maxPages = parseInt(query.pages as string) || 5
+  const groupFilter = query.group as string | undefined
   
   const db = getTursoClient()
   const now = new Date().toISOString()
   
   const results = []
+  const groupsToSync = groupFilter ? [groupFilter] : GROUPS
   
-  for (const group of GROUPS) {
+  for (const group of groupsToSync) {
+    if (!GROUPS.includes(group)) {
+      results.push({ group, status: 'error', message: `Unknown group: ${group}` })
+      continue
+    }
+    
     try {
       let synced = 0
+      let page = 1
+      let hasMore = true
       let totalCards = 0
       
-      for (let page = 1; page <= maxPages; page++) {
+      while (hasMore) {
         const response = await fetchPocamarketCards(group, page)
         
         if (!response.success || response.data.results.length === 0) {
@@ -26,7 +34,6 @@ export default defineEventHandler(async (event) => {
         for (const card of response.data.results) {
           const cardType = inferCardType(card.name_en)
           
-          // Check if price changed
           const existing = await db.execute({
             sql: 'SELECT last_price FROM cards WHERE id = ?',
             args: [card.id],
@@ -73,7 +80,6 @@ export default defineEventHandler(async (event) => {
             ],
           })
           
-          // Record price history only if price changed
           if (priceChanged) {
             await db.execute({
               sql: `INSERT INTO price_history (card_id, price, discounted_price, wish_count, sales_volume, stocked_count, recorded_at)
@@ -93,10 +99,8 @@ export default defineEventHandler(async (event) => {
           synced++
         }
         
-        // Stop if no more pages
-        if (!response.data.next_page) {
-          break
-        }
+        hasMore = response.data.next_page !== null
+        page++
       }
       
       results.push({ group, status: 'success', synced, total: totalCards })
