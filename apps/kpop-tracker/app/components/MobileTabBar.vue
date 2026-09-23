@@ -13,8 +13,7 @@ function isActive(to: string) {
   if (to === '/') return route.path === '/'
   if (to === '/browse') return route.path.startsWith('/browse') || route.path.startsWith('/card')
   return route.path.startsWith(to)
-}
-</script>
+}</script>
 
 <template>
   <nav

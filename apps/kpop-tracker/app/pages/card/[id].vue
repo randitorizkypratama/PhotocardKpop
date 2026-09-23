@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {
-  ArrowLeft, Sparkles, TrendingUp, TrendingDown, Minus,
+  ArrowLeft, TrendingUp, TrendingDown, Minus,
   Heart, Tag, X, Check, Clock
 } from 'lucide-vue-next'
 
@@ -98,7 +98,8 @@ const chartData = computed(() => {
         </button>
         <div class="flex items-center gap-4">
           <NuxtLink to="/" class="flex items-center gap-2">
-            <Sparkles class="h-5 w-5 text-purple-500" />
+            <img src="/hibikishop-logo.png" alt="HIBIKISHOP" class="h-9 w-9 rounded-full object-cover" />
+            <span class="hidden text-base font-bold text-slate-900 sm:inline sm:text-lg dark:text-white">HIBIKISHOP</span>
           </NuxtLink>
           <DarkModeToggle />
         </div>
@@ -267,6 +268,7 @@ const chartData = computed(() => {
       </Teleport>
     </main>
 
+    <SiteFooter />
     <MobileTabBar />
   </div>
 </template>

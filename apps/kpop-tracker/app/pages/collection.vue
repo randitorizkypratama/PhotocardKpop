@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {
-  Sparkles, Heart, Package, DollarSign, Target,
+  Heart, Package, DollarSign, Target,
   Trash2, X
 } from 'lucide-vue-next'
 
@@ -29,8 +29,8 @@ function formatPrice(price: number) {
     <header class="sticky top-0 z-50 glass border-b border-white/20">
       <div class="container mx-auto flex h-14 items-center justify-between px-4 sm:h-16">
         <NuxtLink to="/" class="flex items-center gap-2">
-          <Sparkles class="h-5 w-5 text-purple-500" />
-          <span class="text-lg font-bold text-slate-900 dark:text-white">K-Pop PC</span>
+          <img src="/hibikishop-logo.png" alt="HIBIKISHOP" class="h-9 w-9 rounded-full object-cover" />
+          <span class="text-base font-bold text-slate-900 sm:text-lg dark:text-white">HIBIKISHOP</span>
         </NuxtLink>
         <div class="flex items-center gap-4">
           <nav class="hidden items-center gap-4 md:flex">
@@ -150,6 +150,7 @@ function formatPrice(price: number) {
       </div>
     </main>
 
+    <SiteFooter />
     <MobileTabBar />
   </div>
 </template>

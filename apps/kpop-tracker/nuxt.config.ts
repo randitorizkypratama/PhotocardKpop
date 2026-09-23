@@ -33,12 +33,13 @@ export default defineNuxtConfig({
 
   app: {
     head: {
-      title: 'K-Pop Photocard Tracker',
+      title: 'HIBIKISHOP PC — K-Pop Photocard Tracker',
       meta: [
-        { name: 'description', content: 'Track K-pop photocard prices from Pocamarket' },
+        { name: 'description', content: 'Track K-pop photocard prices based on Pocamarket — by HIBIKISHOP' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
       ],
       link: [
+        { rel: 'icon', type: 'image/png', href: '/hibikishop-logo.png' },
         { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
       ],
     },

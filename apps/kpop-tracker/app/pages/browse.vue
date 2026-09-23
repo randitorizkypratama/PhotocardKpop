@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {
-  ChevronLeft, ChevronRight, Heart, Search, Sparkles,
+  ChevronLeft, ChevronRight, Heart, Search,
   SlidersHorizontal, X, ArrowUpDown, DollarSign, Tag, TrendingUp
 } from 'lucide-vue-next'
 
@@ -184,8 +184,8 @@ const mobilePages = computed(() => {
     <header class="sticky top-0 z-50 glass border-b border-white/20">
       <div class="container mx-auto flex h-14 items-center justify-between px-4 sm:h-16">
         <NuxtLink to="/" class="flex items-center gap-2">
-          <Sparkles class="h-5 w-5 text-purple-500" />
-          <span class="text-lg font-bold text-slate-900 dark:text-white">K-Pop PC</span>
+          <img src="/hibikishop-logo.png" alt="HIBIKISHOP" class="h-9 w-9 rounded-full object-cover" />
+          <span class="text-base font-bold text-slate-900 sm:text-lg dark:text-white">HIBIKISHOP</span>
         </NuxtLink>
         <div class="flex items-center gap-4">
           <nav class="hidden items-center gap-4 md:flex">
@@ -221,6 +221,8 @@ const mobilePages = computed(() => {
         <h1 class="text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">Browse Photocards</h1>
         <p class="mt-1 text-sm text-slate-500 dark:text-slate-400 sm:text-base">
           {{ loading ? 'Loading...' : `${total.toLocaleString()} cards` }}
+          · Data based on
+          <a href="https://pocamarket.com" target="_blank" rel="noopener noreferrer" class="font-semibold text-purple-600 underline-offset-2 hover:underline dark:text-purple-400">POCAMARKET</a>
         </p>
       </div>
 
@@ -454,6 +456,7 @@ const mobilePages = computed(() => {
       </div>
     </main>
 
+    <SiteFooter />
     <MobileTabBar />
   </div>
 </template>

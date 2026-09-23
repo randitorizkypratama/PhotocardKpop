@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {
-  Sparkles, ArrowRight, Heart, Package, DollarSign,
-  TrendingUp, Users, Zap, Search, Eye
+  ArrowRight, Package, DollarSign,
+  TrendingUp, Users, Search
 } from 'lucide-vue-next'
 
 const groups = ['IVE', 'aespa', 'Hearts2Hearts']
@@ -53,11 +53,14 @@ async function loadCards() {
       <div class="absolute bottom-10 right-10 h-72 w-72 rounded-full bg-pink-300/30 blur-3xl dark:bg-pink-500/20" />
 
       <div class="relative mx-auto max-w-4xl text-center">
-        <div class="mb-4 flex items-center justify-between sm:mb-6 sm:block">
-          <div class="inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 shadow-lg backdrop-blur dark:bg-black/50">
-            <Sparkles class="h-5 w-5 text-purple-500" />
-            <span class="font-semibold text-slate-800 dark:text-slate-200">K-Pop Photocard Tracker</span>
-          </div>
+        <div class="mb-4 flex items-center justify-between gap-3 sm:mb-6 sm:block">
+          <NuxtLink to="/" class="inline-flex items-center gap-2.5 rounded-full bg-white/80 px-3 py-1.5 shadow-lg backdrop-blur sm:px-4 sm:py-2 dark:bg-black/50">
+            <img src="/hibikishop-logo.png" alt="HIBIKISHOP" class="h-9 w-9 rounded-full object-contain sm:h-10 sm:w-10" />
+            <div class="text-left leading-tight">
+              <span class="block text-sm font-bold text-slate-800 dark:text-slate-100">HIBIKISHOP</span>
+              <span class="block text-[10px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Photocard Tracker</span>
+            </div>
+          </NuxtLink>
           <div class="sm:absolute sm:right-4 sm:top-4">
             <DarkModeToggle />
           </div>
@@ -70,7 +73,9 @@ async function loadCards() {
         </h1>
 
         <p class="mb-6 text-base text-slate-500 dark:text-slate-400 sm:mb-8 sm:text-lg">
-          Real-time prices from Pocamarket. IVE, aespa, Hearts2Hearts.
+          Real-time prices from
+          <a href="https://pocamarket.com" target="_blank" rel="noopener noreferrer" class="font-semibold text-purple-600 underline decoration-purple-300 underline-offset-2 transition-colors hover:text-purple-700 hover:decoration-purple-500 dark:text-purple-400 dark:decoration-purple-700 dark:hover:text-purple-300">Pocamarket</a>.
+          IVE, aespa, Hearts2Hearts.
         </p>
 
         <div class="mb-6 flex flex-wrap justify-center gap-3 sm:gap-6 sm:mb-8">
@@ -191,7 +196,7 @@ async function loadCards() {
             <DollarSign class="h-7 w-7 sm:h-8 sm:w-8" />
           </div>
           <h3 class="mb-2 text-base font-semibold text-slate-900 dark:text-white sm:text-lg">Price Tracking</h3>
-          <p class="text-sm text-slate-500 dark:text-slate-400">Monitor real-time prices from Pocamarket with history charts</p>
+          <p class="text-sm text-slate-500 dark:text-slate-400">Monitor real-time prices from <a href="https://pocamarket.com" target="_blank" rel="noopener noreferrer" class="font-medium text-purple-600 underline-offset-2 hover:underline dark:text-purple-400">Pocamarket</a> with history charts</p>
         </div>
         <div class="glass-card rounded-3xl p-6 text-center card-hover sm:p-8">
           <div class="gradient-primary mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl text-white sm:h-16 sm:w-16">
@@ -210,13 +215,7 @@ async function loadCards() {
       </div>
     </section>
 
-    <footer class="border-t border-slate-200/50 bg-white/50 py-8 backdrop-blur dark:border-slate-800/50 dark:bg-black/50">
-      <div class="mx-auto max-w-7xl px-4 text-center">
-        <p class="flex items-center justify-center gap-1 text-sm text-slate-500 dark:text-slate-400">
-          Built with <Heart class="h-4 w-4 fill-purple-500 text-purple-500" /> for K-Pop collectors
-        </p>
-      </div>
-    </footer>
+    <SiteFooter />
 
     <MobileTabBar />
   </div>
