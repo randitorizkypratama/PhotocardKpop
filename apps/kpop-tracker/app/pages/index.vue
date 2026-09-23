@@ -78,7 +78,7 @@ async function loadCards() {
           IVE, aespa, Hearts2Hearts.
         </p>
 
-        <div class="mb-6 flex flex-wrap justify-center gap-3 sm:gap-6 sm:mb-8">
+        <div class="mb-6 flex flex-wrap items-center justify-center gap-3 sm:gap-6 sm:mb-8">
           <div class="glass-card flex items-center gap-2.5 rounded-2xl px-4 py-2.5 sm:gap-3 sm:px-6 sm:py-3">
             <Users class="h-5 w-5 text-purple-500" />
             <span class="text-xl font-bold text-slate-900 dark:text-white sm:text-2xl">3</span>
@@ -94,6 +94,11 @@ async function loadCards() {
             <span class="text-xl font-bold text-slate-900 dark:text-white sm:text-2xl">Live</span>
             <span class="text-sm text-slate-500 dark:text-slate-400">Prices</span>
           </div>
+        </div>
+
+        <div class="mb-6 sm:mb-8">
+          <p class="mb-2 text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">Shop & Follow HIBIKISHOP</p>
+          <SocialLinks variant="card" />
         </div>
 
         <NuxtLink
