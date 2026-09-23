@@ -96,8 +96,8 @@ async function loadCards() {
           </div>
         </div>
 
-        <div class="mb-6 sm:mb-8">
-          <p class="mb-2 text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">Shop & Follow HIBIKISHOP</p>
+        <div class="mb-6 text-center sm:mb-8">
+          <p class="mb-3 text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">Shop & Follow HIBIKISHOP</p>
           <SocialLinks variant="card" />
         </div>
 

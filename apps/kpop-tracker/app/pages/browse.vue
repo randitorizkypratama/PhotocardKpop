@@ -454,6 +454,17 @@ const mobilePages = computed(() => {
           </div>
         </div>
       </div>
+      <!-- Shop & Follow -->
+      <section class="mx-auto mt-10 max-w-7xl px-4 sm:mt-14">
+        <div class="glass-card rounded-3xl px-4 py-8 text-center sm:px-8 sm:py-10">
+          <div class="mx-auto mb-3 flex items-center justify-center gap-2.5">
+            <img src="/hibikishop-logo.png" alt="HIBIKISHOP" class="h-8 w-8 rounded-full object-contain" />
+            <p class="text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">Shop & Follow HIBIKISHOP</p>
+          </div>
+          <p class="mb-5 text-sm text-slate-500 dark:text-slate-400">Belanja photocard original & update terbaru</p>
+          <SocialLinks variant="card" />
+        </div>
+      </section>
     </main>
 
     <SiteFooter />
