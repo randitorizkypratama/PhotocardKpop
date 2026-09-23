@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import {
   ArrowLeft, Sparkles, TrendingUp, TrendingDown, Minus,
-  Heart, ShoppingCart, Package, Tag, DollarSign,
-  X, Check, Clock, TrendingUp as TrendingUpIcon
+  Heart, Tag, X, Check, Clock
 } from 'lucide-vue-next'
 
 const route = useRoute()
@@ -114,24 +113,6 @@ function formatDate(dateString: string) {
             </div>
           </div>
 
-          <div class="grid grid-cols-3 gap-4">
-            <div class="glass-card rounded-2xl p-4 text-center">
-              <Heart class="mx-auto mb-1 h-5 w-5 text-pink-500" />
-              <p class="text-2xl font-bold text-slate-900 dark:text-white">{{ card.wish_count }}</p>
-              <p class="text-xs text-slate-500 dark:text-slate-400">Wishlist</p>
-            </div>
-            <div class="glass-card rounded-2xl p-4 text-center">
-              <ShoppingCart class="mx-auto mb-1 h-5 w-5 text-blue-500" />
-              <p class="text-2xl font-bold text-slate-900 dark:text-white">{{ card.sales_volume }}</p>
-              <p class="text-xs text-slate-500 dark:text-slate-400">Sold</p>
-            </div>
-            <div class="glass-card rounded-2xl p-4 text-center">
-              <Package class="mx-auto mb-1 h-5 w-5 text-green-500" />
-              <p class="text-2xl font-bold text-slate-900 dark:text-white">{{ card.stocked_count }}</p>
-              <p class="text-xs text-slate-500 dark:text-slate-400">In Stock</p>
-            </div>
-          </div>
-
           <div v-if="history.length >= 2" class="glass-card rounded-3xl p-6">
             <p class="mb-2 text-sm text-slate-500 dark:text-slate-400">Price Trend</p>
             <div class="flex items-center gap-3">
@@ -162,10 +143,6 @@ function formatDate(dateString: string) {
                     <Clock class="h-3 w-3" />
                     {{ formatDate(entry.recorded_at) }}
                   </p>
-                </div>
-                <div class="text-right text-xs text-slate-500 dark:text-slate-400">
-                  <p class="flex items-center gap-1"><Heart class="h-3 w-3 text-pink-500" /> {{ entry.wish_count }}</p>
-                  <p class="flex items-center gap-1"><Package class="h-3 w-3 text-green-500" /> {{ entry.stocked_count }}</p>
                 </div>
               </div>
             </div>

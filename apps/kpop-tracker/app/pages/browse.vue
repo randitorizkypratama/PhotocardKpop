@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {
-  ChevronLeft, ChevronRight, Heart, Package, Search, Sparkles,
+  ChevronLeft, ChevronRight, Heart, Search, Sparkles,
   SlidersHorizontal, X, ArrowUpDown, DollarSign, Tag, RefreshCw, TrendingUp, Disc3
 } from 'lucide-vue-next'
 
@@ -319,21 +319,11 @@ const visiblePages = computed(() => {
               <span v-if="card.release_name" class="rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">{{ card.release_name }}</span>
             </div>
             <h3 class="line-clamp-2 text-sm font-semibold text-slate-900 dark:text-white">{{ card.name }}</h3>
-            <div class="mt-3 flex items-center justify-between">
-              <div>
-                <span class="text-xl font-bold text-slate-900 dark:text-white">${{ card.discounted_price || card.price }}</span>
-                <p v-if="exchangeRates?.usd?.rate" class="text-[10px] text-slate-400 dark:text-slate-500">
-                  ~Rp {{ ((card.discounted_price || card.price) * exchangeRates.usd.rate).toLocaleString('id-ID', { maximumFractionDigits: 0 }) }}
-                </p>
-              </div>
-              <div class="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
-                <Heart class="h-3 w-3" />
-                {{ card.wish_count }}
-              </div>
-            </div>
-            <div class="mt-2 flex items-center gap-2 text-xs text-slate-400 dark:text-slate-500">
-              <Package class="h-3 w-3" />
-              {{ card.stocked_count }} in stock
+            <div class="mt-3">
+              <span class="text-xl font-bold text-slate-900 dark:text-white">${{ card.discounted_price || card.price }}</span>
+              <p v-if="exchangeRates?.usd?.rate" class="text-[10px] text-slate-400 dark:text-slate-500">
+                ~Rp {{ ((card.discounted_price || card.price) * exchangeRates.usd.rate).toLocaleString('id-ID', { maximumFractionDigits: 0 }) }}
+              </p>
             </div>
           </div>
         </NuxtLink>

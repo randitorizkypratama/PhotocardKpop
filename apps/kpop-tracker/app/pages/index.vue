@@ -132,12 +132,8 @@ async function loadCards() {
           <div class="p-4">
             <p class="mb-1 text-xs font-medium text-purple-600 dark:text-purple-400">{{ card.member_name }}</p>
             <h3 class="line-clamp-2 text-sm font-semibold text-slate-900 dark:text-white">{{ card.name }}</h3>
-            <div class="mt-3 flex items-center justify-between">
+            <div class="mt-3">
               <span class="text-xl font-bold text-slate-900 dark:text-white">${{ card.discounted_price || card.price }}</span>
-              <div class="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
-                <Heart class="h-3 w-3" />
-                {{ card.wish_count }}
-              </div>
             </div>
           </div>
         </NuxtLink>
