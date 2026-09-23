@@ -46,6 +46,41 @@ async function handleAddToCollection() {
 function formatDate(dateString: string) {
   return new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
 }
+
+const chartData = computed(() => {
+  const chronological = [...history.value].reverse()
+  if (chronological.length < 2) return null
+
+  const prices = chronological.map(h => Number(h.price) || 0)
+  const min = Math.min(...prices)
+  const max = Math.max(...prices)
+  const range = max - min || 1
+
+  const w = 600
+  const h = 160
+  const padX = 8
+  const padY = 16
+
+  const points = chronological.map((entry, i) => {
+    const x = padX + (i / (chronological.length - 1)) * (w - padX * 2)
+    const y = padY + (1 - ((Number(entry.price) || 0) - min) / range) * (h - padY * 2)
+    return { x, y, price: entry.price, date: entry.recorded_at }
+  })
+
+  return {
+    points,
+    min,
+    max,
+    path: points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' '),
+    areaPath: `M ${points[0].x.toFixed(1)} ${(h - padY).toFixed(1)} ` +
+      points.map(p => `L ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ') +
+      ` L ${points[points.length - 1].x.toFixed(1)} ${(h - padY).toFixed(1)} Z`,
+    labels: {
+      first: formatDate(chronological[0].recorded_at),
+      last: formatDate(chronological[chronological.length - 1].recorded_at),
+    },
+  }
+})
 </script>
 
 <template>
@@ -56,9 +91,12 @@ function formatDate(dateString: string) {
           <ArrowLeft class="h-5 w-5" />
           <span class="text-sm font-medium">Back</span>
         </button>
-        <NuxtLink to="/" class="flex items-center gap-2">
-          <Sparkles class="h-5 w-5 text-purple-500" />
-        </NuxtLink>
+        <div class="flex items-center gap-4">
+          <NuxtLink to="/" class="flex items-center gap-2">
+            <Sparkles class="h-5 w-5 text-purple-500" />
+          </NuxtLink>
+          <DarkModeToggle />
+        </div>
       </div>
     </header>
 
@@ -135,6 +173,41 @@ function formatDate(dateString: string) {
 
           <div v-if="history.length > 0" class="glass-card rounded-3xl p-6">
             <h3 class="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Price History</h3>
+
+            <!-- Price Chart -->
+            <div v-if="chartData" class="mb-6 rounded-2xl bg-white/50 p-4 backdrop-blur dark:bg-black/30">
+              <div class="mb-2 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                <span>{{ chartData.labels.first }}</span>
+                <span class="flex items-center gap-3">
+                  <span class="text-green-600 dark:text-green-400">Low: ${{ chartData.min.toFixed(2) }}</span>
+                  <span class="text-red-600 dark:text-red-400">High: ${{ chartData.max.toFixed(2) }}</span>
+                </span>
+                <span>{{ chartData.labels.last }}</span>
+              </div>
+              <svg :viewBox="`0 0 600 160`" class="w-full" preserveAspectRatio="none" style="height: 160px">
+                <defs>
+                  <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="hsl(262.1 83.3% 57.8%)" stop-opacity="0.3" />
+                    <stop offset="100%" stop-color="hsl(262.1 83.3% 57.8%)" stop-opacity="0" />
+                  </linearGradient>
+                </defs>
+                <path :d="chartData.areaPath" fill="url(#chartFill)" />
+                <path :d="chartData.path" fill="none" stroke="hsl(262.1 83.3% 57.8%)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+                <circle
+                  v-for="(p, i) in chartData.points"
+                  :key="i"
+                  :cx="p.x"
+                  :cy="p.y"
+                  r="4"
+                  fill="white"
+                  stroke="hsl(262.1 83.3% 57.8%)"
+                  stroke-width="2"
+                >
+                  <title>${{ p.price }} — {{ formatDate(p.date) }}</title>
+                </circle>
+              </svg>
+            </div>
+
             <div class="space-y-3">
               <div v-for="entry in history.slice(0, 8)" :key="entry.id" class="flex items-center justify-between rounded-2xl bg-white/50 p-4 backdrop-blur dark:bg-black/30">
                 <div>

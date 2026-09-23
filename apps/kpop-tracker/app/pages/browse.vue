@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {
   ChevronLeft, ChevronRight, Heart, Search, Sparkles,
-  SlidersHorizontal, X, ArrowUpDown, DollarSign, Tag, RefreshCw, TrendingUp, Disc3
+  SlidersHorizontal, X, ArrowUpDown, DollarSign, Tag, TrendingUp
 } from 'lucide-vue-next'
 
 const groups = ['IVE', 'aespa', 'Hearts2Hearts']
@@ -10,13 +10,9 @@ const members: Record<string, string[]> = {
   aespa: ['KARINA', 'WINTER', 'GISELLE', 'NINGNING'],
   Hearts2Hearts: ['IAN', 'JIWOO', 'YE-ON', 'Carmen', 'Stella', 'YUHA'],
 }
-const releases: Record<string, string[]> = {
-  IVE: ['EMPATHY', 'REVIVE+', 'SECRET', "I'VE IVE", 'LOVE DIVE', 'ELEVEN', 'AFTER LIKE', 'I AM', 'BADDIE', 'ALL NIGHT', 'HEAVEN', 'LOVED'],
-  aespa: ['WHIP LASH', 'SPICY', 'GIRLS', 'FOREVER', 'NEXT LEVEL', 'SAVAGE', 'MY WORLD', 'DREAMS COME TRUE', 'ARMAGEDDON', 'Supernova'],
-  Hearts2Hearts: ['THE FIRST ALBUM', 'THE SECOND SINGLE', 'THE THIRD SINGLE', 'THE FOURTH SINGLE'],
-}
 const cardTypes = ['Album', 'POB', 'Lucky Draw', 'MD', 'Fan Meeting', "Season's Greetings", 'Concert', 'Trading Card', 'Pop-up', 'Fan Club']
 const sortOptions = [
+  { value: 'newest', label: 'Newest' },
   { value: 'popular', label: 'Most Popular' },
   { value: 'price_asc', label: 'Price: Low → High' },
   { value: 'price_desc', label: 'Price: High → Low' },
@@ -27,8 +23,8 @@ const sortOptions = [
 const selectedGroup = ref('IVE')
 const selectedMember = ref<string | null>(null)
 const selectedCardType = ref<string | null>(null)
-const selectedRelease = ref<string | null>(null)
 const selectedSort = ref('popular')
+const searchQuery = ref('')
 const minPriceIDR = ref<string>('')
 const maxPriceIDR = ref<string>('')
 const showFilters = ref(false)
@@ -45,10 +41,10 @@ const activeFilterCount = computed(() => {
   let count = 0
   if (selectedMember.value) count++
   if (selectedCardType.value) count++
-  if (selectedRelease.value) count++
   if (selectedSort.value !== 'popular') count++
   if (minPriceIDR.value) count++
   if (maxPriceIDR.value) count++
+  if (searchQuery.value) count++
   return count
 })
 
@@ -71,14 +67,22 @@ async function loadExchangeRates() {
 watch(selectedGroup, () => {
   selectedMember.value = null
   selectedCardType.value = null
-  selectedRelease.value = null
   currentPage.value = 1
   loadCards()
 })
 
-watch([selectedMember, selectedCardType, selectedRelease, selectedSort, minPriceIDR, maxPriceIDR], () => {
+watch([selectedMember, selectedCardType, selectedSort, minPriceIDR, maxPriceIDR], () => {
   currentPage.value = 1
   loadCards()
+})
+
+let searchTimer: ReturnType<typeof setTimeout> | null = null
+watch(searchQuery, () => {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    currentPage.value = 1
+    loadCards()
+  }, 400)
 })
 
 function idrToUSD(idr: number): number {
@@ -97,7 +101,7 @@ async function loadCards() {
     })
     if (selectedMember.value) params.set('member', selectedMember.value)
     if (selectedCardType.value) params.set('card_type', selectedCardType.value)
-    if (selectedRelease.value) params.set('release', selectedRelease.value)
+    if (searchQuery.value) params.set('search', searchQuery.value)
     if (minPriceIDR.value) params.set('min_price', String(Math.round(idrToUSD(Number(minPriceIDR.value)))))
     if (maxPriceIDR.value) params.set('max_price', String(Math.round(idrToUSD(Number(maxPriceIDR.value)))))
     const response = await $fetch<any>(`/api/cards?${params}`)
@@ -116,8 +120,8 @@ async function loadCards() {
 function clearFilters() {
   selectedMember.value = null
   selectedCardType.value = null
-  selectedRelease.value = null
   selectedSort.value = 'popular'
+  searchQuery.value = ''
   minPriceIDR.value = ''
   maxPriceIDR.value = ''
 }
@@ -156,10 +160,11 @@ const visiblePages = computed(() => {
           <Sparkles class="h-5 w-5 text-purple-500" />
           <span class="text-lg font-bold text-slate-900 dark:text-white">K-Pop PC</span>
         </NuxtLink>
-        <nav class="flex items-center gap-6">
+        <nav class="flex items-center gap-4">
           <NuxtLink to="/" class="text-sm font-medium text-slate-500 transition-colors hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">Home</NuxtLink>
           <NuxtLink to="/browse" class="text-sm font-medium text-slate-900 dark:text-white">Browse</NuxtLink>
           <NuxtLink to="/collection" class="text-sm font-medium text-slate-500 transition-colors hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">Collection</NuxtLink>
+          <DarkModeToggle />
         </nav>
       </div>
     </header>
@@ -208,6 +213,16 @@ const visiblePages = computed(() => {
 
       <!-- Filter Bar -->
       <div class="mb-6 flex flex-wrap items-center gap-3">
+        <div class="relative min-w-[200px] flex-1 max-w-md">
+          <Search class="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input
+            v-model="searchQuery"
+            type="search"
+            placeholder="Search cards or members..."
+            class="w-full rounded-full border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-700 placeholder:text-slate-400 backdrop-blur transition-all focus:outline-none focus:ring-2 focus:ring-purple-500 dark:border-slate-700 dark:bg-black/50 dark:text-slate-300"
+          />
+        </div>
+
         <button class="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all glass-card text-slate-700 hover:shadow-md dark:text-slate-300" @click="showFilters = !showFilters">
           <SlidersHorizontal class="h-4 w-4" />
           Filters
@@ -228,10 +243,6 @@ const visiblePages = computed(() => {
         <div v-if="selectedCardType" class="flex items-center gap-1 rounded-full bg-pink-100 px-3 py-1 text-xs font-medium text-pink-700 dark:bg-pink-900/30 dark:text-pink-400">
           {{ selectedCardType }}
           <button @click="selectedCardType = null"><X class="h-3 w-3" /></button>
-        </div>
-        <div v-if="selectedRelease" class="flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-          {{ selectedRelease }}
-          <button @click="selectedRelease = null"><X class="h-3 w-3" /></button>
         </div>
         <div v-if="minPriceIDR || maxPriceIDR" class="flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">
           Rp {{ Number(minPriceIDR || 0).toLocaleString('id-ID') }} - Rp {{ Number(maxPriceIDR || 0).toLocaleString('id-ID') }}
@@ -263,15 +274,6 @@ const visiblePages = computed(() => {
               <div class="flex flex-wrap gap-1.5">
                 <button :class="['rounded-full px-3 py-1.5 text-xs font-medium transition-all', selectedCardType === null ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700']" @click="selectedCardType = null">All</button>
                 <button v-for="t in cardTypes" :key="t" :class="['rounded-full px-3 py-1.5 text-xs font-medium transition-all', selectedCardType === t ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700']" @click="selectedCardType = t">{{ t }}</button>
-              </div>
-            </div>
-            <div>
-              <label class="mb-2 flex items-center gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">
-                <Disc3 class="h-3.5 w-3.5 text-blue-500" /> Release / Album
-              </label>
-              <div class="flex flex-wrap gap-1.5">
-                <button :class="['rounded-full px-3 py-1.5 text-xs font-medium transition-all', selectedRelease === null ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700']" @click="selectedRelease = null">All</button>
-                <button v-for="r in releases[selectedGroup]" :key="r" :class="['rounded-full px-3 py-1.5 text-xs font-medium transition-all', selectedRelease === r ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700']" @click="selectedRelease = r">{{ r }}</button>
               </div>
             </div>
             <div>

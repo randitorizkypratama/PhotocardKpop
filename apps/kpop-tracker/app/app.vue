@@ -8,4 +8,7 @@
 
 <script setup lang="ts">
 import { Analytics } from '@vercel/analytics/vue'
+
+const { init } = useDarkMode()
+onMounted(() => init())
 </script>

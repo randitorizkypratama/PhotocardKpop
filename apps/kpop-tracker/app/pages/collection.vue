@@ -32,10 +32,11 @@ function formatPrice(price: number) {
           <Sparkles class="h-5 w-5 text-purple-500" />
           <span class="text-lg font-bold text-slate-900 dark:text-white">K-Pop PC</span>
         </NuxtLink>
-        <nav class="flex items-center gap-6">
+        <nav class="flex items-center gap-4">
           <NuxtLink to="/" class="text-sm font-medium text-slate-500 transition-colors hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">Home</NuxtLink>
           <NuxtLink to="/browse" class="text-sm font-medium text-slate-500 transition-colors hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">Browse</NuxtLink>
           <NuxtLink to="/collection" class="text-sm font-medium text-slate-900 dark:text-white">Collection</NuxtLink>
+          <DarkModeToggle />
         </nav>
       </div>
     </header>

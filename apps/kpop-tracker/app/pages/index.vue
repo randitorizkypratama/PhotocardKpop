@@ -40,6 +40,10 @@ async function loadCards() {
           <span class="font-semibold text-slate-800 dark:text-slate-200">K-Pop Photocard Tracker</span>
         </div>
 
+        <div class="absolute right-4 top-4">
+          <DarkModeToggle />
+        </div>
+
         <h1 class="mb-4 text-5xl font-bold tracking-tight text-slate-900 dark:text-white md:text-6xl">
           Track Your
           <span class="gradient-text">Photocards</span>

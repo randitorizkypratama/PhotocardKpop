@@ -54,6 +54,7 @@ export default defineEventHandler(async (event) => {
   else if (sort === 'price_desc') orderClause = 'ORDER BY last_discounted_price DESC'
   else if (sort === 'name') orderClause = 'ORDER BY name ASC'
   else if (sort === 'stock') orderClause = 'ORDER BY last_stocked_count DESC'
+  else if (sort === 'newest') orderClause = 'ORDER BY updated_at DESC'
 
   const countResult = await db.execute({
     sql: `SELECT COUNT(*) as total FROM cards ${whereClause}`,
