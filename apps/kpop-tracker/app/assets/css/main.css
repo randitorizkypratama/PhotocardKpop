@@ -56,6 +56,16 @@ body {
   body {
     @apply antialiased;
   }
+
+  @media (max-width: 767px) {
+    body {
+      padding-bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px));
+    }
+  }
+
+  button, a, input, select {
+    -webkit-tap-highlight-color: transparent;
+  }
 }
 
 @layer components {

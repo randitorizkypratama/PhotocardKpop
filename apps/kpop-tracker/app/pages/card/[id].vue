@@ -91,7 +91,7 @@ const chartData = computed(() => {
 <template>
   <div class="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50 dark:from-slate-950 dark:via-purple-950 dark:to-slate-950">
     <header class="sticky top-0 z-50 glass border-b border-white/20">
-      <div class="container mx-auto flex h-16 items-center justify-between px-4">
+      <div class="container mx-auto flex h-14 items-center justify-between px-4 sm:h-16">
         <button @click="$router.back()" class="flex items-center gap-2 text-slate-700 transition-opacity hover:opacity-70 dark:text-slate-300">
           <ArrowLeft class="h-5 w-5" />
           <span class="text-sm font-medium">Back</span>
@@ -105,7 +105,7 @@ const chartData = computed(() => {
       </div>
     </header>
 
-    <main class="container mx-auto px-4 py-8">
+    <main class="container mx-auto px-4 py-6 sm:py-8">
       <div v-if="loading" class="flex justify-center py-16">
         <div class="h-12 w-12 animate-spin rounded-full border-4 border-purple-500 border-t-transparent" />
       </div>
@@ -118,58 +118,58 @@ const chartData = computed(() => {
         <p class="text-slate-500 dark:text-slate-400">{{ error }}</p>
       </div>
 
-      <div v-else-if="card" class="grid gap-8 lg:grid-cols-2">
+      <div v-else-if="card" class="grid gap-6 sm:gap-8 lg:grid-cols-2">
         <div class="flex justify-center">
           <div class="glass-card w-full max-w-md overflow-hidden rounded-3xl shadow-2xl">
             <div class="relative aspect-square overflow-hidden">
               <img :src="card.image" :alt="card.name" class="h-full w-full object-cover" />
               <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-              <div class="absolute left-4 top-4 flex gap-2">
-                <span class="rounded-full bg-black/50 px-3 py-1 text-sm font-medium text-white backdrop-blur">{{ card.group_name }}</span>
-                <span class="rounded-full bg-black/50 px-3 py-1 text-sm font-medium text-white backdrop-blur">{{ card.card_type }}</span>
+              <div class="absolute left-3 top-3 flex gap-2 sm:left-4 sm:top-4">
+                <span class="rounded-full bg-black/50 px-2 py-1 text-xs font-medium text-white backdrop-blur sm:px-3 sm:text-sm">{{ card.group_name }}</span>
+                <span class="rounded-full bg-black/50 px-2 py-1 text-xs font-medium text-white backdrop-blur sm:px-3 sm:text-sm">{{ card.card_type }}</span>
               </div>
-              <div v-if="card.is_in_promotion" class="absolute right-4 top-4 rounded-full bg-green-500 px-3 py-1 text-sm font-bold text-white">-{{ card.discount_rate }}%</div>
+              <div v-if="card.is_in_promotion" class="absolute right-3 top-3 rounded-full bg-green-500 px-2 py-1 text-xs font-bold text-white sm:right-4 sm:top-4 sm:px-3 sm:text-sm">-{{ card.discount_rate }}%</div>
             </div>
           </div>
         </div>
 
-        <div class="space-y-6">
+        <div class="space-y-4 sm:space-y-6">
           <div>
             <div class="mb-2 flex flex-wrap items-center gap-2">
-              <p class="text-sm font-semibold uppercase tracking-wider text-purple-600 dark:text-purple-400">{{ card.member_name }}</p>
+              <p class="text-xs font-semibold uppercase tracking-wider text-purple-600 dark:text-purple-400 sm:text-sm">{{ card.member_name }}</p>
               <span v-if="card.release_name" class="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-medium text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">{{ card.release_name }}</span>
             </div>
-            <h1 class="text-3xl font-bold text-slate-900 dark:text-white">{{ card.name }}</h1>
+            <h1 class="text-xl font-bold text-slate-900 dark:text-white sm:text-3xl">{{ card.name }}</h1>
           </div>
 
-          <div class="glass-card rounded-3xl p-6">
-            <div class="flex items-center justify-between gap-4">
+          <div class="glass-card rounded-3xl p-4 sm:p-6">
+            <div class="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p class="text-sm text-slate-500 dark:text-slate-400">Harga Saat Ini</p>
                 <template v-if="(card.discounted_price || card.price) > 0">
-                  <p class="text-4xl font-bold text-slate-900 dark:text-white">Rp {{ formatIDR(card.discounted_price || card.price) }}</p>
+                  <p class="text-2xl font-bold text-slate-900 dark:text-white sm:text-4xl">Rp {{ formatIDR(card.discounted_price || card.price) }}</p>
                   <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
                     ${{ (card.discounted_price || card.price).toFixed(2) }}
                     <span v-if="card.is_in_promotion" class="ml-1 line-through">${{ card.price.toFixed(2) }}</span>
                   </p>
                 </template>
-                <p v-else class="text-2xl font-semibold text-slate-400 dark:text-slate-500">Tidak tersedia</p>
+                <p v-else class="text-xl font-semibold text-slate-400 dark:text-slate-500 sm:text-2xl">Tidak tersedia</p>
               </div>
               <div v-if="card.is_in_promotion && card.price > 0" class="text-right">
                 <p class="text-sm text-slate-400 line-through">Rp {{ formatIDR(card.price) }}</p>
-                <p class="text-2xl font-bold text-emerald-500">-{{ card.discount_rate }}%</p>
+                <p class="text-xl font-bold text-emerald-500 sm:text-2xl">-{{ card.discount_rate }}%</p>
               </div>
             </div>
           </div>
 
-          <div v-if="history.length >= 2" class="glass-card rounded-3xl p-6">
+          <div v-if="history.length >= 2" class="glass-card rounded-3xl p-4 sm:p-6">
             <p class="mb-2 text-sm text-slate-500 dark:text-slate-400">Price Trend</p>
             <div class="flex items-center gap-3">
-              <TrendingUp v-if="getPriceTrend() === 'up'" class="h-8 w-8 text-red-500" />
-              <TrendingDown v-else-if="getPriceTrend() === 'down'" class="h-8 w-8 text-green-500" />
-              <Minus v-else class="h-8 w-8 text-slate-400" />
+              <TrendingUp v-if="getPriceTrend() === 'up'" class="h-7 w-7 text-red-500 sm:h-8 sm:w-8" />
+              <TrendingDown v-else-if="getPriceTrend() === 'down'" class="h-7 w-7 text-green-500 sm:h-8 sm:w-8" />
+              <Minus v-else class="h-7 w-7 text-slate-400 sm:h-8 sm:w-8" />
               <span :class="[
-                'text-lg font-semibold',
+                'text-base font-semibold sm:text-lg',
                 getPriceChange() > 0 ? 'text-red-500' : getPriceChange() < 0 ? 'text-green-500' : 'text-slate-500'
               ]">
                 {{ getPriceChange() > 0 ? '+' : '' }}${{ getPriceChange().toFixed(2) }}
@@ -177,25 +177,25 @@ const chartData = computed(() => {
             </div>
           </div>
 
-          <button class="gradient-primary flex w-full items-center justify-center gap-2 rounded-2xl px-6 py-4 text-lg font-semibold text-white shadow-lg shadow-purple-500/30 transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-purple-500/40" @click="showAddDialog = true">
+          <button class="gradient-primary flex w-full items-center justify-center gap-2 rounded-2xl px-6 py-3.5 text-base font-semibold text-white shadow-lg shadow-purple-500/30 transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-purple-500/40 sm:py-4 sm:text-lg" @click="showAddDialog = true">
             <Tag class="h-5 w-5" />
             Add to Collection
           </button>
 
-          <div v-if="history.length > 0" class="glass-card rounded-3xl p-6">
-            <h3 class="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Price History</h3>
+          <div v-if="history.length > 0" class="glass-card rounded-3xl p-4 sm:p-6">
+            <h3 class="mb-4 text-base font-semibold text-slate-900 dark:text-white sm:text-lg">Price History</h3>
 
             <!-- Price Chart -->
-            <div v-if="chartData" class="mb-6 rounded-2xl bg-white/50 p-4 backdrop-blur dark:bg-black/30">
-              <div class="mb-2 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+            <div v-if="chartData" class="mb-6 rounded-2xl bg-white/50 p-3 backdrop-blur dark:bg-black/30 sm:p-4">
+              <div class="mb-2 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-[10px] text-slate-500 dark:text-slate-400 sm:text-xs">
                 <span>{{ chartData.labels.first }}</span>
-                <span class="flex items-center gap-3">
+                <span class="flex items-center gap-2 sm:gap-3">
                   <span class="text-emerald-600 dark:text-emerald-400">Low: ${{ chartData.min.toFixed(2) }}</span>
                   <span class="text-rose-600 dark:text-rose-400">High: ${{ chartData.max.toFixed(2) }}</span>
                 </span>
                 <span>{{ chartData.labels.last }}</span>
               </div>
-              <svg :viewBox="`0 0 600 160`" class="w-full" preserveAspectRatio="none" style="height: 160px">
+              <svg :viewBox="`0 0 600 160`" class="w-full" preserveAspectRatio="none" style="height: 140px">
                 <defs>
                   <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stop-color="hsl(262.1 83.3% 57.8%)" stop-opacity="0.3" />
@@ -219,10 +219,10 @@ const chartData = computed(() => {
               </svg>
             </div>
 
-            <div class="space-y-3">
-              <div v-for="entry in history.slice(0, 8)" :key="entry.id" class="flex items-center justify-between rounded-2xl bg-white/50 p-4 backdrop-blur dark:bg-black/30">
+            <div class="space-y-2 sm:space-y-3">
+              <div v-for="entry in history.slice(0, 8)" :key="entry.id" class="flex items-center justify-between rounded-2xl bg-white/50 p-3 backdrop-blur dark:bg-black/30 sm:p-4">
                 <div>
-                  <p class="text-lg font-semibold text-slate-900 dark:text-white">${{ entry.price }}</p>
+                  <p class="text-base font-semibold text-slate-900 dark:text-white sm:text-lg">${{ entry.price }}</p>
                   <p class="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
                     <Clock class="h-3 w-3" />
                     {{ formatDate(entry.recorded_at) }}
@@ -238,8 +238,8 @@ const chartData = computed(() => {
       <Teleport to="body">
         <Transition name="modal">
           <div v-if="showAddDialog" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" @click.self="showAddDialog = false">
-            <div class="glass-card w-full max-w-md rounded-3xl p-6 shadow-2xl">
-              <h2 class="mb-6 text-xl font-semibold text-slate-900 dark:text-white">Add to Collection</h2>
+            <div class="glass-card max-h-[90vh] w-full max-w-md overflow-y-auto rounded-3xl p-5 shadow-2xl sm:p-6">
+              <h2 class="mb-6 text-lg font-semibold text-slate-900 dark:text-white sm:text-xl">Add to Collection</h2>
               <div class="mb-6">
                 <label class="mb-3 block text-sm font-medium text-slate-700 dark:text-slate-300">Status</label>
                 <div class="grid grid-cols-2 gap-3">
@@ -266,6 +266,8 @@ const chartData = computed(() => {
         </Transition>
       </Teleport>
     </main>
+
+    <MobileTabBar />
   </div>
 </template>
 

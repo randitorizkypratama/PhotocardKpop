@@ -156,59 +156,78 @@ const visiblePages = computed(() => {
   }
   return pages
 })
+
+const mobilePages = computed(() => {
+  const t = totalPages.value
+  const c = currentPage.value
+  if (t <= 5) {
+    return Array.from({ length: t }, (_, i) => i + 1)
+  }
+  const pages: (number | string)[] = []
+  const start = Math.max(1, Math.min(c - 1, t - 3))
+  const end = Math.min(t, start + 3)
+  if (start > 1) {
+    pages.push(1)
+    if (start > 2) pages.push('...')
+  }
+  for (let i = start; i <= end; i++) pages.push(i)
+  if (end < t) {
+    if (end < t - 1) pages.push('...')
+    pages.push(t)
+  }
+  return pages
+})
 </script>
 
 <template>
   <div class="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50 dark:from-slate-950 dark:via-purple-950 dark:to-slate-950">
     <header class="sticky top-0 z-50 glass border-b border-white/20">
-      <div class="container mx-auto flex h-16 items-center justify-between px-4">
+      <div class="container mx-auto flex h-14 items-center justify-between px-4 sm:h-16">
         <NuxtLink to="/" class="flex items-center gap-2">
           <Sparkles class="h-5 w-5 text-purple-500" />
           <span class="text-lg font-bold text-slate-900 dark:text-white">K-Pop PC</span>
         </NuxtLink>
-        <nav class="flex items-center gap-4">
-          <NuxtLink to="/" class="text-sm font-medium text-slate-500 transition-colors hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">Home</NuxtLink>
-          <NuxtLink to="/browse" class="text-sm font-medium text-slate-900 dark:text-white">Browse</NuxtLink>
-          <NuxtLink to="/collection" class="text-sm font-medium text-slate-500 transition-colors hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">Collection</NuxtLink>
+        <div class="flex items-center gap-4">
+          <nav class="hidden items-center gap-4 md:flex">
+            <NuxtLink to="/" class="text-sm font-medium text-slate-500 transition-colors hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">Home</NuxtLink>
+            <NuxtLink to="/browse" class="text-sm font-medium text-slate-900 dark:text-white">Browse</NuxtLink>
+            <NuxtLink to="/collection" class="text-sm font-medium text-slate-500 transition-colors hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">Collection</NuxtLink>
+          </nav>
           <DarkModeToggle />
-        </nav>
+        </div>
       </div>
     </header>
 
     <!-- Exchange Rate Bar -->
     <div v-if="exchangeRates" class="glass border-b border-white/10">
-      <div class="container mx-auto flex items-center justify-center gap-6 px-4 py-2 text-xs">
+      <div class="container mx-auto flex flex-wrap items-center justify-center gap-x-4 gap-y-1 px-4 py-2 text-xs">
         <div class="flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
           <TrendingUp class="h-3 w-3 text-green-500" />
           <span class="font-medium">Kurs BI:</span>
         </div>
-        <div class="flex items-center gap-4">
-          <span class="text-slate-700 dark:text-slate-300">
-            1 USD = <span class="font-semibold text-slate-900 dark:text-white">{{ Math.round(exchangeRates.usd?.rate)?.toLocaleString('id-ID') }}</span> IDR
-          </span>
-          <span class="text-slate-300 dark:text-slate-600">|</span>
-          <span class="text-slate-700 dark:text-slate-300">
-            1 MYR = <span class="font-semibold text-slate-900 dark:text-white">{{ Math.round(exchangeRates.myr?.rate)?.toLocaleString('id-ID') }}</span> IDR
-          </span>
-        </div>
-        <span class="text-[10px] text-slate-400 dark:text-slate-500">{{ exchangeRates.date }}</span>
+        <span class="text-slate-700 dark:text-slate-300">
+          1 USD = <span class="font-semibold text-slate-900 dark:text-white">{{ Math.round(exchangeRates.usd?.rate)?.toLocaleString('id-ID') }}</span> IDR
+        </span>
+        <span class="text-slate-300 dark:text-slate-600">|</span>
+        <span class="text-slate-700 dark:text-slate-300">
+          1 MYR = <span class="font-semibold text-slate-900 dark:text-white">{{ Math.round(exchangeRates.myr?.rate)?.toLocaleString('id-ID') }}</span> IDR
+        </span>
+        <span class="hidden text-[10px] text-slate-400 dark:text-slate-500 sm:inline">{{ exchangeRates.date }}</span>
       </div>
     </div>
 
-    <main class="container mx-auto px-4 py-8">
-      <div class="mb-8 flex items-center justify-between">
-        <div>
-          <h1 class="text-3xl font-bold text-slate-900 dark:text-white">Browse Photocards</h1>
-          <p class="mt-1 text-slate-500 dark:text-slate-400">
-            {{ loading ? 'Loading...' : `${total.toLocaleString()} cards` }}
-          </p>
-        </div>
+    <main class="container mx-auto px-4 py-6 sm:py-8">
+      <div class="mb-6 sm:mb-8">
+        <h1 class="text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">Browse Photocards</h1>
+        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400 sm:text-base">
+          {{ loading ? 'Loading...' : `${total.toLocaleString()} cards` }}
+        </p>
       </div>
 
       <!-- Group Tabs -->
       <div class="mb-4 flex flex-wrap gap-2">
         <button v-for="group in groups" :key="group" :class="[
-          'rounded-full px-5 py-2.5 text-sm font-medium transition-all',
+          'rounded-full px-4 py-2 text-sm font-medium transition-all sm:px-5 sm:py-2.5',
           selectedGroup === group
             ? 'gradient-primary text-white shadow-lg shadow-purple-500/30'
             : 'glass-card text-slate-700 hover:shadow-md dark:text-slate-300'
@@ -218,8 +237,8 @@ const visiblePages = computed(() => {
       </div>
 
       <!-- Filter Bar -->
-      <div class="mb-6 flex flex-wrap items-center gap-3">
-        <div class="relative min-w-[200px] flex-1 max-w-md">
+      <div class="mb-6 space-y-3">
+        <div class="relative w-full md:max-w-md">
           <Search class="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
             v-model="searchQuery"
@@ -229,40 +248,42 @@ const visiblePages = computed(() => {
           />
         </div>
 
-        <button class="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all glass-card text-slate-700 hover:shadow-md dark:text-slate-300" @click="showFilters = !showFilters">
-          <SlidersHorizontal class="h-4 w-4" />
-          Filters
-          <span v-if="activeFilterCount > 0" class="flex h-5 w-5 items-center justify-center rounded-full bg-purple-500 text-[10px] font-bold text-white">{{ activeFilterCount }}</span>
-        </button>
+        <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+          <button class="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all glass-card text-slate-700 hover:shadow-md dark:text-slate-300" @click="showFilters = !showFilters">
+            <SlidersHorizontal class="h-4 w-4" />
+            Filters
+            <span v-if="activeFilterCount > 0" class="flex h-5 w-5 items-center justify-center rounded-full bg-purple-500 text-[10px] font-bold text-white">{{ activeFilterCount }}</span>
+          </button>
 
-        <div class="relative">
-          <select v-model="selectedSort" class="appearance-none rounded-full bg-white/80 px-4 py-2 pr-8 text-sm font-medium text-slate-700 backdrop-blur transition-all hover:shadow-md dark:bg-black/50 dark:text-slate-300">
-            <option v-for="opt in sortOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-          </select>
-          <ArrowUpDown class="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-        </div>
+          <div class="relative">
+            <select v-model="selectedSort" class="appearance-none rounded-full bg-white/80 px-4 py-2 pr-8 text-sm font-medium text-slate-700 backdrop-blur transition-all hover:shadow-md dark:bg-black/50 dark:text-slate-300">
+              <option v-for="opt in sortOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+            </select>
+            <ArrowUpDown class="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+          </div>
 
-        <div v-if="selectedMember" class="flex items-center gap-1 rounded-full bg-purple-100 px-3 py-1 text-xs font-medium text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
-          {{ selectedMember }}
-          <button @click="selectedMember = null"><X class="h-3 w-3" /></button>
-        </div>
-        <div v-if="selectedCardType" class="flex items-center gap-1 rounded-full bg-pink-100 px-3 py-1 text-xs font-medium text-pink-700 dark:bg-pink-900/30 dark:text-pink-400">
-          {{ selectedCardType }}
-          <button @click="selectedCardType = null"><X class="h-3 w-3" /></button>
-        </div>
-        <div v-if="minPriceIDR || maxPriceIDR" class="flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">
-          Rp {{ Number(minPriceIDR || 0).toLocaleString('id-ID') }} - Rp {{ Number(maxPriceIDR || 0).toLocaleString('id-ID') }}
-          <button @click="minPriceIDR = ''; maxPriceIDR = ''"><X class="h-3 w-3" /></button>
-        </div>
+          <div v-if="selectedMember" class="flex items-center gap-1 rounded-full bg-purple-100 px-3 py-1 text-xs font-medium text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+            {{ selectedMember }}
+            <button @click="selectedMember = null"><X class="h-3 w-3" /></button>
+          </div>
+          <div v-if="selectedCardType" class="flex items-center gap-1 rounded-full bg-pink-100 px-3 py-1 text-xs font-medium text-pink-700 dark:bg-pink-900/30 dark:text-pink-400">
+            {{ selectedCardType }}
+            <button @click="selectedCardType = null"><X class="h-3 w-3" /></button>
+          </div>
+          <div v-if="minPriceIDR || maxPriceIDR" class="flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">
+            Rp {{ Number(minPriceIDR || 0).toLocaleString('id-ID') }} - Rp {{ Number(maxPriceIDR || 0).toLocaleString('id-ID') }}
+            <button @click="minPriceIDR = ''; maxPriceIDR = ''"><X class="h-3 w-3" /></button>
+          </div>
 
-        <button v-if="activeFilterCount > 0" class="text-xs font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200" @click="clearFilters">
-          Clear all
-        </button>
+          <button v-if="activeFilterCount > 0" class="text-xs font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200" @click="clearFilters">
+            Clear all
+          </button>
+        </div>
       </div>
 
       <!-- Expanded Filters -->
       <Transition name="slide">
-        <div v-if="showFilters" class="mb-6 glass-card rounded-2xl p-6">
+        <div v-if="showFilters" class="mb-6 glass-card rounded-2xl p-4 sm:p-6">
           <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             <div>
               <label class="mb-2 flex items-center gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -286,10 +307,10 @@ const visiblePages = computed(() => {
               <label class="mb-2 flex items-center gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">
                 <DollarSign class="h-3.5 w-3.5 text-green-500" /> Harga (IDR)
               </label>
-              <div class="flex items-center gap-2">
-                <input v-model="minPriceIDR" type="number" placeholder="Min (contoh: 50000)" class="w-full rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300" />
-                <span class="text-slate-400">—</span>
-                <input v-model="maxPriceIDR" type="number" placeholder="Max (contoh: 200000)" class="w-full rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300" />
+              <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <input v-model="minPriceIDR" type="number" inputmode="numeric" placeholder="Min (contoh: 50000)" class="w-full rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300" />
+                <span class="hidden text-slate-400 sm:inline">—</span>
+                <input v-model="maxPriceIDR" type="number" inputmode="numeric" placeholder="Max (contoh: 200000)" class="w-full rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300" />
               </div>
             </div>
           </div>
@@ -297,7 +318,7 @@ const visiblePages = computed(() => {
       </Transition>
 
       <!-- Loading -->
-      <div v-if="loading" class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+      <div v-if="loading" class="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
         <div v-for="i in pageSize" :key="i" class="glass-card overflow-hidden rounded-2xl">
           <div class="aspect-square animate-pulse bg-gradient-to-br from-purple-200 to-pink-200 dark:from-purple-800 dark:to-pink-800" />
           <div class="space-y-3 p-4">
@@ -313,7 +334,7 @@ const visiblePages = computed(() => {
       </div>
 
       <!-- Cards -->
-      <div v-else class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+      <div v-else class="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
         <NuxtLink
           v-for="card in cards"
           :key="card.id"
@@ -362,10 +383,55 @@ const visiblePages = computed(() => {
       </div>
 
       <!-- Pagination -->
-      <div v-if="!loading && totalPages > 1" class="mt-12">
-        <div class="glass-card flex flex-col items-center gap-4 rounded-2xl p-6">
-          <p class="text-sm text-slate-500 dark:text-slate-400">Page {{ currentPage }} of {{ totalPages.toLocaleString() }} ({{ total.toLocaleString() }} cards)</p>
-          <div class="flex items-center gap-2">
+      <div v-if="!loading && totalPages > 1" class="mt-8 sm:mt-12">
+        <div class="glass-card rounded-2xl p-4 sm:p-6">
+          <p class="mb-3 text-center text-xs text-slate-500 dark:text-slate-400 sm:mb-4 sm:text-sm">
+            Halaman <span class="font-semibold text-slate-700 dark:text-slate-200">{{ currentPage.toLocaleString() }}</span>
+            dari <span class="font-semibold text-slate-700 dark:text-slate-200">{{ totalPages.toLocaleString() }}</span>
+            <span class="hidden sm:inline"> · {{ total.toLocaleString() }} kartu</span>
+          </p>
+
+          <!-- Mobile: compact Prev / Next -->
+          <div class="flex items-center gap-2 sm:hidden">
+            <button
+              :disabled="currentPage === 1"
+              class="flex h-11 flex-1 items-center justify-center gap-1 rounded-xl border border-slate-200 bg-white/80 text-sm font-medium text-slate-700 transition active:scale-95 disabled:opacity-40 dark:border-slate-700 dark:bg-white/10 dark:text-slate-300"
+              @click="prevPage"
+            >
+              <ChevronLeft class="h-4 w-4" />
+              Prev
+            </button>
+
+            <div class="flex items-center gap-1">
+              <template v-for="p in mobilePages" :key="'m-' + p">
+                <span v-if="p === '...'" class="px-0.5 text-sm text-slate-400">…</span>
+                <button
+                  v-else
+                  :class="[
+                    'h-9 min-w-[36px] rounded-lg px-2 text-sm font-medium transition',
+                    p === currentPage
+                      ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
+                      : 'text-slate-500 dark:text-slate-400'
+                  ]"
+                  @click="goToPage(p as number)"
+                >
+                  {{ p }}
+                </button>
+              </template>
+            </div>
+
+            <button
+              :disabled="currentPage === totalPages"
+              class="flex h-11 flex-1 items-center justify-center gap-1 rounded-xl border border-slate-200 bg-white/80 text-sm font-medium text-slate-700 transition active:scale-95 disabled:opacity-40 dark:border-slate-700 dark:bg-white/10 dark:text-slate-300"
+              @click="nextPage"
+            >
+              Next
+              <ChevronRight class="h-4 w-4" />
+            </button>
+          </div>
+
+          <!-- Desktop: page numbers -->
+          <div class="hidden items-center justify-center gap-2 sm:flex">
             <button :disabled="currentPage === 1" class="glass-card rounded-full p-2 text-slate-700 transition-all hover:shadow-md disabled:opacity-50 dark:text-slate-300" @click="prevPage">
               <ChevronLeft class="h-5 w-5" />
             </button>
@@ -387,6 +453,8 @@ const visiblePages = computed(() => {
         </div>
       </div>
     </main>
+
+    <MobileTabBar />
   </div>
 </template>
 
