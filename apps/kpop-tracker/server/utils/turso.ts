@@ -63,6 +63,11 @@ export async function initializeDatabase() {
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_cards_group ON cards(group_name)`)
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_cards_member ON cards(member_name)`)
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_cards_type ON cards(card_type)`)
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_cards_release ON cards(release_name)`)
+
+  try {
+    await db.execute(`ALTER TABLE cards ADD COLUMN release_name TEXT`)
+  } catch {}
 
   console.log('Database initialized successfully')
 }

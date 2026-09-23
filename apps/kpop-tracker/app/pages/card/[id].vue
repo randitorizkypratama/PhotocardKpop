@@ -94,6 +94,7 @@ function formatDate(dateString: string) {
         <div class="space-y-6">
           <div>
             <p class="mb-2 text-sm font-medium text-purple-600 dark:text-purple-400">{{ card.member_name }}</p>
+                <span v-if="card.release_name" class="rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">{{ card.release_name }}</span>
             <h1 class="text-3xl font-bold text-slate-900 dark:text-white">{{ card.name }}</h1>
           </div>
 

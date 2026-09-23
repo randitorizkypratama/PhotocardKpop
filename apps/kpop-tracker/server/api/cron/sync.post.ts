@@ -68,6 +68,7 @@ function mapCards(results: any[]) {
     group_image: card.group_image,
     member_image: card.member_image,
     card_type: inferCardType(card.name_en),
+    release_name: extractReleaseName(card.name_en, card.group_name_en),
     price: parseFloat(card.price),
     discounted_price: parseFloat(card.discounted_price),
     wish_count: card.wish_count,
@@ -80,20 +81,21 @@ async function batchUpsert(db: any, cards: any[], now: string) {
   const stmts = cards.map(card => ({
     sql: `
       INSERT INTO cards (id, name, image, group_name, member_name, group_image, member_image,
-                       card_type, last_price, last_discounted_price, last_wish_count,
+                       card_type, release_name, last_price, last_discounted_price, last_wish_count,
                        last_sales_volume, last_stocked_count, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         name = excluded.name, image = excluded.image, member_name = excluded.member_name,
         group_image = excluded.group_image, member_image = excluded.member_image,
-        card_type = excluded.card_type, last_price = excluded.last_price,
+        card_type = excluded.card_type, release_name = excluded.release_name,
+        last_price = excluded.last_price,
         last_discounted_price = excluded.last_discounted_price, last_wish_count = excluded.last_wish_count,
         last_sales_volume = excluded.last_sales_volume, last_stocked_count = excluded.last_stocked_count,
         updated_at = excluded.updated_at
     `,
     args: [
       card.id, card.name, card.image, card.group_name, card.member_name,
-      card.group_image, card.member_image, card.card_type,
+      card.group_image, card.member_image, card.card_type, card.release_name,
       card.price, card.discounted_price,
       card.wish_count, card.sales_volume, card.stocked_count, now,
     ],

@@ -70,4 +70,30 @@ export function inferCardType(name: string): string {
   return 'Album'
 }
 
+export function extractReleaseName(name: string, groupName: string): string | null {
+  const n = name.toUpperCase()
+  const g = groupName.toUpperCase()
+
+  const albumPatterns: [RegExp, string][] = [
+    [/EMPATHY/, 'EMPATHY'],
+    [/REVIVE\+/, 'REVIVE+'],
+    [/SECRET(?:\s|\.|$)/, 'SECRET'],
+    [/LOVED(?:\s|\.|$)/, 'LOVED'],
+    [/HEAVEN/, 'HEAVEN'],
+    [/BADDIE/, 'BADDIE'],
+    [/ALL\s*NIGHT/, 'ALL NIGHT'],
+    [/I\s*AM(?:\s|\.|$)/, 'I AM'],
+    [/I['']VE\s*IVE/, "I'VE IVE"],
+    [/AFTER\s*LIKE/, 'AFTER LIKE'],
+    [/LOVE\s*DIVE/, 'LOVE DIVE'],
+    [/ELEVEN/, 'ELEVEN'],
+  ]
+
+  for (const [pattern, label] of albumPatterns) {
+    if (pattern.test(n)) return label
+  }
+
+  return null
+}
+
 export type { PocamarketCard, PocamarketResponse }

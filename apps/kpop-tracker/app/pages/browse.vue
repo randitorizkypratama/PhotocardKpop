@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {
   ChevronLeft, ChevronRight, Heart, Package, Search, Sparkles,
-  SlidersHorizontal, X, ArrowUpDown, DollarSign, Tag, RefreshCw, TrendingUp
+  SlidersHorizontal, X, ArrowUpDown, DollarSign, Tag, RefreshCw, TrendingUp, Disc3
 } from 'lucide-vue-next'
 
 const groups = ['IVE', 'aespa', 'Hearts2Hearts']
@@ -9,6 +9,11 @@ const members: Record<string, string[]> = {
   IVE: ['WONYONG', 'LIZ', 'GAEUL', 'REI', 'YUJIN', 'LEESEO'],
   aespa: ['KARINA', 'WINTER', 'GISELLE', 'NINGNING'],
   Hearts2Hearts: ['IAN', 'JIWOO', 'YE-ON', 'Carmen', 'Stella', 'YUHA'],
+}
+const releases: Record<string, string[]> = {
+  IVE: ['EMPATHY', 'REVIVE+', 'SECRET', "I'VE IVE", 'LOVE DIVE', 'ELEVEN', 'AFTER LIKE', 'I AM', 'BADDIE', 'ALL NIGHT', 'HEAVEN', 'LOVED'],
+  aespa: ['WHIP LASH', 'SPICY', 'GIRLS', 'FOREVER', 'NEXT LEVEL', 'SAVAGE', 'MY WORLD', 'DREAMS COME TRUE', 'ARMAGEDDON', 'Supernova'],
+  Hearts2Hearts: ['THE FIRST ALBUM', 'THE SECOND SINGLE', 'THE THIRD SINGLE', 'THE FOURTH SINGLE'],
 }
 const cardTypes = ['Album', 'POB', 'Lucky Draw', 'MD', 'Fan Meeting', "Season's Greetings", 'Concert', 'Trading Card', 'Pop-up', 'Fan Club']
 const sortOptions = [
@@ -22,9 +27,10 @@ const sortOptions = [
 const selectedGroup = ref('IVE')
 const selectedMember = ref<string | null>(null)
 const selectedCardType = ref<string | null>(null)
+const selectedRelease = ref<string | null>(null)
 const selectedSort = ref('popular')
-const minPrice = ref<string>('')
-const maxPrice = ref<string>('')
+const minPriceIDR = ref<string>('')
+const maxPriceIDR = ref<string>('')
 const showFilters = ref(false)
 const currentPage = ref(1)
 const pageSize = 20
@@ -39,9 +45,10 @@ const activeFilterCount = computed(() => {
   let count = 0
   if (selectedMember.value) count++
   if (selectedCardType.value) count++
+  if (selectedRelease.value) count++
   if (selectedSort.value !== 'popular') count++
-  if (minPrice.value) count++
-  if (maxPrice.value) count++
+  if (minPriceIDR.value) count++
+  if (maxPriceIDR.value) count++
   return count
 })
 
@@ -64,14 +71,20 @@ async function loadExchangeRates() {
 watch(selectedGroup, () => {
   selectedMember.value = null
   selectedCardType.value = null
+  selectedRelease.value = null
   currentPage.value = 1
   loadCards()
 })
 
-watch([selectedMember, selectedCardType, selectedSort, minPrice, maxPrice], () => {
+watch([selectedMember, selectedCardType, selectedRelease, selectedSort, minPriceIDR, maxPriceIDR], () => {
   currentPage.value = 1
   loadCards()
 })
+
+function idrToUSD(idr: number): number {
+  const rate = exchangeRates.value?.usd?.rate
+  return rate ? idr / rate : idr / 17800
+}
 
 async function loadCards() {
   loading.value = true
@@ -84,8 +97,9 @@ async function loadCards() {
     })
     if (selectedMember.value) params.set('member', selectedMember.value)
     if (selectedCardType.value) params.set('card_type', selectedCardType.value)
-    if (minPrice.value) params.set('min_price', minPrice.value)
-    if (maxPrice.value) params.set('max_price', maxPrice.value)
+    if (selectedRelease.value) params.set('release', selectedRelease.value)
+    if (minPriceIDR.value) params.set('min_price', String(Math.round(idrToUSD(Number(minPriceIDR.value)))))
+    if (maxPriceIDR.value) params.set('max_price', String(Math.round(idrToUSD(Number(maxPriceIDR.value)))))
     const response = await $fetch<any>(`/api/cards?${params}`)
     if (response.success) {
       cards.value = response.data
@@ -102,9 +116,10 @@ async function loadCards() {
 function clearFilters() {
   selectedMember.value = null
   selectedCardType.value = null
+  selectedRelease.value = null
   selectedSort.value = 'popular'
-  minPrice.value = ''
-  maxPrice.value = ''
+  minPriceIDR.value = ''
+  maxPriceIDR.value = ''
 }
 
 function goToPage(page: number) {
@@ -214,9 +229,13 @@ const visiblePages = computed(() => {
           {{ selectedCardType }}
           <button @click="selectedCardType = null"><X class="h-3 w-3" /></button>
         </div>
-        <div v-if="minPrice || maxPrice" class="flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">
-          ${{ minPrice || '0' }} - ${{ maxPrice || '∞' }}
-          <button @click="minPrice = ''; maxPrice = ''"><X class="h-3 w-3" /></button>
+        <div v-if="selectedRelease" class="flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+          {{ selectedRelease }}
+          <button @click="selectedRelease = null"><X class="h-3 w-3" /></button>
+        </div>
+        <div v-if="minPriceIDR || maxPriceIDR" class="flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">
+          Rp {{ Number(minPriceIDR || 0).toLocaleString('id-ID') }} - Rp {{ Number(maxPriceIDR || 0).toLocaleString('id-ID') }}
+          <button @click="minPriceIDR = ''; maxPriceIDR = ''"><X class="h-3 w-3" /></button>
         </div>
 
         <button v-if="activeFilterCount > 0" class="text-xs font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200" @click="clearFilters">
@@ -248,12 +267,21 @@ const visiblePages = computed(() => {
             </div>
             <div>
               <label class="mb-2 flex items-center gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">
-                <DollarSign class="h-3.5 w-3.5 text-green-500" /> Price Range (USD)
+                <Disc3 class="h-3.5 w-3.5 text-blue-500" /> Release / Album
+              </label>
+              <div class="flex flex-wrap gap-1.5">
+                <button :class="['rounded-full px-3 py-1.5 text-xs font-medium transition-all', selectedRelease === null ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700']" @click="selectedRelease = null">All</button>
+                <button v-for="r in releases[selectedGroup]" :key="r" :class="['rounded-full px-3 py-1.5 text-xs font-medium transition-all', selectedRelease === r ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700']" @click="selectedRelease = r">{{ r }}</button>
+              </div>
+            </div>
+            <div>
+              <label class="mb-2 flex items-center gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">
+                <DollarSign class="h-3.5 w-3.5 text-green-500" /> Harga (IDR)
               </label>
               <div class="flex items-center gap-2">
-                <input v-model="minPrice" type="number" placeholder="Min" class="w-full rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300" />
+                <input v-model="minPriceIDR" type="number" placeholder="Min (contoh: 50000)" class="w-full rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300" />
                 <span class="text-slate-400">—</span>
-                <input v-model="maxPrice" type="number" placeholder="Max" class="w-full rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300" />
+                <input v-model="maxPriceIDR" type="number" placeholder="Max (contoh: 200000)" class="w-full rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300" />
               </div>
             </div>
           </div>
@@ -286,7 +314,10 @@ const visiblePages = computed(() => {
             <div v-if="card.is_in_promotion" class="absolute left-2 top-2 rounded-full bg-green-500 px-2 py-1 text-xs font-bold text-white">-{{ card.discount_rate }}%</div>
           </div>
           <div class="p-4">
-            <p class="mb-1 text-xs font-medium text-purple-600 dark:text-purple-400">{{ card.member_name }}</p>
+            <div class="mb-1 flex items-center gap-1.5">
+              <p class="text-xs font-medium text-purple-600 dark:text-purple-400">{{ card.member_name }}</p>
+              <span v-if="card.release_name" class="rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">{{ card.release_name }}</span>
+            </div>
             <h3 class="line-clamp-2 text-sm font-semibold text-slate-900 dark:text-white">{{ card.name }}</h3>
             <div class="mt-3 flex items-center justify-between">
               <div>

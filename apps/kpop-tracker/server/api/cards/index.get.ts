@@ -4,6 +4,7 @@ export default defineEventHandler(async (event) => {
   const member = (query.member as string) || undefined
   const search = (query.search as string) || undefined
   const cardType = (query.card_type as string) || undefined
+  const release = (query.release as string) || undefined
   const sort = (query.sort as string) || 'popular'
   const minPrice = parseFloat(query.min_price as string) || undefined
   const maxPrice = parseFloat(query.max_price as string) || undefined
@@ -32,6 +33,10 @@ export default defineEventHandler(async (event) => {
   if (cardType) {
     conditions.push('card_type = ?')
     args.push(cardType)
+  }
+  if (release) {
+    conditions.push('release_name = ?')
+    args.push(release)
   }
   if (minPrice !== undefined) {
     conditions.push('last_discounted_price >= ?')
@@ -78,6 +83,7 @@ export default defineEventHandler(async (event) => {
     group_image: card.group_image,
     member_image: card.member_image,
     card_type: card.card_type,
+    release_name: card.release_name,
     price: card.last_price,
     discounted_price: card.last_discounted_price,
     discount_rate: (card.last_discounted_price as number) < (card.last_price as number)
