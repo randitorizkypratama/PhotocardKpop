@@ -8,26 +8,23 @@ const links = [
   {
     label: 'Tokopedia',
     href: 'https://www.tokopedia.com/hibikishop',
-    icon: '/social/tokopedia.svg',
-    wide: true,
+    icon: '/social/tokopedia.png',
   },
   {
     label: 'Shopee',
     href: 'https://id.shp.ee/jxkat4oC',
     icon: '/social/shopee.svg',
-    wide: false,
   },
   {
     label: 'TikTok',
     href: 'https://www.tiktok.com/@hibikis13',
     icon: '/social/tiktok.svg',
-    wide: false,
   },
 ]
 </script>
 
 <template>
-  <div class="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+  <div class="flex flex-wrap items-center justify-center gap-3 sm:justify-start">
     <a
       v-for="link in links"
       :key="link.label"
@@ -36,29 +33,14 @@ const links = [
       rel="noopener noreferrer"
       :aria-label="link.label"
       :title="link.label"
-      :class="[
-        'group inline-flex items-center justify-center transition-all hover:-translate-y-0.5 hover:shadow-lg',
-        link.wide
-          ? 'rounded-full px-3'
-          : 'rounded-full',
-        size === 'sm'
-          ? (link.wide ? 'h-9 min-w-[3.5rem]' : 'h-9 w-9')
-          : (link.wide ? 'h-11 min-w-[4.5rem]' : 'h-11 w-11'),
-        variant === 'card'
-          ? 'bg-white shadow-sm dark:bg-white/10'
-          : 'bg-white/90 shadow-sm backdrop-blur dark:bg-black/40'
-      ]"
+      class="group inline-flex items-center justify-center rounded-2xl bg-white p-2 shadow-sm ring-1 ring-black/5 transition-all hover:-translate-y-0.5 hover:shadow-md dark:bg-white/10 dark:ring-white/10"
+      :class="size === 'sm' ? 'h-12 w-12' : 'h-14 w-14'"
     >
       <img
         :src="link.icon"
         :alt="link.label"
         loading="lazy"
-        :class="[
-          'object-contain transition-transform group-hover:scale-105',
-          link.wide
-            ? (size === 'sm' ? 'h-4 w-auto max-w-[4rem]' : 'h-5 w-auto max-w-[5.5rem]')
-            : (size === 'sm' ? 'h-5 w-5' : 'h-6 w-6')
-        ]"
+        class="h-full w-full object-contain transition-transform group-hover:scale-105"
       />
     </a>
   </div>
