@@ -47,6 +47,11 @@ function formatDate(dateString: string) {
   return new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
+function formatIDR(usd: number): string {
+  const rate = exchangeRates.value?.usd?.rate || 17800
+  return Math.round((Number(usd) || 0) * rate).toLocaleString('id-ID')
+}
+
 const chartData = computed(() => {
   const chronological = [...history.value].reverse()
   if (chronological.length < 2) return null
@@ -130,23 +135,26 @@ const chartData = computed(() => {
 
         <div class="space-y-6">
           <div>
-            <p class="mb-2 text-sm font-medium text-purple-600 dark:text-purple-400">{{ card.member_name }}</p>
-                <span v-if="card.release_name" class="rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">{{ card.release_name }}</span>
+            <div class="mb-2 flex flex-wrap items-center gap-2">
+              <p class="text-sm font-semibold uppercase tracking-wider text-purple-600 dark:text-purple-400">{{ card.member_name }}</p>
+              <span v-if="card.release_name" class="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-medium text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">{{ card.release_name }}</span>
+            </div>
             <h1 class="text-3xl font-bold text-slate-900 dark:text-white">{{ card.name }}</h1>
           </div>
 
           <div class="glass-card rounded-3xl p-6">
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between gap-4">
               <div>
-                <p class="text-sm text-slate-500 dark:text-slate-400">Current Price</p>
-                <p class="text-4xl font-bold text-slate-900 dark:text-white">${{ card.discounted_price || card.price }}</p>
-                <p v-if="exchangeRates?.usd?.rate" class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                  ~Rp {{ ((card.discounted_price || card.price) * exchangeRates.usd.rate).toLocaleString('id-ID', { maximumFractionDigits: 0 }) }}
+                <p class="text-sm text-slate-500 dark:text-slate-400">Harga Saat Ini</p>
+                <p class="text-4xl font-bold text-slate-900 dark:text-white">Rp {{ formatIDR(card.discounted_price || card.price) }}</p>
+                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                  ${{ (card.discounted_price || card.price).toFixed(2) }}
+                  <span v-if="card.is_in_promotion" class="ml-1 line-through">${{ card.price.toFixed(2) }}</span>
                 </p>
               </div>
               <div v-if="card.is_in_promotion" class="text-right">
-                <p class="text-sm text-slate-400 line-through">${{ card.price }}</p>
-                <p class="text-2xl font-bold text-green-500">-{{ card.discount_rate }}%</p>
+                <p class="text-sm text-slate-400 line-through">Rp {{ formatIDR(card.price) }}</p>
+                <p class="text-2xl font-bold text-emerald-500">-{{ card.discount_rate }}%</p>
               </div>
             </div>
           </div>
@@ -179,8 +187,8 @@ const chartData = computed(() => {
               <div class="mb-2 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
                 <span>{{ chartData.labels.first }}</span>
                 <span class="flex items-center gap-3">
-                  <span class="text-green-600 dark:text-green-400">Low: ${{ chartData.min.toFixed(2) }}</span>
-                  <span class="text-red-600 dark:text-red-400">High: ${{ chartData.max.toFixed(2) }}</span>
+                  <span class="text-emerald-600 dark:text-emerald-400">Low: ${{ chartData.min.toFixed(2) }}</span>
+                  <span class="text-rose-600 dark:text-rose-400">High: ${{ chartData.max.toFixed(2) }}</span>
                 </span>
                 <span>{{ chartData.labels.last }}</span>
               </div>

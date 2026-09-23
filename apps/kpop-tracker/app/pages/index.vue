@@ -9,10 +9,28 @@ const selectedGroup = ref('IVE')
 
 const cards = ref<any[]>([])
 const loading = ref(true)
+const exchangeRates = ref<any>(null)
 
-onMounted(() => { loadCards() })
+onMounted(() => {
+  loadCards()
+  loadExchangeRates()
+})
 
 watch(selectedGroup, () => { loadCards() })
+
+async function loadExchangeRates() {
+  try {
+    const response = await $fetch<any>('/api/exchangerate')
+    if (response.success) exchangeRates.value = response.data
+  } catch (e) {
+    console.error('Failed to load exchange rates:', e)
+  }
+}
+
+function formatIDR(usd: number): string {
+  const rate = exchangeRates.value?.usd?.rate || 17800
+  return Math.round((Number(usd) || 0) * rate).toLocaleString('id-ID')
+}
 
 async function loadCards() {
   loading.value = true
@@ -125,19 +143,28 @@ async function loadCards() {
           v-for="card in cards"
           :key="card.id"
           :to="`/card/${card.id}`"
-          class="group glass-card overflow-hidden rounded-2xl card-hover"
+          class="group glass-card flex flex-col overflow-hidden rounded-2xl card-hover"
         >
-          <div class="relative aspect-square overflow-hidden">
-            <img :src="card.image" :alt="card.name" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" />
-            <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-            <div class="absolute right-2 top-2 rounded-full bg-black/50 px-2 py-1 text-xs font-medium text-white backdrop-blur">{{ card.card_type }}</div>
-            <div v-if="card.is_in_promotion" class="absolute left-2 top-2 rounded-full bg-green-500 px-2 py-1 text-xs font-bold text-white">-{{ card.discount_rate }}%</div>
+          <div class="relative aspect-square overflow-hidden bg-slate-100 dark:bg-slate-800">
+            <img
+              :src="card.image"
+              :alt="card.name"
+              class="h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
+              loading="lazy"
+            />
+            <div class="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/50 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+            <span class="absolute right-2 top-2 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur">{{ card.card_type }}</span>
+            <span v-if="card.is_in_promotion" class="absolute left-2 top-2 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">-{{ card.discount_rate }}%</span>
           </div>
-          <div class="p-4">
-            <p class="mb-1 text-xs font-medium text-purple-600 dark:text-purple-400">{{ card.member_name }}</p>
-            <h3 class="line-clamp-2 text-sm font-semibold text-slate-900 dark:text-white">{{ card.name }}</h3>
-            <div class="mt-3">
-              <span class="text-xl font-bold text-slate-900 dark:text-white">${{ card.discounted_price || card.price }}</span>
+          <div class="flex flex-1 flex-col p-3">
+            <p class="text-[11px] font-semibold uppercase tracking-wider text-purple-600 dark:text-purple-400">{{ card.member_name }}</p>
+            <h3 class="mt-0.5 line-clamp-2 min-h-[2.5rem] text-[13px] font-medium leading-snug text-slate-800 dark:text-slate-200">{{ card.name }}</h3>
+            <div class="mt-auto pt-2">
+              <div class="flex items-baseline gap-1.5 flex-wrap">
+                <span class="text-[15px] font-bold text-slate-900 dark:text-white">Rp {{ formatIDR(card.discounted_price || card.price) }}</span>
+                <span v-if="card.is_in_promotion" class="text-[11px] text-slate-400 line-through dark:text-slate-500">Rp {{ formatIDR(card.price) }}</span>
+              </div>
+              <p class="mt-0.5 text-[11px] text-slate-400 dark:text-slate-500">${{ (card.discounted_price || card.price).toFixed(2) }}</p>
             </div>
           </div>
         </NuxtLink>

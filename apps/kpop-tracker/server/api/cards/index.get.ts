@@ -6,8 +6,8 @@ export default defineEventHandler(async (event) => {
   const cardType = (query.card_type as string) || undefined
   const release = (query.release as string) || undefined
   const sort = (query.sort as string) || 'popular'
-  const minPrice = parseFloat(query.min_price as string) || undefined
-  const maxPrice = parseFloat(query.max_price as string) || undefined
+  const minPrice = query.min_price !== undefined ? parseFloat(query.min_price as string) : undefined
+  const maxPrice = query.max_price !== undefined ? parseFloat(query.max_price as string) : undefined
   const page = parseInt(query.page as string) || 1
   const limit = parseInt(query.limit as string) || 20
   const offset = (page - 1) * limit
@@ -38,12 +38,13 @@ export default defineEventHandler(async (event) => {
     conditions.push('release_name = ?')
     args.push(release)
   }
-  if (minPrice !== undefined) {
-    conditions.push('last_discounted_price >= ?')
+  const priceExpr = 'COALESCE(last_discounted_price, last_price)'
+  if (minPrice !== undefined && !isNaN(minPrice)) {
+    conditions.push(`${priceExpr} >= ?`)
     args.push(minPrice)
   }
-  if (maxPrice !== undefined) {
-    conditions.push('last_discounted_price <= ?')
+  if (maxPrice !== undefined && !isNaN(maxPrice)) {
+    conditions.push(`${priceExpr} <= ?`)
     args.push(maxPrice)
   }
 
