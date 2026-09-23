@@ -160,11 +160,14 @@ async function loadCards() {
             <p class="text-[11px] font-semibold uppercase tracking-wider text-purple-600 dark:text-purple-400">{{ card.member_name }}</p>
             <h3 class="mt-0.5 line-clamp-2 min-h-[2.5rem] text-[13px] font-medium leading-snug text-slate-800 dark:text-slate-200">{{ card.name }}</h3>
             <div class="mt-auto pt-2">
-              <div class="flex items-baseline gap-1.5 flex-wrap">
-                <span class="text-[15px] font-bold text-slate-900 dark:text-white">Rp {{ formatIDR(card.discounted_price || card.price) }}</span>
-                <span v-if="card.is_in_promotion" class="text-[11px] text-slate-400 line-through dark:text-slate-500">Rp {{ formatIDR(card.price) }}</span>
-              </div>
-              <p class="mt-0.5 text-[11px] text-slate-400 dark:text-slate-500">${{ (card.discounted_price || card.price).toFixed(2) }}</p>
+              <template v-if="(card.discounted_price || card.price) > 0">
+                <div class="flex items-baseline gap-1.5 flex-wrap">
+                  <span class="text-[15px] font-bold text-slate-900 dark:text-white">Rp {{ formatIDR(card.discounted_price || card.price) }}</span>
+                  <span v-if="card.is_in_promotion" class="text-[11px] text-slate-400 line-through dark:text-slate-500">Rp {{ formatIDR(card.price) }}</span>
+                </div>
+                <p class="mt-0.5 text-[11px] text-slate-400 dark:text-slate-500">${{ (card.discounted_price || card.price).toFixed(2) }}</p>
+              </template>
+              <span v-else class="text-[13px] font-medium text-slate-400 dark:text-slate-500">Tidak tersedia</span>
             </div>
           </div>
         </NuxtLink>

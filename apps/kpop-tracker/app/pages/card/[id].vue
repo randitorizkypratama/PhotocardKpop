@@ -146,13 +146,16 @@ const chartData = computed(() => {
             <div class="flex items-center justify-between gap-4">
               <div>
                 <p class="text-sm text-slate-500 dark:text-slate-400">Harga Saat Ini</p>
-                <p class="text-4xl font-bold text-slate-900 dark:text-white">Rp {{ formatIDR(card.discounted_price || card.price) }}</p>
-                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                  ${{ (card.discounted_price || card.price).toFixed(2) }}
-                  <span v-if="card.is_in_promotion" class="ml-1 line-through">${{ card.price.toFixed(2) }}</span>
-                </p>
+                <template v-if="(card.discounted_price || card.price) > 0">
+                  <p class="text-4xl font-bold text-slate-900 dark:text-white">Rp {{ formatIDR(card.discounted_price || card.price) }}</p>
+                  <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    ${{ (card.discounted_price || card.price).toFixed(2) }}
+                    <span v-if="card.is_in_promotion" class="ml-1 line-through">${{ card.price.toFixed(2) }}</span>
+                  </p>
+                </template>
+                <p v-else class="text-2xl font-semibold text-slate-400 dark:text-slate-500">Tidak tersedia</p>
               </div>
-              <div v-if="card.is_in_promotion" class="text-right">
+              <div v-if="card.is_in_promotion && card.price > 0" class="text-right">
                 <p class="text-sm text-slate-400 line-through">Rp {{ formatIDR(card.price) }}</p>
                 <p class="text-2xl font-bold text-emerald-500">-{{ card.discount_rate }}%</p>
               </div>
