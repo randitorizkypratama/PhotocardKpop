@@ -344,8 +344,8 @@ const mobilePages = computed(() => {
         <div class="min-w-0">
           <!-- Toolbar -->
           <div class="mb-4 space-y-3">
-            <div class="flex flex-wrap items-center gap-2">
-              <div class="relative min-w-0 flex-1 md:max-w-sm">
+            <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+              <div class="relative w-full min-w-0 sm:flex-1 md:max-w-sm">
                 <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   v-model="searchQuery"
@@ -356,31 +356,33 @@ const mobilePages = computed(() => {
                 />
               </div>
 
-              <Button
-                variant="outline"
-                size="sm"
-                class="gap-1.5 rounded-lg lg:hidden"
-                @click="mobileFiltersOpen = true"
-              >
-                <SlidersHorizontal class="h-4 w-4" />
-                Filters
-                <span
-                  v-if="activeFilterCount > 0"
-                  class="ml-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-foreground px-1.5 text-[10px] font-semibold text-background"
-                >{{ activeFilterCount }}</span>
-              </Button>
+              <div class="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  class="h-10 flex-1 gap-1.5 rounded-lg sm:flex-none lg:hidden"
+                  @click="mobileFiltersOpen = true"
+                >
+                  <SlidersHorizontal class="h-4 w-4" />
+                  Filters
+                  <span
+                    v-if="activeFilterCount > 0"
+                    class="ml-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-foreground px-1.5 text-[10px] font-semibold text-background"
+                  >{{ activeFilterCount }}</span>
+                </Button>
 
-              <Select v-model="selectedSort">
-                <SelectTrigger class="h-10 w-auto min-w-[9.5rem] gap-2 rounded-lg" aria-label="Sort">
-                  <ArrowUpDown class="h-3.5 w-3.5 text-muted-foreground" />
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent class="min-w-[12rem]">
-                  <SelectItem v-for="opt in SORT_OPTIONS" :key="opt.value" :value="opt.value">
-                    {{ opt.label }}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+                <Select v-model="selectedSort">
+                  <SelectTrigger class="h-10 w-full min-w-0 flex-1 gap-2 rounded-lg sm:w-auto sm:min-w-[9.5rem] sm:flex-none" aria-label="Sort">
+                    <ArrowUpDown class="h-3.5 w-3.5 text-muted-foreground" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent class="min-w-[12rem]">
+                    <SelectItem v-for="opt in SORT_OPTIONS" :key="opt.value" :value="opt.value">
+                      {{ opt.label }}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <!-- Group pills (mobile-visible primary) + active chips -->
@@ -552,8 +554,11 @@ const mobilePages = computed(() => {
 
     <!-- Mobile filter sheet -->
     <Sheet v-model:open="mobileFiltersOpen">
-      <SheetContent side="bottom" class="max-h-[85vh] overflow-y-auto rounded-t-2xl p-0 sm:max-w-md sm:rounded-2xl sm:bottom-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2">
-        <SheetHeader class="border-b border-zinc-200 px-4 py-4 text-left dark:border-zinc-800">
+      <SheetContent
+        side="bottom"
+        class="max-h-[85vh] overflow-y-auto overscroll-contain rounded-t-2xl border-zinc-200 p-0 dark:border-zinc-800 sm:inset-x-auto sm:right-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:w-full sm:max-w-md sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:border"
+      >
+        <SheetHeader class="relative border-b border-zinc-200 px-4 py-4 pr-12 text-left dark:border-zinc-800">
           <SheetTitle class="text-base font-semibold">Filters</SheetTitle>
           <SheetDescription class="text-sm text-muted-foreground">
             Narrow results by member, card type, and price.

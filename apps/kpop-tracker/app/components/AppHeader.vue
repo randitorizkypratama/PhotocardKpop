@@ -28,27 +28,30 @@ function submitSearch() {
 </script>
 
 <template>
-  <header class="sticky top-0 z-50 border-b border-zinc-200/80 bg-background/90 backdrop-blur-md dark:border-zinc-800/80">
-    <div class="page-shell flex h-14 items-center gap-3 sm:h-16">
-      <div v-if="back" class="flex min-w-0 items-center gap-3">
+  <header
+    class="sticky top-0 z-50 border-b border-zinc-200/80 bg-background/90 backdrop-blur-md dark:border-zinc-800/80"
+    style="padding-top: env(safe-area-inset-top, 0px)"
+  >
+    <div class="page-shell flex h-14 items-center gap-2 sm:h-16 sm:gap-3">
+      <div v-if="back" class="flex min-w-0 items-center gap-1 sm:gap-3">
         <Button variant="ghost" size="sm" class="gap-1.5 rounded-lg" @click="router.back()">
           <ArrowLeft class="h-4 w-4" />
           <span class="hidden sm:inline">Back</span>
         </Button>
-        <NuxtLink to="/" class="flex items-center gap-2 sm:hidden">
+        <NuxtLink to="/" class="flex shrink-0 items-center gap-2 md:hidden">
           <img src="/hibikishop-logo.png" alt="HIBIKISHOP" class="h-8 w-8 rounded-full object-contain" />
         </NuxtLink>
       </div>
 
-      <NuxtLink v-else to="/" class="flex shrink-0 items-center gap-2.5">
-        <img src="/hibikishop-logo.png" alt="HIBIKISHOP" class="h-8 w-8 rounded-full object-contain sm:h-9 sm:w-9" />
-        <div class="leading-tight">
-          <span class="block text-sm font-semibold tracking-tight text-foreground sm:text-base">HIBIKISHOP</span>
+      <NuxtLink v-else to="/" class="flex min-w-0 shrink-0 items-center gap-2 sm:gap-2.5">
+        <img src="/hibikishop-logo.png" alt="HIBIKISHOP" class="h-8 w-8 shrink-0 rounded-full object-contain sm:h-9 sm:w-9" />
+        <div class="min-w-0 leading-tight">
+          <span class="block truncate text-sm font-semibold tracking-tight text-foreground sm:text-base">HIBIKISHOP</span>
           <span class="hidden text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground sm:block">Photocards</span>
         </div>
       </NuxtLink>
 
-      <nav class="ml-4 hidden items-center gap-1 md:flex" aria-label="Primary">
+      <nav class="ml-2 hidden items-center gap-1 md:flex md:ml-4" aria-label="Primary">
         <NuxtLink
           v-for="link in navLinks"
           :key="link.key"
@@ -71,7 +74,7 @@ function submitSearch() {
         </NuxtLink>
       </div>
 
-      <div class="ml-auto flex items-center gap-2">
+      <div class="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1.5">
         <form class="hidden lg:block" role="search" @submit.prevent="submitSearch">
           <label for="header-search" class="sr-only">Search photocards</label>
           <div class="relative">

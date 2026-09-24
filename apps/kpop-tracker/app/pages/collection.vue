@@ -122,35 +122,33 @@ const tabDefs = computed(() => [
       </div>
 
       <!-- Compact summary -->
-      <div class="mb-6 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-zinc-200 bg-card px-4 py-3.5 text-sm dark:border-zinc-800 sm:mb-8">
-        <div class="flex items-baseline gap-2">
+      <div class="mb-5 grid grid-cols-3 gap-2 rounded-xl border border-zinc-200 bg-card px-3 py-3 text-sm dark:border-zinc-800 sm:mb-8 sm:flex sm:flex-wrap sm:items-center sm:gap-x-6 sm:gap-y-2 sm:px-4 sm:py-3.5">
+        <div class="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-2">
           <span class="text-lg font-semibold tabular-nums text-foreground">{{ items.length }}</span>
-          <span class="text-muted-foreground">cards</span>
+          <span class="truncate text-xs text-muted-foreground sm:text-sm">cards</span>
         </div>
-        <span class="hidden h-4 w-px bg-zinc-200 dark:bg-zinc-800 sm:block" aria-hidden="true" />
-        <div class="flex items-baseline gap-2">
-          <span class="font-medium tabular-nums text-foreground">
+        <div class="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-2">
+          <span class="truncate font-medium tabular-nums text-foreground">
             {{ formatUSD(stats.totalOwnedValue) }}
           </span>
-          <span class="text-muted-foreground">owned value</span>
+          <span class="truncate text-xs text-muted-foreground sm:text-sm">owned value</span>
         </div>
-        <span class="hidden h-4 w-px bg-zinc-200 dark:bg-zinc-800 sm:block" aria-hidden="true" />
-        <div class="flex items-baseline gap-2">
+        <div class="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-2">
           <span class="font-medium tabular-nums text-foreground">{{ stats.totalWishlist }}</span>
-          <span class="text-muted-foreground">wishlist</span>
+          <span class="truncate text-xs text-muted-foreground sm:text-sm">wishlist</span>
         </div>
       </div>
 
       <!-- Tabs -->
       <Tabs v-model="activeTab" class="mb-6">
-        <TabsList class="h-10 w-full justify-start gap-1 rounded-lg bg-muted p-1 sm:w-auto">
+        <TabsList class="grid h-11 w-full grid-cols-3 gap-1 rounded-lg bg-muted p-1 sm:flex sm:h-10 sm:w-auto sm:justify-start">
           <TabsTrigger
             v-for="tab in tabDefs"
             :key="tab.key"
             :value="tab.key"
-            class="rounded-md px-3 py-1.5 text-sm data-[state=active]:bg-background data-[state=active]:shadow-sm"
+            class="min-w-0 rounded-md px-2 py-1.5 text-sm data-[state=active]:bg-background data-[state=active]:shadow-sm sm:px-3"
           >
-            {{ tab.label }}
+            <span class="truncate">{{ tab.label }}</span>
             <span class="ml-1 tabular-nums text-muted-foreground">({{ tab.count }})</span>
           </TabsTrigger>
         </TabsList>
@@ -201,19 +199,19 @@ const tabDefs = computed(() => [
           v-for="section in groupedItems"
           :key="section.group"
         >
-          <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
-            <div class="flex items-center gap-2">
-              <span class="h-2 w-2 rounded-full" :class="groupDot(section.group)" />
-              <h2 class="text-base font-semibold text-foreground sm:text-lg">{{ section.group }}</h2>
+          <div class="mb-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+            <div class="flex min-w-0 items-center gap-2">
+              <span class="h-2 w-2 shrink-0 rounded-full" :class="groupDot(section.group)" />
+              <h2 class="truncate text-base font-semibold text-foreground sm:text-lg">{{ section.group }}</h2>
             </div>
-            <div class="flex items-center gap-3 text-xs text-muted-foreground">
-              <span v-if="section.hasProgress" class="tabular-nums">
+            <div class="flex min-w-0 flex-1 items-center justify-end gap-2 text-xs text-muted-foreground sm:gap-3">
+              <span v-if="section.hasProgress" class="shrink-0 tabular-nums">
                 {{ section.ownedCount }} / {{ section.total.toLocaleString() }} collected
               </span>
-              <span v-else class="tabular-nums">{{ section.ownedCount }} owned</span>
+              <span v-else class="shrink-0 tabular-nums">{{ section.ownedCount }} owned</span>
               <div
                 v-if="section.hasProgress"
-                class="flex h-1.5 w-24 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800"
+                class="h-1.5 w-16 shrink-0 overflow-hidden rounded-full bg-zinc-100 sm:w-24 dark:bg-zinc-800"
                 role="progressbar"
                 :aria-valuenow="section.ownedCount"
                 :aria-valuemin="0"

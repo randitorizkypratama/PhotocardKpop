@@ -75,10 +75,26 @@ body {
     body {
       padding-bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px));
     }
+
+    html {
+      -webkit-text-size-adjust: 100%;
+    }
   }
 
   button, a, input, select {
     -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  input[type='search'] {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  input[type='search']::-webkit-search-decoration,
+  input[type='search']::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
   }
 
   ::selection {

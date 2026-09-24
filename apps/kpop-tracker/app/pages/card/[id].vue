@@ -211,10 +211,10 @@ const chartData = computed(() => {
               <p class="text-xs text-muted-foreground">Source · Pocamarket</p>
             </div>
 
-            <div class="mt-4 flex flex-col gap-2 sm:flex-row">
+            <div class="mt-4 grid grid-cols-1 gap-2 sm:flex sm:flex-row">
               <Button
                 variant="outline"
-                class="flex-1 gap-2 rounded-lg"
+                class="h-11 w-full gap-2 rounded-lg sm:h-10 sm:flex-1"
                 as-child
               >
                 <a href="https://pocamarket.com" target="_blank" rel="noopener noreferrer">
@@ -224,7 +224,7 @@ const chartData = computed(() => {
               </Button>
               <Button
                 variant="outline"
-                class="flex-1 gap-2 rounded-lg"
+                class="h-11 w-full gap-2 rounded-lg sm:h-10 sm:flex-1"
                 :class="isWishlisted ? 'border-rose-300 text-rose-600 dark:border-rose-800 dark:text-rose-400' : ''"
                 :aria-pressed="isWishlisted"
                 @click="handleWishlistToggle"
@@ -234,7 +234,7 @@ const chartData = computed(() => {
               </Button>
             </div>
 
-            <Button class="mt-2 w-full gap-2 rounded-lg" @click="showAddDialog = true">
+            <Button class="mt-2 h-11 w-full gap-2 rounded-lg sm:h-10" @click="showAddDialog = true">
               <Tag class="h-4 w-4" />
               Add to Collection
               <span
