@@ -14,6 +14,7 @@ const {
 const activeTab = ref<'all' | 'owned' | 'wishlist'>(
   route.query.tab === 'wishlist' || route.query.tab === 'owned' ? route.query.tab : 'all',
 )
+const showRemoveDialog = ref(false)
 const removeTarget = ref<number | null>(null)
 const exchangeRates = ref<any>(null)
 const groupTotals = ref<Record<string, number>>({})
@@ -23,6 +24,14 @@ onMounted(() => {
   loadExchangeRates()
   loadGroupTotals()
 })
+
+watch(
+  () => route.query.tab,
+  (value) => {
+    const next = value === 'wishlist' || value === 'owned' ? value : 'all'
+    if (next !== activeTab.value) activeTab.value = next
+  },
+)
 
 async function loadGroupTotals() {
   try {
@@ -82,8 +91,10 @@ const orphans = computed(() => {
 
 async function confirmRemove() {
   if (removeTarget.value == null) return
-  await removeFromCollection(removeTarget.value)
+  const id = removeTarget.value
   removeTarget.value = null
+  showRemoveDialog.value = false
+  await removeFromCollection(id)
 }
 
 function mapForCard(item: any) {
@@ -101,6 +112,12 @@ function mapForCard(item: any) {
 
 function removeById(collectionId: number) {
   removeTarget.value = collectionId
+  showRemoveDialog.value = true
+}
+
+function cancelRemove() {
+  removeTarget.value = null
+  showRemoveDialog.value = false
 }
 
 const tabDefs = computed(() => [
@@ -178,7 +195,7 @@ const tabDefs = computed(() => [
 
       <!-- Empty -->
       <div
-        v-else-if="filteredItems.length === 0"
+        v-else-if="filteredItems.length === 0 && !error"
         class="rounded-xl border border-dashed border-zinc-300 px-6 py-14 text-center dark:border-zinc-700"
       >
         <BookOpen class="mx-auto h-8 w-8 text-zinc-400 dark:text-zinc-500" aria-hidden="true" />
@@ -275,7 +292,7 @@ const tabDefs = computed(() => [
     </main>
 
     <!-- Remove Dialog -->
-    <AlertDialog :open="removeTarget != null" @update:open="(v: boolean) => { if (!v) removeTarget = null }">
+    <AlertDialog :open="showRemoveDialog" @update:open="(v: boolean) => { if (!v) cancelRemove() }">
       <AlertDialogContent class="max-w-sm rounded-xl">
         <AlertDialogHeader>
           <AlertDialogTitle class="text-base">Remove from collection?</AlertDialogTitle>
@@ -284,7 +301,7 @@ const tabDefs = computed(() => [
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter class="gap-2 sm:justify-end">
-          <AlertDialogCancel class="rounded-lg">Cancel</AlertDialogCancel>
+          <AlertDialogCancel class="rounded-lg" @click="cancelRemove">Cancel</AlertDialogCancel>
           <AlertDialogAction class="rounded-lg" @click="confirmRemove">Remove</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

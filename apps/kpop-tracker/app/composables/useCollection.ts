@@ -37,6 +37,7 @@ export function useCollection() {
   const loading = useState<boolean>('collection-loading', () => false)
   const error = useState<string | null>('collection-error', () => null)
   const loaded = useState<boolean>('collection-loaded', () => false)
+  const pendingCardIds = useState<Set<number>>('collection-pending', () => new Set())
 
   const wishlistIds = computed(() => {
     const set = new Set<number>()
@@ -77,6 +78,8 @@ export function useCollection() {
   }
 
   async function addToCollection(cardId: number, status: 'owned' | 'wishlist' = 'wishlist', boughtPrice?: number) {
+    if (pendingCardIds.value.has(cardId)) return false
+    pendingCardIds.value.add(cardId)
     try {
       await $fetch('/api/collection', {
         method: 'POST',
@@ -91,6 +94,8 @@ export function useCollection() {
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Failed to add to collection'
       return false
+    } finally {
+      pendingCardIds.value.delete(cardId)
     }
   }
 
@@ -112,12 +117,10 @@ export function useCollection() {
   }
 
   async function toggleWishlist(cardId: number) {
+    if (pendingCardIds.value.has(cardId)) return false
     const existing = findItemByCardId(cardId)
-    if (existing?.status === 'wishlist') {
+    if (existing) {
       return removeFromCollection(existing.id)
-    }
-    if (existing?.status === 'owned') {
-      return addToCollection(cardId, 'owned', existing.bought_price ?? undefined)
     }
     return addToCollection(cardId, 'wishlist')
   }

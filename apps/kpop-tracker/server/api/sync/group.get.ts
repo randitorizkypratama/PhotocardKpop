@@ -106,4 +106,40 @@ async function batchUpsert(db: any, cards: any[], now: string) {
     const chunk = stmts.slice(i, i + 50)
     await db.batch(chunk)
   }
+
+  const historyStmts = cards.map(card => ({
+    sql: `
+      INSERT INTO price_history (card_id, price, discounted_price, wish_count, sales_volume, stocked_count, recorded_at)
+      SELECT ?, ?, ?, ?, ?, ?, ?
+      WHERE NOT EXISTS (
+        SELECT 1 FROM price_history
+        WHERE card_id = ?
+          AND price IS ?
+          AND COALESCE(discounted_price, -1) IS COALESCE(?, -1)
+        ORDER BY recorded_at DESC
+        LIMIT 1
+      )
+    `,
+    args: [
+      card.id,
+      card.price,
+      card.discounted_price,
+      card.wish_count,
+      card.sales_volume,
+      card.stocked_count,
+      now,
+      card.id,
+      card.price,
+      card.discounted_price,
+    ],
+  }))
+
+  for (let i = 0; i < historyStmts.length; i += 50) {
+    const chunk = historyStmts.slice(i, i + 50)
+    try {
+      await db.batch(chunk)
+    } catch (e) {
+      console.error('Failed to write price_history snapshot:', e)
+    }
+  }
 }

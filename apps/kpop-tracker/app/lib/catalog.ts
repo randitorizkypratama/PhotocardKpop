@@ -3,7 +3,7 @@ export const GROUPS = ['IVE', 'aespa', 'Hearts2Hearts'] as const
 export type GroupName = (typeof GROUPS)[number]
 
 export const MEMBERS: Record<string, string[]> = {
-  IVE: ['WONYONG', 'LIZ', 'GAEUL', 'REI', 'YUJIN', 'LEESEO'],
+  IVE: ['WONYOUNG', 'LIZ', 'GAEUL', 'REI', 'YUJIN', 'LEESEO'],
   aespa: ['KARINA', 'WINTER', 'GISELLE', 'NINGNING'],
   Hearts2Hearts: ['IAN', 'JIWOO', 'YE-ON', 'Carmen', 'Stella', 'YUHA'],
 }

@@ -34,7 +34,7 @@ const total = ref(0)
 const totalPages = ref(0)
 const exchangeRates = ref<any>(null)
 
-const { fetchCollection, wishlistIds, toggleWishlist } = useCollection()
+const { fetchCollection, allIds, toggleWishlist } = useCollection()
 
 const activeFilterCount = computed(() => {
   let count = 0
@@ -75,7 +75,16 @@ watch(selectedGroup, () => {
   loadCards()
 })
 
-watch([selectedMember, selectedCardType, selectedSort, minPriceIDR, maxPriceIDR], () => {
+let priceTimer: ReturnType<typeof setTimeout> | null = null
+watch([minPriceIDR, maxPriceIDR], () => {
+  if (priceTimer) clearTimeout(priceTimer)
+  priceTimer = setTimeout(() => {
+    currentPage.value = 1
+    loadCards()
+  }, 400)
+})
+
+watch([selectedMember, selectedCardType, selectedSort], () => {
   currentPage.value = 1
   loadCards()
 })
@@ -97,6 +106,14 @@ watch(
     if (next && GROUPS.includes(next as any) && next !== selectedGroup.value) {
       selectedGroup.value = next
     }
+  },
+)
+
+watch(
+  () => route.query.q,
+  (value) => {
+    const next = String(value || '')
+    if (next !== searchQuery.value) searchQuery.value = next
   },
 )
 
@@ -474,7 +491,7 @@ const visiblePages = computed(() => {
               :card="card"
               :rate="rate"
               show-wishlist
-              :wishlisted="wishlistIds.has(card.id)"
+              :wishlisted="allIds.has(card.id)"
               @wishlist="onWishlist"
             />
           </div>

@@ -19,29 +19,22 @@ export default defineEventHandler(async (event) => {
   
   const db = getTursoClient()
   const now = new Date().toISOString()
-  
-  // Check if already in collection
-  const existing = await db.execute({
-    sql: 'SELECT id FROM collections WHERE card_id = ?',
-    args: [card_id],
-  })
-  
-  if (existing.rows.length > 0) {
-    // Update existing
+
+  try {
+    await db.execute({
+      sql: `INSERT INTO collections (card_id, status, bought_price, added_at) VALUES (?, ?, ?, ?)
+            ON CONFLICT(card_id) DO UPDATE SET status = excluded.status, bought_price = excluded.bought_price`,
+      args: [card_id, status, bought_price || null, now],
+    })
+  } catch {
     await db.execute({
       sql: 'UPDATE collections SET status = ?, bought_price = ? WHERE card_id = ?',
       args: [status, bought_price || null, card_id],
     })
-  } else {
-    // Insert new
-    await db.execute({
-      sql: 'INSERT INTO collections (card_id, status, bought_price, added_at) VALUES (?, ?, ?, ?)',
-      args: [card_id, status, bought_price || null, now],
-    })
   }
-  
+
   return {
     success: true,
-    message: `Card ${existing.rows.length > 0 ? 'updated' : 'added'} to collection`,
+    message: 'Card saved to collection',
   }
 })

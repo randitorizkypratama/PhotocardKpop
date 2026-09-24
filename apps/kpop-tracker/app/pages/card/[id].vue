@@ -14,7 +14,7 @@ useHead({
 
 const { history, fetchPriceHistory, getPriceTrend, getPriceChange } = usePriceHistory()
 const {
-  addToCollection, fetchCollection, findItemByCardId, toggleWishlist, wishlistIds,
+  addToCollection, fetchCollection, findItemByCardId, toggleWishlist, allIds,
 } = useCollection()
 
 const card = ref<any>(null)
@@ -50,7 +50,7 @@ onMounted(async () => {
 })
 
 const rate = computed(() => exchangeRates.value?.usd?.rate || 17800)
-const isWishlisted = computed(() => wishlistIds.value.has(cardId))
+const isWishlisted = computed(() => allIds.value.has(cardId))
 const collectionItem = computed(() => findItemByCardId(cardId))
 
 async function handleAddToCollection() {
