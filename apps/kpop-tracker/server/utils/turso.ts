@@ -60,15 +60,15 @@ export async function initializeDatabase() {
     )
   `)
 
+  try {
+    await db.execute(`ALTER TABLE cards ADD COLUMN release_name TEXT`)
+  } catch {}
+
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_cards_group ON cards(group_name)`)
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_cards_member ON cards(member_name)`)
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_cards_type ON cards(card_type)`)
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_cards_release ON cards(release_name)`)
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_price_history_card ON price_history(card_id, recorded_at)`)
-
-  try {
-    await db.execute(`ALTER TABLE cards ADD COLUMN release_name TEXT`)
-  } catch {}
 
   try {
     await db.execute(`DROP INDEX IF EXISTS idx_collections_card`)
