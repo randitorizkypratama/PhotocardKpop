@@ -1,56 +1,82 @@
 <script setup lang="ts">
 import {
-  ArrowLeft, TrendingUp, TrendingDown, Minus,
-  Heart, Tag, X, Check, Clock
+  TrendingUp, TrendingDown, Minus,
+  Heart, Tag, Check, Clock, ExternalLink, AlertCircle, Package
 } from 'lucide-vue-next'
+import { groupAccent, groupDot, formatIDR, formatUSD } from '@/lib/catalog'
 
 const route = useRoute()
 const cardId = parseInt(route.params.id as string)
 
+useHead({
+  title: computed(() => (card.value ? `${card.value.name} — HIBIKISHOP PC` : 'Photocard — HIBIKISHOP PC')),
+})
+
 const { history, fetchPriceHistory, getPriceTrend, getPriceChange } = usePriceHistory()
-const { addToCollection } = useCollection()
+const {
+  addToCollection, fetchCollection, findItemByCardId, toggleWishlist, wishlistIds,
+} = useCollection()
 
 const card = ref<any>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
 const showAddDialog = ref(false)
 const addToStatus = ref<'owned' | 'wishlist'>('wishlist')
-const boughtPrice = ref<number | null>(null)
+const boughtPrice = ref<string | number>('')
 const exchangeRates = ref<any>(null)
+const adding = ref(false)
 
 onMounted(async () => {
+  fetchCollection()
   try {
     const [cardRes, ratesRes] = await Promise.all([
-      $fetch(`/api/cards/${cardId}`),
+      $fetch<any>(`/api/cards/${cardId}`),
       $fetch<any>('/api/exchangerate').catch(() => ({ success: false, data: null })),
     ])
     if (cardRes.success) {
       card.value = cardRes.data
       await fetchPriceHistory(cardId)
+    } else {
+      error.value = 'Photocard not found.'
     }
     if (ratesRes.success) {
       exchangeRates.value = ratesRes.data
     }
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Failed to fetch card'
+    error.value = 'Unable to load this photocard.'
   } finally {
     loading.value = false
   }
 })
 
+const rate = computed(() => exchangeRates.value?.usd?.rate || 17800)
+const isWishlisted = computed(() => wishlistIds.value.has(cardId))
+const collectionItem = computed(() => findItemByCardId(cardId))
+
 async function handleAddToCollection() {
-  const success = await addToCollection(cardId, addToStatus.value, boughtPrice.value || undefined)
-  if (success) { showAddDialog.value = false; boughtPrice.value = null }
+  if (!card.value) return
+  adding.value = true
+  const price = boughtPrice.value === '' || boughtPrice.value == null ? undefined : Number(boughtPrice.value)
+  const success = await addToCollection(cardId, addToStatus.value, price)
+  adding.value = false
+  if (success) {
+    showAddDialog.value = false
+    boughtPrice.value = ''
+  }
+}
+
+async function handleWishlistToggle() {
+  await toggleWishlist(cardId)
 }
 
 function formatDate(dateString: string) {
   return new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
-function formatIDR(usd: number): string {
-  const rate = exchangeRates.value?.usd?.rate || 17800
-  return Math.round((Number(usd) || 0) * rate).toLocaleString('id-ID')
-}
+const effectivePrice = computed(() => {
+  if (!card.value) return 0
+  return Number(card.value.discounted_price) || Number(card.value.price) || 0
+})
 
 const chartData = computed(() => {
   const chronological = [...history.value].reverse()
@@ -89,191 +115,289 @@ const chartData = computed(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50 dark:from-slate-950 dark:via-purple-950 dark:to-slate-950">
-    <header class="sticky top-0 z-50 glass border-b border-white/20">
-      <div class="container mx-auto flex h-14 items-center justify-between px-4 sm:h-16">
-        <button @click="$router.back()" class="flex items-center gap-2 text-slate-700 transition-opacity hover:opacity-70 dark:text-slate-300">
-          <ArrowLeft class="h-5 w-5" />
-          <span class="text-sm font-medium">Back</span>
-        </button>
-        <div class="flex items-center gap-4">
-          <NuxtLink to="/" class="flex items-center gap-2">
-            <img src="/hibikishop-logo.png" alt="HIBIKISHOP" class="h-9 w-9 rounded-full object-cover" />
-            <span class="hidden text-base font-bold text-slate-900 sm:inline sm:text-lg dark:text-white">HIBIKISHOP</span>
-          </NuxtLink>
-          <DarkModeToggle />
+  <div class="min-h-screen bg-background">
+    <AppHeader back />
+
+    <main class="page-shell py-6 sm:py-8">
+      <!-- Loading skeleton -->
+      <div v-if="loading" class="grid gap-6 lg:grid-cols-2 lg:gap-10">
+        <div class="pc-skeleton mx-auto w-full max-w-md">
+          <div class="skeleton-block aspect-square rounded-none" />
+        </div>
+        <div class="space-y-4">
+          <div class="skeleton-block h-4 w-24" />
+          <div class="skeleton-block h-8 w-3/4" />
+          <div class="skeleton-block h-4 w-40" />
+          <div class="skeleton-block h-24 w-full" />
+          <div class="skeleton-block h-12 w-full" />
+          <div class="skeleton-block h-48 w-full" />
         </div>
       </div>
-    </header>
 
-    <main class="container mx-auto px-4 py-6 sm:py-8">
-      <div v-if="loading" class="flex justify-center py-16">
-        <div class="h-12 w-12 animate-spin rounded-full border-4 border-purple-500 border-t-transparent" />
+      <!-- Error -->
+      <div
+        v-else-if="error"
+        class="mx-auto max-w-md rounded-xl border border-red-200 bg-red-50 px-6 py-10 text-center dark:border-red-900/50 dark:bg-red-950/40"
+        role="alert"
+      >
+        <AlertCircle class="mx-auto h-8 w-8 text-red-600 dark:text-red-400" aria-hidden="true" />
+        <p class="mt-3 text-sm font-medium text-red-900 dark:text-red-200">Unable to load this photocard.</p>
+        <p class="mt-1 text-sm text-red-700/90 dark:text-red-300/90">{{ error }}</p>
+        <Button variant="outline" class="mt-4 rounded-lg border-red-300 bg-white dark:border-red-800 dark:bg-zinc-900" as-child>
+          <NuxtLink to="/browse">Back to browse</NuxtLink>
+        </Button>
       </div>
 
-      <div v-else-if="error" class="py-16 text-center">
-        <div class="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-3xl bg-red-100 dark:bg-red-900/30">
-          <X class="h-10 w-10 text-red-500" />
-        </div>
-        <h3 class="mb-2 text-xl font-semibold text-slate-900 dark:text-white">Error loading card</h3>
-        <p class="text-slate-500 dark:text-slate-400">{{ error }}</p>
-      </div>
-
-      <div v-else-if="card" class="grid gap-6 sm:gap-8 lg:grid-cols-2">
-        <div class="flex justify-center">
-          <div class="glass-card w-full max-w-md overflow-hidden rounded-3xl shadow-2xl">
-            <div class="relative aspect-square overflow-hidden">
-              <img :src="card.image" :alt="card.name" class="h-full w-full object-cover" />
-              <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-              <div class="absolute left-3 top-3 flex gap-2 sm:left-4 sm:top-4">
-                <span class="rounded-full bg-black/50 px-2 py-1 text-xs font-medium text-white backdrop-blur sm:px-3 sm:text-sm">{{ card.group_name }}</span>
-                <span class="rounded-full bg-black/50 px-2 py-1 text-xs font-medium text-white backdrop-blur sm:px-3 sm:text-sm">{{ card.card_type }}</span>
+      <!-- Product -->
+      <div v-else-if="card" class="grid gap-6 lg:grid-cols-2 lg:gap-10 xl:gap-14">
+        <!-- Left: image -->
+        <div class="lg:sticky lg:top-20 lg:self-start">
+          <div class="mx-auto w-full max-w-md overflow-hidden rounded-xl border border-zinc-200 bg-card shadow-sm dark:border-zinc-800 lg:max-w-none">
+            <div class="relative aspect-square bg-zinc-100 dark:bg-zinc-900">
+              <img
+                :src="card.image"
+                :alt="`${card.name} photocard`"
+                class="h-full w-full object-contain"
+              />
+              <div v-if="card.is_in_promotion && card.discount_rate" class="absolute left-3 top-3">
+                <span class="rounded-md bg-emerald-600 px-2 py-1 text-xs font-semibold text-white">
+                  -{{ card.discount_rate }}%
+                </span>
               </div>
-              <div v-if="card.is_in_promotion" class="absolute right-3 top-3 rounded-full bg-green-500 px-2 py-1 text-xs font-bold text-white sm:right-4 sm:top-4 sm:px-3 sm:text-sm">-{{ card.discount_rate }}%</div>
             </div>
           </div>
         </div>
 
-        <div class="space-y-4 sm:space-y-6">
+        <!-- Right: details -->
+        <div class="space-y-5">
           <div>
-            <div class="mb-2 flex flex-wrap items-center gap-2">
-              <p class="text-xs font-semibold uppercase tracking-wider text-purple-600 dark:text-purple-400 sm:text-sm">{{ card.member_name }}</p>
-              <span v-if="card.release_name" class="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-medium text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">{{ card.release_name }}</span>
-            </div>
-            <h1 class="text-xl font-bold text-slate-900 dark:text-white sm:text-3xl">{{ card.name }}</h1>
-          </div>
-
-          <div class="glass-card rounded-3xl p-4 sm:p-6">
-            <div class="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p class="text-sm text-slate-500 dark:text-slate-400">Harga Saat Ini</p>
-                <template v-if="(card.discounted_price || card.price) > 0">
-                  <p class="text-2xl font-bold text-slate-900 dark:text-white sm:text-4xl">Rp {{ formatIDR(card.discounted_price || card.price) }}</p>
-                  <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                    ${{ (card.discounted_price || card.price).toFixed(2) }}
-                    <span v-if="card.is_in_promotion" class="ml-1 line-through">${{ card.price.toFixed(2) }}</span>
-                  </p>
-                </template>
-                <p v-else class="text-xl font-semibold text-slate-400 dark:text-slate-500 sm:text-2xl">Tidak tersedia</p>
-              </div>
-              <div v-if="card.is_in_promotion && card.price > 0" class="text-right">
-                <p class="text-sm text-slate-400 line-through">Rp {{ formatIDR(card.price) }}</p>
-                <p class="text-xl font-bold text-emerald-500 sm:text-2xl">-{{ card.discount_rate }}%</p>
-              </div>
-            </div>
-          </div>
-
-          <div v-if="history.length >= 2" class="glass-card rounded-3xl p-4 sm:p-6">
-            <p class="mb-2 text-sm text-slate-500 dark:text-slate-400">Price Trend</p>
-            <div class="flex items-center gap-3">
-              <TrendingUp v-if="getPriceTrend() === 'up'" class="h-7 w-7 text-red-500 sm:h-8 sm:w-8" />
-              <TrendingDown v-else-if="getPriceTrend() === 'down'" class="h-7 w-7 text-green-500 sm:h-8 sm:w-8" />
-              <Minus v-else class="h-7 w-7 text-slate-400 sm:h-8 sm:w-8" />
-              <span :class="[
-                'text-base font-semibold sm:text-lg',
-                getPriceChange() > 0 ? 'text-red-500' : getPriceChange() < 0 ? 'text-green-500' : 'text-slate-500'
-              ]">
-                {{ getPriceChange() > 0 ? '+' : '' }}${{ getPriceChange().toFixed(2) }}
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-[0.12em]" :class="groupAccent(card.group_name)">
+                <span class="h-1.5 w-1.5 rounded-full" :class="groupDot(card.group_name)" />
+                {{ card.group_name }}
+              </span>
+              <span v-if="card.card_type" class="rounded-md border border-zinc-200 bg-card px-2 py-0.5 text-xs font-medium text-muted-foreground dark:border-zinc-800">
+                {{ card.card_type }}
               </span>
             </div>
+
+            <p class="mt-3 text-sm font-medium text-muted-foreground">{{ card.member_name }}</p>
+            <h1 class="mt-1 text-xl font-semibold tracking-tight text-foreground sm:text-2xl lg:text-3xl">
+              {{ card.name }}
+            </h1>
+            <p v-if="card.release_name" class="mt-2 text-sm text-muted-foreground">
+              {{ card.release_name }}
+            </p>
           </div>
 
-          <button class="gradient-primary flex w-full items-center justify-center gap-2 rounded-2xl px-6 py-3.5 text-base font-semibold text-white shadow-lg shadow-purple-500/30 transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-purple-500/40 sm:py-4 sm:text-lg" @click="showAddDialog = true">
-            <Tag class="h-5 w-5" />
-            Add to Collection
-          </button>
-
-          <div v-if="history.length > 0" class="glass-card rounded-3xl p-4 sm:p-6">
-            <h3 class="mb-4 text-base font-semibold text-slate-900 dark:text-white sm:text-lg">Price History</h3>
-
-            <!-- Price Chart -->
-            <div v-if="chartData" class="mb-6 rounded-2xl bg-white/50 p-3 backdrop-blur dark:bg-black/30 sm:p-4">
-              <div class="mb-2 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-[10px] text-slate-500 dark:text-slate-400 sm:text-xs">
-                <span>{{ chartData.labels.first }}</span>
-                <span class="flex items-center gap-2 sm:gap-3">
-                  <span class="text-emerald-600 dark:text-emerald-400">Low: ${{ chartData.min.toFixed(2) }}</span>
-                  <span class="text-rose-600 dark:text-rose-400">High: ${{ chartData.max.toFixed(2) }}</span>
-                </span>
-                <span>{{ chartData.labels.last }}</span>
-              </div>
-              <svg :viewBox="`0 0 600 160`" class="w-full" preserveAspectRatio="none" style="height: 140px">
-                <defs>
-                  <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="hsl(262.1 83.3% 57.8%)" stop-opacity="0.3" />
-                    <stop offset="100%" stop-color="hsl(262.1 83.3% 57.8%)" stop-opacity="0" />
-                  </linearGradient>
-                </defs>
-                <path :d="chartData.areaPath" fill="url(#chartFill)" />
-                <path :d="chartData.path" fill="none" stroke="hsl(262.1 83.3% 57.8%)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
-                <circle
-                  v-for="(p, i) in chartData.points"
-                  :key="i"
-                  :cx="p.x"
-                  :cy="p.y"
-                  r="4"
-                  fill="white"
-                  stroke="hsl(262.1 83.3% 57.8%)"
-                  stroke-width="2"
-                >
-                  <title>${{ p.price }} — {{ formatDate(p.date) }}</title>
-                </circle>
-              </svg>
-            </div>
-
-            <div class="space-y-2 sm:space-y-3">
-              <div v-for="entry in history.slice(0, 8)" :key="entry.id" class="flex items-center justify-between rounded-2xl bg-white/50 p-3 backdrop-blur dark:bg-black/30 sm:p-4">
-                <div>
-                  <p class="text-base font-semibold text-slate-900 dark:text-white sm:text-lg">${{ entry.price }}</p>
-                  <p class="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
-                    <Clock class="h-3 w-3" />
-                    {{ formatDate(entry.recorded_at) }}
+          <!-- Price -->
+          <div class="rounded-xl border border-zinc-200 bg-card p-4 dark:border-zinc-800 sm:p-5">
+            <div class="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <p class="text-xs font-medium uppercase tracking-[0.1em] text-muted-foreground">Current price</p>
+                <template v-if="effectivePrice > 0">
+                  <p class="mt-1.5 text-2xl font-semibold tabular-nums tracking-tight text-foreground sm:text-3xl">
+                    Rp {{ formatIDR(effectivePrice, rate) }}
                   </p>
-                </div>
+                  <p class="mt-1 text-sm tabular-nums text-muted-foreground">
+                    {{ formatUSD(effectivePrice) }}
+                    <span v-if="card.is_in_promotion && card.price > 0" class="ml-1.5 line-through">
+                      {{ formatUSD(card.price) }}
+                    </span>
+                  </p>
+                </template>
+                <p v-else class="mt-1.5 text-lg font-medium text-muted-foreground">Tidak tersedia</p>
               </div>
+              <p class="text-xs text-muted-foreground">Source · Pocamarket</p>
             </div>
+
+            <div class="mt-4 flex flex-col gap-2 sm:flex-row">
+              <Button
+                variant="outline"
+                class="flex-1 gap-2 rounded-lg"
+                as-child
+              >
+                <a href="https://pocamarket.com" target="_blank" rel="noopener noreferrer">
+                  View on Pocamarket
+                  <ExternalLink class="h-4 w-4" />
+                </a>
+              </Button>
+              <Button
+                variant="outline"
+                class="flex-1 gap-2 rounded-lg"
+                :class="isWishlisted ? 'border-rose-300 text-rose-600 dark:border-rose-800 dark:text-rose-400' : ''"
+                :aria-pressed="isWishlisted"
+                @click="handleWishlistToggle"
+              >
+                <Heart class="h-4 w-4" :fill="isWishlisted ? 'currentColor' : 'none'" />
+                {{ isWishlisted ? 'Wishlisted' : 'Wishlist' }}
+              </Button>
+            </div>
+
+            <Button class="mt-2 w-full gap-2 rounded-lg" @click="showAddDialog = true">
+              <Tag class="h-4 w-4" />
+              Add to Collection
+              <span
+                v-if="collectionItem"
+                class="ml-1 rounded-md bg-background/20 px-1.5 py-0.5 text-[10px] font-medium uppercase"
+              >
+                {{ collectionItem.status }}
+              </span>
+            </Button>
+          </div>
+
+          <!-- Trend -->
+          <div v-if="history.length >= 2" class="rounded-xl border border-zinc-200 bg-card p-4 dark:border-zinc-800 sm:p-5">
+            <p class="text-xs font-medium uppercase tracking-[0.1em] text-muted-foreground">Price trend</p>
+            <div class="mt-2 flex items-center gap-2.5">
+              <TrendingUp v-if="getPriceTrend() === 'up'" class="h-5 w-5 text-red-500" aria-hidden="true" />
+              <TrendingDown v-else-if="getPriceTrend() === 'down'" class="h-5 w-5 text-emerald-600" aria-hidden="true" />
+              <Minus v-else class="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+              <span
+                class="text-base font-semibold tabular-nums"
+                :class="getPriceChange() > 0 ? 'text-red-500' : getPriceChange() < 0 ? 'text-emerald-600' : 'text-muted-foreground'"
+              >
+                {{ getPriceChange() > 0 ? '+' : '' }}${{ getPriceChange().toFixed(2) }}
+              </span>
+              <span class="text-xs text-muted-foreground">since last snapshot</span>
+            </div>
+          </div>
+
+          <!-- Price history -->
+          <div class="rounded-xl border border-zinc-200 bg-card p-4 dark:border-zinc-800 sm:p-5">
+            <h2 class="text-sm font-semibold text-foreground">Price History</h2>
+
+            <div v-if="history.length === 0" class="mt-3 rounded-lg border border-dashed border-zinc-300 px-4 py-8 text-center dark:border-zinc-700">
+              <Clock class="mx-auto h-6 w-6 text-zinc-400" aria-hidden="true" />
+              <p class="mt-2 text-sm text-muted-foreground">
+                Price history isn't available for this card yet.
+              </p>
+            </div>
+
+            <template v-else>
+              <div v-if="chartData" class="mt-3 rounded-lg bg-zinc-50 p-3 dark:bg-zinc-900/60">
+                <div class="mb-2 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
+                  <span>{{ chartData.labels.first }}</span>
+                  <span class="flex items-center gap-3">
+                    <span class="text-emerald-600 dark:text-emerald-400">Low: ${{ chartData.min.toFixed(2) }}</span>
+                    <span class="text-red-600 dark:text-red-400">High: ${{ chartData.max.toFixed(2) }}</span>
+                  </span>
+                  <span>{{ chartData.labels.last }}</span>
+                </div>
+                <svg viewBox="0 0 600 160" class="w-full" preserveAspectRatio="none" style="height: 140px" role="img" aria-label="Price history chart">
+                  <defs>
+                    <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="currentColor" stop-opacity="0.15" />
+                      <stop offset="100%" stop-color="currentColor" stop-opacity="0" />
+                    </linearGradient>
+                  </defs>
+                  <path :d="chartData.areaPath" fill="url(#chartFill)" class="text-zinc-400 dark:text-zinc-500" />
+                  <path
+                    :d="chartData.path"
+                    fill="none"
+                    class="text-zinc-700 dark:text-zinc-300"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <circle
+                    v-for="(p, i) in chartData.points"
+                    :key="i"
+                    :cx="p.x"
+                    :cy="p.y"
+                    r="3.5"
+                    fill="white"
+                    class="text-zinc-700 dark:text-zinc-300"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <title>${{ p.price }} — {{ formatDate(p.date) }}</title>
+                  </circle>
+                </svg>
+              </div>
+
+              <ul class="mt-3 space-y-2">
+                <li
+                  v-for="entry in history.slice(0, 8)"
+                  :key="entry.id"
+                  class="flex items-center justify-between rounded-lg bg-zinc-50 px-3 py-2.5 dark:bg-zinc-900/60"
+                >
+                  <span class="text-sm font-medium tabular-nums text-foreground">${{ entry.price }}</span>
+                  <span class="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Clock class="h-3 w-3" aria-hidden="true" />
+                    {{ formatDate(entry.recorded_at) }}
+                  </span>
+                </li>
+              </ul>
+            </template>
           </div>
         </div>
       </div>
 
-      <!-- Dialog -->
-      <Teleport to="body">
-        <Transition name="modal">
-          <div v-if="showAddDialog" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" @click.self="showAddDialog = false">
-            <div class="glass-card max-h-[90vh] w-full max-w-md overflow-y-auto rounded-3xl p-5 shadow-2xl sm:p-6">
-              <h2 class="mb-6 text-lg font-semibold text-slate-900 dark:text-white sm:text-xl">Add to Collection</h2>
-              <div class="mb-6">
-                <label class="mb-3 block text-sm font-medium text-slate-700 dark:text-slate-300">Status</label>
-                <div class="grid grid-cols-2 gap-3">
-                  <button :class="['flex items-center justify-center gap-2 rounded-2xl border-2 px-4 py-3 text-sm font-medium transition-all', addToStatus === 'wishlist' ? 'border-purple-500 bg-purple-500/10 text-purple-600 dark:text-purple-400' : 'border-transparent bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700']" @click="addToStatus = 'wishlist'">
-                    <Heart class="h-4 w-4" /> Wishlist
-                  </button>
-                  <button :class="['flex items-center justify-center gap-2 rounded-2xl border-2 px-4 py-3 text-sm font-medium transition-all', addToStatus === 'owned' ? 'border-green-500 bg-green-500/10 text-green-600 dark:text-green-400' : 'border-transparent bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700']" @click="addToStatus = 'owned'">
-                    <Check class="h-4 w-4" /> Owned
-                  </button>
-                </div>
-              </div>
-              <div v-if="addToStatus === 'owned'" class="mb-6">
-                <label class="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Bought Price (USD)</label>
-                <input v-model="boughtPrice" type="number" step="0.01" placeholder="Optional" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white" />
-              </div>
-              <div class="flex gap-3">
-                <button class="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition-all hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" @click="showAddDialog = false">Cancel</button>
-                <button class="gradient-primary flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium text-white shadow-lg shadow-purple-500/30 transition-all hover:scale-[1.02]" @click="handleAddToCollection">
-                  <Check class="h-4 w-4" /> Add
-                </button>
+      <!-- Add Dialog -->
+      <Dialog v-model:open="showAddDialog">
+        <DialogContent class="max-w-md rounded-xl p-5 sm:p-6">
+          <DialogHeader class="mb-1">
+            <DialogTitle class="text-left text-lg">Add to Collection</DialogTitle>
+            <DialogDescription class="text-left text-sm text-muted-foreground">
+              Save this photocard to your wishlist or owned list.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div class="space-y-5">
+            <div>
+              <Label class="mb-2.5 block text-sm font-medium text-foreground">Status</Label>
+              <div class="grid grid-cols-2 gap-2.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  class="gap-2 rounded-lg py-2.5"
+                  :class="addToStatus === 'wishlist' ? 'border-foreground bg-zinc-100 text-foreground dark:bg-zinc-800' : ''"
+                  :aria-pressed="addToStatus === 'wishlist'"
+                  @click="addToStatus = 'wishlist'"
+                >
+                  <Heart class="h-4 w-4" /> Wishlist
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  class="gap-2 rounded-lg py-2.5"
+                  :class="addToStatus === 'owned' ? 'border-foreground bg-zinc-100 text-foreground dark:bg-zinc-800' : ''"
+                  :aria-pressed="addToStatus === 'owned'"
+                  @click="addToStatus = 'owned'"
+                >
+                  <Package class="h-4 w-4" /> Owned
+                </Button>
               </div>
             </div>
+
+            <div v-if="addToStatus === 'owned'">
+              <Label for="bought-price" class="mb-2 block text-sm font-medium text-foreground">Bought Price (USD)</Label>
+              <Input
+                id="bought-price"
+                v-model="boughtPrice"
+                type="number"
+                step="0.01"
+                placeholder="Optional"
+                class="rounded-lg"
+              />
+            </div>
+
+            <DialogFooter class="gap-2.5 sm:justify-end">
+              <Button type="button" variant="outline" class="flex-1 rounded-lg sm:flex-none" @click="showAddDialog = false">
+                Cancel
+              </Button>
+              <Button type="button" class="flex-1 gap-2 rounded-lg sm:flex-none" :disabled="adding" @click="handleAddToCollection">
+                <Check class="h-4 w-4" /> {{ adding ? 'Adding...' : 'Add' }}
+              </Button>
+            </DialogFooter>
           </div>
-        </Transition>
-      </Teleport>
+        </DialogContent>
+      </Dialog>
     </main>
 
     <SiteFooter />
     <MobileTabBar />
   </div>
 </template>
-
-<style scoped>
-.modal-enter-active, .modal-leave-active { transition: all 0.3s ease; }
-.modal-enter-from, .modal-leave-to { opacity: 0; transform: scale(0.95); }
-</style>

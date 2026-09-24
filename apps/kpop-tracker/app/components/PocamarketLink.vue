@@ -3,6 +3,6 @@
     href="https://pocamarket.com"
     target="_blank"
     rel="noopener noreferrer"
-    class="font-semibold text-purple-600 underline-offset-2 hover:underline dark:text-purple-400"
+    class="font-medium text-foreground underline-offset-2 hover:underline"
   >POCAMARKET</a>
 </template>

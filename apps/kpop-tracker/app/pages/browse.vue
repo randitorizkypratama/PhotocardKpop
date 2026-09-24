@@ -1,41 +1,40 @@
 <script setup lang="ts">
 import {
-  ChevronLeft, ChevronRight, Heart, Search,
-  SlidersHorizontal, X, ArrowUpDown, DollarSign, Tag, TrendingUp
+  ChevronLeft, ChevronRight, Search,
+  SlidersHorizontal, X, ArrowUpDown, RotateCcw, AlertCircle
 } from 'lucide-vue-next'
+import {
+  GROUPS, MEMBERS, CARD_TYPES, SORT_OPTIONS,
+  groupAccentActive, groupDot,
+} from '@/lib/catalog'
 
-const groups = ['IVE', 'aespa', 'Hearts2Hearts']
-const members: Record<string, string[]> = {
-  IVE: ['WONYONG', 'LIZ', 'GAEUL', 'REI', 'YUJIN', 'LEESEO'],
-  aespa: ['KARINA', 'WINTER', 'GISELLE', 'NINGNING'],
-  Hearts2Hearts: ['IAN', 'JIWOO', 'YE-ON', 'Carmen', 'Stella', 'YUHA'],
-}
-const cardTypes = ['Album', 'POB', 'Lucky Draw', 'MD', 'Fan Meeting', "Season's Greetings", 'Concert', 'Trading Card', 'Pop-up', 'Fan Club']
-const sortOptions = [
-  { value: 'newest', label: 'Newest' },
-  { value: 'popular', label: 'Most Popular' },
-  { value: 'price_asc', label: 'Price: Low → High' },
-  { value: 'price_desc', label: 'Price: High → Low' },
-  { value: 'stock', label: 'Most Stock' },
-  { value: 'name', label: 'Name A-Z' },
-]
+useHead({ title: 'Browse — HIBIKISHOP PC' })
 
-const selectedGroup = ref('IVE')
+const route = useRoute()
+const router = useRouter()
+
+const selectedGroup = ref<string>(String(route.query.group || 'IVE'))
+if (!GROUPS.includes(selectedGroup.value as any)) selectedGroup.value = 'IVE'
+
 const selectedMember = ref<string | null>(null)
 const selectedCardType = ref<string | null>(null)
 const selectedSort = ref('popular')
-const searchQuery = ref('')
+const searchQuery = ref(String(route.query.q || ''))
 const minPriceIDR = ref<string>('')
 const maxPriceIDR = ref<string>('')
 const showFilters = ref(false)
+const mobileFiltersOpen = ref(false)
 const currentPage = ref(1)
 const pageSize = 20
 
 const cards = ref<any[]>([])
 const loading = ref(true)
+const loadError = ref(false)
 const total = ref(0)
 const totalPages = ref(0)
 const exchangeRates = ref<any>(null)
+
+const { fetchCollection, wishlistIds, toggleWishlist } = useCollection()
 
 const activeFilterCount = computed(() => {
   let count = 0
@@ -51,6 +50,7 @@ const activeFilterCount = computed(() => {
 onMounted(() => {
   loadCards()
   loadExchangeRates()
+  fetchCollection()
 })
 
 async function loadExchangeRates() {
@@ -65,10 +65,13 @@ async function loadExchangeRates() {
   }
 }
 
+const rate = computed(() => exchangeRates.value?.usd?.rate || 17800)
+
 watch(selectedGroup, () => {
   selectedMember.value = null
   selectedCardType.value = null
   currentPage.value = 1
+  syncGroupQuery()
   loadCards()
 })
 
@@ -82,22 +85,41 @@ watch(searchQuery, () => {
   if (searchTimer) clearTimeout(searchTimer)
   searchTimer = setTimeout(() => {
     currentPage.value = 1
+    syncSearchQuery()
     loadCards()
   }, 400)
 })
 
-function idrToUSD(idr: number): number {
-  const rate = exchangeRates.value?.usd?.rate
-  return rate ? idr / rate : idr / 17800
+watch(
+  () => route.query.group,
+  (value) => {
+    const next = String(value || '')
+    if (next && GROUPS.includes(next as any) && next !== selectedGroup.value) {
+      selectedGroup.value = next
+    }
+  },
+)
+
+function syncGroupQuery() {
+  router.replace({ query: { ...route.query, group: selectedGroup.value } })
 }
 
-function formatIDR(usd: number): string {
-  const rate = exchangeRates.value?.usd?.rate || 17800
-  return Math.round((Number(usd) || 0) * rate).toLocaleString('id-ID')
+function syncSearchQuery() {
+  const q = searchQuery.value.trim()
+  const query: Record<string, any> = { ...route.query, group: selectedGroup.value }
+  if (q) query.q = q
+  else delete query.q
+  router.replace({ query })
+}
+
+function idrToUSD(idr: number): number {
+  const r = exchangeRates.value?.usd?.rate
+  return r ? idr / r : idr / 17800
 }
 
 async function loadCards() {
   loading.value = true
+  loadError.value = false
   try {
     const params = new URLSearchParams({
       group: selectedGroup.value,
@@ -107,7 +129,7 @@ async function loadCards() {
     })
     if (selectedMember.value) params.set('member', selectedMember.value)
     if (selectedCardType.value) params.set('card_type', selectedCardType.value)
-    if (searchQuery.value) params.set('search', searchQuery.value)
+    if (searchQuery.value.trim()) params.set('search', searchQuery.value.trim())
     if (minPriceIDR.value) params.set('min_price', idrToUSD(Number(minPriceIDR.value)).toFixed(4))
     if (maxPriceIDR.value) params.set('max_price', idrToUSD(Number(maxPriceIDR.value)).toFixed(4))
     const response = await $fetch<any>(`/api/cards?${params}`)
@@ -118,6 +140,8 @@ async function loadCards() {
     }
   } catch (e) {
     console.error('Failed to load cards:', e)
+    loadError.value = true
+    cards.value = []
   } finally {
     loading.value = false
   }
@@ -140,6 +164,10 @@ function goToPage(page: number) {
 
 function nextPage() { if (currentPage.value < totalPages.value) goToPage(currentPage.value + 1) }
 function prevPage() { if (currentPage.value > 1) goToPage(currentPage.value - 1) }
+
+async function onWishlist(id: number | string) {
+  await toggleWishlist(Number(id))
+}
 
 const visiblePages = computed(() => {
   const pages: (number | string)[] = []
@@ -180,300 +208,430 @@ const mobilePages = computed(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50 dark:from-slate-950 dark:via-purple-950 dark:to-slate-950">
-    <header class="sticky top-0 z-50 glass border-b border-white/20">
-      <div class="container mx-auto flex h-14 items-center justify-between px-4 sm:h-16">
-        <NuxtLink to="/" class="flex items-center gap-2">
-          <img src="/hibikishop-logo.png" alt="HIBIKISHOP" class="h-9 w-9 rounded-full object-cover" />
-          <span class="text-base font-bold text-slate-900 sm:text-lg dark:text-white">HIBIKISHOP</span>
-        </NuxtLink>
-        <div class="flex items-center gap-4">
-          <nav class="hidden items-center gap-4 md:flex">
-            <NuxtLink to="/" class="text-sm font-medium text-slate-500 transition-colors hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">Home</NuxtLink>
-            <NuxtLink to="/browse" class="text-sm font-medium text-slate-900 dark:text-white">Browse</NuxtLink>
-            <NuxtLink to="/collection" class="text-sm font-medium text-slate-500 transition-colors hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">Collection</NuxtLink>
-          </nav>
-          <DarkModeToggle />
-        </div>
-      </div>
-    </header>
+  <div class="min-h-screen bg-background">
+    <AppHeader active="browse" />
 
     <!-- Exchange Rate Bar -->
-    <div v-if="exchangeRates" class="glass border-b border-white/10">
-      <div class="container mx-auto flex flex-wrap items-center justify-center gap-x-4 gap-y-1 px-4 py-2 text-xs">
-        <div class="flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
-          <TrendingUp class="h-3 w-3 text-green-500" />
-          <span class="font-medium">Kurs BI:</span>
-        </div>
-        <span class="text-slate-700 dark:text-slate-300">
-          1 USD = <span class="font-semibold text-slate-900 dark:text-white">{{ Math.round(exchangeRates.usd?.rate)?.toLocaleString('id-ID') }}</span> IDR
+    <div v-if="exchangeRates" class="border-b border-zinc-200 bg-card dark:border-zinc-800">
+      <div class="page-shell flex flex-wrap items-center justify-center gap-x-4 gap-y-1 py-2 text-xs">
+        <span class="text-muted-foreground">
+          Kurs BI · 1 USD = <span class="font-medium tabular-nums text-foreground">{{ Math.round(exchangeRates.usd?.rate)?.toLocaleString('id-ID') }}</span> IDR
         </span>
-        <span class="text-slate-300 dark:text-slate-600">|</span>
-        <span class="text-slate-700 dark:text-slate-300">
-          1 MYR = <span class="font-semibold text-slate-900 dark:text-white">{{ Math.round(exchangeRates.myr?.rate)?.toLocaleString('id-ID') }}</span> IDR
+        <span class="text-zinc-300 dark:text-zinc-700" aria-hidden="true">|</span>
+        <span class="text-muted-foreground">
+          1 MYR = <span class="font-medium tabular-nums text-foreground">{{ Math.round(exchangeRates.myr?.rate)?.toLocaleString('id-ID') }}</span> IDR
         </span>
-        <span class="hidden text-[10px] text-slate-400 dark:text-slate-500 sm:inline">{{ exchangeRates.date }}</span>
+        <span class="hidden text-muted-foreground sm:inline">{{ exchangeRates.date }}</span>
       </div>
     </div>
 
-    <main class="container mx-auto px-4 py-6 sm:py-8">
-      <div class="mb-6 sm:mb-8">
-        <h1 class="text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">Browse Photocards</h1>
-        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400 sm:text-base">
-          {{ loading ? 'Loading...' : `${total.toLocaleString()} cards` }}
+    <main class="page-shell py-6 sm:py-8">
+      <div class="mb-5 sm:mb-6">
+        <p class="eyebrow">Catalog</p>
+        <h1 class="mt-1 text-xl font-semibold tracking-tight text-foreground sm:text-2xl">Browse Photocards</h1>
+        <p class="mt-1 text-sm text-muted-foreground">
+          <template v-if="loading">Loading...</template>
+          <template v-else>{{ total.toLocaleString() }} cards</template>
           · Data based on
-          <a href="https://pocamarket.com" target="_blank" rel="noopener noreferrer" class="font-semibold text-purple-600 underline-offset-2 hover:underline dark:text-purple-400">POCAMARKET</a>
+          <a href="https://pocamarket.com" target="_blank" rel="noopener noreferrer" class="font-medium text-foreground underline-offset-2 hover:underline">POCAMARKET</a>
         </p>
       </div>
 
-      <!-- Group Tabs -->
-      <div class="mb-4 flex flex-wrap gap-2">
-        <button v-for="group in groups" :key="group" :class="[
-          'rounded-full px-4 py-2 text-sm font-medium transition-all sm:px-5 sm:py-2.5',
-          selectedGroup === group
-            ? 'gradient-primary text-white shadow-lg shadow-purple-500/30'
-            : 'glass-card text-slate-700 hover:shadow-md dark:text-slate-300'
-        ]" @click="selectedGroup = group">
-          {{ group }}
-        </button>
-      </div>
-
-      <!-- Filter Bar -->
-      <div class="mb-6 space-y-3">
-        <div class="relative w-full md:max-w-md">
-          <Search class="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input
-            v-model="searchQuery"
-            type="search"
-            placeholder="Search cards or members..."
-            class="w-full rounded-full border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-700 placeholder:text-slate-400 backdrop-blur transition-all focus:outline-none focus:ring-2 focus:ring-purple-500 dark:border-slate-700 dark:bg-black/50 dark:text-slate-300"
-          />
-        </div>
-
-        <div class="flex flex-wrap items-center gap-2 sm:gap-3">
-          <button class="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all glass-card text-slate-700 hover:shadow-md dark:text-slate-300" @click="showFilters = !showFilters">
-            <SlidersHorizontal class="h-4 w-4" />
-            Filters
-            <span v-if="activeFilterCount > 0" class="flex h-5 w-5 items-center justify-center rounded-full bg-purple-500 text-[10px] font-bold text-white">{{ activeFilterCount }}</span>
-          </button>
-
-          <div class="relative">
-            <select v-model="selectedSort" class="appearance-none rounded-full bg-white/80 px-4 py-2 pr-8 text-sm font-medium text-slate-700 backdrop-blur transition-all hover:shadow-md dark:bg-black/50 dark:text-slate-300">
-              <option v-for="opt in sortOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-            </select>
-            <ArrowUpDown class="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-          </div>
-
-          <div v-if="selectedMember" class="flex items-center gap-1 rounded-full bg-purple-100 px-3 py-1 text-xs font-medium text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
-            {{ selectedMember }}
-            <button @click="selectedMember = null"><X class="h-3 w-3" /></button>
-          </div>
-          <div v-if="selectedCardType" class="flex items-center gap-1 rounded-full bg-pink-100 px-3 py-1 text-xs font-medium text-pink-700 dark:bg-pink-900/30 dark:text-pink-400">
-            {{ selectedCardType }}
-            <button @click="selectedCardType = null"><X class="h-3 w-3" /></button>
-          </div>
-          <div v-if="minPriceIDR || maxPriceIDR" class="flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">
-            Rp {{ Number(minPriceIDR || 0).toLocaleString('id-ID') }} - Rp {{ Number(maxPriceIDR || 0).toLocaleString('id-ID') }}
-            <button @click="minPriceIDR = ''; maxPriceIDR = ''"><X class="h-3 w-3" /></button>
-          </div>
-
-          <button v-if="activeFilterCount > 0" class="text-xs font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200" @click="clearFilters">
-            Clear all
-          </button>
-        </div>
-      </div>
-
-      <!-- Expanded Filters -->
-      <Transition name="slide">
-        <div v-if="showFilters" class="mb-6 glass-card rounded-2xl p-4 sm:p-6">
-          <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <div class="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-8">
+        <!-- Desktop sidebar filters -->
+        <aside class="hidden lg:block">
+          <div class="sticky top-20 space-y-6 rounded-xl border border-zinc-200 bg-card p-4 dark:border-zinc-800">
             <div>
-              <label class="mb-2 flex items-center gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">
-                <Heart class="h-3.5 w-3.5 text-pink-500" /> Member
-              </label>
-              <div class="flex flex-wrap gap-1.5">
-                <button :class="['rounded-full px-3 py-1.5 text-xs font-medium transition-all', selectedMember === null ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700']" @click="selectedMember = null">All</button>
-                <button v-for="m in members[selectedGroup]" :key="m" :class="['rounded-full px-3 py-1.5 text-xs font-medium transition-all', selectedMember === m ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700']" @click="selectedMember = m">{{ m }}</button>
-              </div>
-            </div>
-            <div>
-              <label class="mb-2 flex items-center gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">
-                <Tag class="h-3.5 w-3.5 text-purple-500" /> Card Type
-              </label>
-              <div class="flex flex-wrap gap-1.5">
-                <button :class="['rounded-full px-3 py-1.5 text-xs font-medium transition-all', selectedCardType === null ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700']" @click="selectedCardType = null">All</button>
-                <button v-for="t in cardTypes" :key="t" :class="['rounded-full px-3 py-1.5 text-xs font-medium transition-all', selectedCardType === t ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700']" @click="selectedCardType = t">{{ t }}</button>
-              </div>
-            </div>
-            <div>
-              <label class="mb-2 flex items-center gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">
-                <DollarSign class="h-3.5 w-3.5 text-green-500" /> Harga (IDR)
-              </label>
-              <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <input v-model="minPriceIDR" type="number" inputmode="numeric" placeholder="Min (contoh: 50000)" class="w-full rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300" />
-                <span class="hidden text-slate-400 sm:inline">—</span>
-                <input v-model="maxPriceIDR" type="number" inputmode="numeric" placeholder="Max (contoh: 200000)" class="w-full rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </Transition>
-
-      <!-- Loading -->
-      <div v-if="loading" class="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-        <div v-for="i in pageSize" :key="i" class="glass-card overflow-hidden rounded-2xl">
-          <div class="aspect-square animate-pulse bg-gradient-to-br from-purple-200 to-pink-200 dark:from-purple-800 dark:to-pink-800" />
-          <div class="space-y-3 p-4">
-            <div class="h-3 w-1/3 animate-pulse rounded-full bg-slate-200 dark:bg-slate-700" />
-            <div class="h-4 w-full animate-pulse rounded-full bg-slate-200 dark:bg-slate-700" />
-            <div class="h-4 w-2/3 animate-pulse rounded-full bg-slate-200 dark:bg-slate-700" />
-            <div class="flex justify-between">
-              <div class="h-6 w-1/4 animate-pulse rounded-full bg-slate-200 dark:bg-slate-700" />
-              <div class="h-4 w-1/4 animate-pulse rounded-full bg-slate-200 dark:bg-slate-700" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Cards -->
-      <div v-else class="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-        <NuxtLink
-          v-for="card in cards"
-          :key="card.id"
-          :to="`/card/${card.id}`"
-          class="group glass-card flex flex-col overflow-hidden rounded-2xl card-hover"
-        >
-          <div class="relative aspect-square overflow-hidden bg-slate-100 dark:bg-slate-800">
-            <img
-              :src="card.image"
-              :alt="card.name"
-              class="h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
-              loading="lazy"
-            />
-            <div class="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/50 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-            <span class="absolute right-2 top-2 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur">{{ card.card_type }}</span>
-            <span v-if="card.is_in_promotion" class="absolute left-2 top-2 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">-{{ card.discount_rate }}%</span>
-            <span v-if="card.release_name" class="absolute bottom-2 left-2 max-w-[calc(100%-1rem)] truncate rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur">{{ card.release_name }}</span>
-          </div>
-          <div class="flex flex-1 flex-col p-3">
-            <p class="text-[11px] font-semibold uppercase tracking-wider text-purple-600 dark:text-purple-400">{{ card.member_name }}</p>
-            <h3 class="mt-0.5 line-clamp-2 min-h-[2.5rem] text-[13px] font-medium leading-snug text-slate-800 dark:text-slate-200">{{ card.name }}</h3>
-            <div class="mt-auto pt-2">
-              <template v-if="(card.discounted_price || card.price) > 0">
-                <div class="flex items-baseline gap-1.5 flex-wrap">
-                  <span class="text-[15px] font-bold text-slate-900 dark:text-white">Rp {{ formatIDR(card.discounted_price || card.price) }}</span>
-                  <span v-if="card.is_in_promotion" class="text-[11px] text-slate-400 line-through dark:text-slate-500">Rp {{ formatIDR(card.price) }}</span>
-                </div>
-                <p class="mt-0.5 text-[11px] text-slate-400 dark:text-slate-500">${{ (card.discounted_price || card.price).toFixed(2) }}</p>
-              </template>
-              <span v-else class="text-[13px] font-medium text-slate-400 dark:text-slate-500">Tidak tersedia</span>
-            </div>
-          </div>
-        </NuxtLink>
-      </div>
-
-      <!-- Empty -->
-      <div v-if="!loading && cards.length === 0" class="py-16 text-center">
-        <div class="gradient-primary mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-3xl text-white">
-          <Search class="h-10 w-10" />
-        </div>
-        <h3 class="mb-2 text-xl font-semibold text-slate-900 dark:text-white">No cards found</h3>
-        <p class="mb-6 text-slate-500 dark:text-slate-400">Database is syncing daily at 00:00 WIB. Check back later!</p>
-        <button class="gradient-primary inline-flex items-center gap-2 rounded-full px-6 py-3 font-medium text-white shadow-lg shadow-purple-500/30 transition-all hover:scale-105" @click="clearFilters">
-          Clear Filters
-        </button>
-      </div>
-
-      <!-- Pagination -->
-      <div v-if="!loading && totalPages > 1" class="mt-8 sm:mt-12">
-        <div class="glass-card rounded-2xl p-4 sm:p-6">
-          <p class="mb-3 text-center text-xs text-slate-500 dark:text-slate-400 sm:mb-4 sm:text-sm">
-            Halaman <span class="font-semibold text-slate-700 dark:text-slate-200">{{ currentPage.toLocaleString() }}</span>
-            dari <span class="font-semibold text-slate-700 dark:text-slate-200">{{ totalPages.toLocaleString() }}</span>
-            <span class="hidden sm:inline"> · {{ total.toLocaleString() }} kartu</span>
-          </p>
-
-          <!-- Mobile: compact Prev / Next -->
-          <div class="flex items-center gap-2 sm:hidden">
-            <button
-              :disabled="currentPage === 1"
-              class="flex h-11 flex-1 items-center justify-center gap-1 rounded-xl border border-slate-200 bg-white/80 text-sm font-medium text-slate-700 transition active:scale-95 disabled:opacity-40 dark:border-slate-700 dark:bg-white/10 dark:text-slate-300"
-              @click="prevPage"
-            >
-              <ChevronLeft class="h-4 w-4" />
-              Prev
-            </button>
-
-            <div class="flex items-center gap-1">
-              <template v-for="p in mobilePages" :key="'m-' + p">
-                <span v-if="p === '...'" class="px-0.5 text-sm text-slate-400">…</span>
+              <p class="mb-2.5 text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">Group</p>
+              <div class="flex flex-col gap-1">
                 <button
-                  v-else
-                  :class="[
-                    'h-9 min-w-[36px] rounded-lg px-2 text-sm font-medium transition',
-                    p === currentPage
-                      ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
-                      : 'text-slate-500 dark:text-slate-400'
-                  ]"
-                  @click="goToPage(p as number)"
+                  v-for="group in GROUPS"
+                  :key="group"
+                  type="button"
+                  class="flex items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm font-medium transition-colors duration-150"
+                  :class="selectedGroup === group ? groupAccentActive(group) : 'text-muted-foreground hover:bg-zinc-50 hover:text-foreground dark:hover:bg-zinc-900'"
+                  :aria-pressed="selectedGroup === group"
+                  @click="selectedGroup = group"
                 >
-                  {{ p }}
+                  <span class="h-1.5 w-1.5 rounded-full" :class="groupDot(group)" />
+                  {{ group }}
                 </button>
-              </template>
+              </div>
             </div>
 
-            <button
-              :disabled="currentPage === totalPages"
-              class="flex h-11 flex-1 items-center justify-center gap-1 rounded-xl border border-slate-200 bg-white/80 text-sm font-medium text-slate-700 transition active:scale-95 disabled:opacity-40 dark:border-slate-700 dark:bg-white/10 dark:text-slate-300"
-              @click="nextPage"
+            <Separator />
+
+            <div>
+              <p class="mb-2.5 text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">Member</p>
+              <div class="flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  class="rounded-md border px-2 py-1 text-xs font-medium transition-colors"
+                  :class="!selectedMember ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900' : 'border-zinc-200 text-muted-foreground hover:border-zinc-300 hover:text-foreground dark:border-zinc-800'"
+                  @click="selectedMember = null"
+                >All</button>
+                <button
+                  v-for="m in MEMBERS[selectedGroup] || []"
+                  :key="m"
+                  type="button"
+                  class="rounded-md border px-2 py-1 text-xs font-medium transition-colors"
+                  :class="selectedMember === m ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900' : 'border-zinc-200 text-muted-foreground hover:border-zinc-300 hover:text-foreground dark:border-zinc-800'"
+                  @click="selectedMember = m"
+                >{{ m }}</button>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div>
+              <p class="mb-2.5 text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">Card Type</p>
+              <div class="flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  class="rounded-md border px-2 py-1 text-xs font-medium transition-colors"
+                  :class="!selectedCardType ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900' : 'border-zinc-200 text-muted-foreground hover:border-zinc-300 hover:text-foreground dark:border-zinc-800'"
+                  @click="selectedCardType = null"
+                >All</button>
+                <button
+                  v-for="t in CARD_TYPES"
+                  :key="t"
+                  type="button"
+                  class="rounded-md border px-2 py-1 text-xs font-medium transition-colors"
+                  :class="selectedCardType === t ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900' : 'border-zinc-200 text-muted-foreground hover:border-zinc-300 hover:text-foreground dark:border-zinc-800'"
+                  @click="selectedCardType = t"
+                >{{ t }}</button>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div>
+              <p class="mb-2.5 text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">Price (IDR)</p>
+              <div class="flex flex-col gap-2">
+                <Input
+                  v-model="minPriceIDR"
+                  type="number"
+                  inputmode="numeric"
+                  placeholder="Min"
+                  class="h-9 rounded-lg"
+                  aria-label="Minimum price in IDR"
+                />
+                <Input
+                  v-model="maxPriceIDR"
+                  type="number"
+                  inputmode="numeric"
+                  placeholder="Max"
+                  class="h-9 rounded-lg"
+                  aria-label="Maximum price in IDR"
+                />
+              </div>
+            </div>
+
+            <Button
+              v-if="activeFilterCount > 0"
+              variant="outline"
+              size="sm"
+              class="w-full gap-1.5 rounded-lg"
+              @click="clearFilters"
             >
-              Next
-              <ChevronRight class="h-4 w-4" />
-            </button>
+              <RotateCcw class="h-3.5 w-3.5" />
+              Clear filters
+            </Button>
+          </div>
+        </aside>
+
+        <!-- Content -->
+        <div class="min-w-0">
+          <!-- Toolbar -->
+          <div class="mb-4 space-y-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <div class="relative min-w-0 flex-1 md:max-w-sm">
+                <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  v-model="searchQuery"
+                  type="search"
+                  placeholder="Search member, album, photocard..."
+                  class="h-10 rounded-lg pl-9"
+                  aria-label="Search photocards"
+                />
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                class="gap-1.5 rounded-lg lg:hidden"
+                @click="mobileFiltersOpen = true"
+              >
+                <SlidersHorizontal class="h-4 w-4" />
+                Filters
+                <span
+                  v-if="activeFilterCount > 0"
+                  class="ml-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-foreground px-1.5 text-[10px] font-semibold text-background"
+                >{{ activeFilterCount }}</span>
+              </Button>
+
+              <Select v-model="selectedSort">
+                <SelectTrigger class="h-10 w-auto min-w-[9.5rem] gap-2 rounded-lg" aria-label="Sort">
+                  <ArrowUpDown class="h-3.5 w-3.5 text-muted-foreground" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent class="min-w-[12rem]">
+                  <SelectItem v-for="opt in SORT_OPTIONS" :key="opt.value" :value="opt.value">
+                    {{ opt.label }}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <!-- Group pills (mobile-visible primary) + active chips -->
+            <div class="flex flex-wrap items-center gap-2">
+              <button
+                v-for="group in GROUPS"
+                :key="group"
+                type="button"
+                class="rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors duration-150 sm:text-sm"
+                :class="selectedGroup === group ? groupAccentActive(group) : 'border-zinc-200 bg-card text-muted-foreground hover:border-zinc-300 hover:text-foreground dark:border-zinc-800'"
+                :aria-pressed="selectedGroup === group"
+                @click="selectedGroup = group"
+              >
+                {{ group }}
+              </button>
+
+              <span
+                v-if="selectedMember"
+                class="inline-flex items-center gap-1 rounded-md border border-zinc-200 bg-card px-2 py-1 text-xs font-medium text-foreground dark:border-zinc-800"
+              >
+                {{ selectedMember }}
+                <button type="button" class="text-muted-foreground hover:text-foreground" :aria-label="`Clear member ${selectedMember}`" @click="selectedMember = null">
+                  <X class="h-3 w-3" />
+                </button>
+              </span>
+              <span
+                v-if="selectedCardType"
+                class="inline-flex items-center gap-1 rounded-md border border-zinc-200 bg-card px-2 py-1 text-xs font-medium text-foreground dark:border-zinc-800"
+              >
+                {{ selectedCardType }}
+                <button type="button" class="text-muted-foreground hover:text-foreground" :aria-label="`Clear card type ${selectedCardType}`" @click="selectedCardType = null">
+                  <X class="h-3 w-3" />
+                </button>
+              </span>
+              <span
+                v-if="minPriceIDR || maxPriceIDR"
+                class="inline-flex items-center gap-1 rounded-md border border-zinc-200 bg-card px-2 py-1 text-xs font-medium text-foreground dark:border-zinc-800"
+              >
+                Rp {{ Number(minPriceIDR || 0).toLocaleString('id-ID') }} – Rp {{ Number(maxPriceIDR || 0).toLocaleString('id-ID') }}
+                <button type="button" class="text-muted-foreground hover:text-foreground" aria-label="Clear price filter" @click="minPriceIDR = ''; maxPriceIDR = ''">
+                  <X class="h-3 w-3" />
+                </button>
+              </span>
+
+              <button
+                v-if="activeFilterCount > 0"
+                type="button"
+                class="text-xs font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                @click="clearFilters"
+              >
+                Clear all
+              </button>
+            </div>
           </div>
 
-          <!-- Desktop: page numbers -->
-          <div class="hidden items-center justify-center gap-2 sm:flex">
-            <button :disabled="currentPage === 1" class="glass-card rounded-full p-2 text-slate-700 transition-all hover:shadow-md disabled:opacity-50 dark:text-slate-300" @click="prevPage">
-              <ChevronLeft class="h-5 w-5" />
-            </button>
-            <template v-for="(page, index) in visiblePages" :key="index">
-              <span v-if="page === '...'" class="px-2 text-slate-400">...</span>
-              <button v-else :class="[
-                'min-w-[40px] rounded-full px-4 py-2 text-sm font-medium transition-all',
-                page === currentPage
-                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
-                  : 'glass-card text-slate-700 hover:shadow-md dark:text-slate-300'
-              ]" @click="goToPage(page as number)">
-                {{ page }}
-              </button>
-            </template>
-            <button :disabled="currentPage === totalPages" class="glass-card rounded-full p-2 text-slate-700 transition-all hover:shadow-md disabled:opacity-50 dark:text-slate-300" @click="nextPage">
-              <ChevronRight class="h-5 w-5" />
-            </button>
+          <!-- Error -->
+          <div
+            v-if="loadError && !loading"
+            class="mb-4 flex flex-col items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-900/50 dark:bg-red-950/40"
+            role="alert"
+          >
+            <div class="flex items-start gap-2.5">
+              <AlertCircle class="mt-0.5 h-4 w-4 shrink-0 text-red-600 dark:text-red-400" />
+              <div>
+                <p class="text-sm font-medium text-red-900 dark:text-red-200">Unable to load photocards.</p>
+                <p class="text-sm text-red-700/90 dark:text-red-300/90">Please try again.</p>
+              </div>
+            </div>
+            <Button variant="outline" size="sm" class="rounded-lg border-red-300 bg-white dark:border-red-800 dark:bg-zinc-900" @click="loadCards">
+              Retry
+            </Button>
+          </div>
+
+          <!-- Loading skeletons -->
+          <div v-if="loading" class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+            <div v-for="i in pageSize" :key="i" class="pc-skeleton">
+              <div class="skeleton-block aspect-square rounded-none" />
+              <div class="space-y-2.5 p-3">
+                <div class="skeleton-block h-3 w-1/3" />
+                <div class="skeleton-block h-3.5 w-full" />
+                <div class="skeleton-block h-3.5 w-2/3" />
+                <div class="skeleton-block h-4 w-1/2" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Empty -->
+          <div
+            v-else-if="cards.length === 0 && !loadError"
+            class="rounded-xl border border-dashed border-zinc-300 px-6 py-14 text-center dark:border-zinc-700"
+          >
+            <Search class="mx-auto h-8 w-8 text-zinc-400 dark:text-zinc-500" aria-hidden="true" />
+            <p class="mt-3 text-sm font-medium text-foreground">No photocards found.</p>
+            <p class="mt-1 text-sm text-muted-foreground">Try changing your filters or search query.</p>
+            <Button variant="outline" class="mt-4 rounded-lg" @click="clearFilters">Clear filters</Button>
+          </div>
+
+          <!-- Cards -->
+          <div
+            v-else
+            class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
+          >
+            <PhotocardCard
+              v-for="card in cards"
+              :key="card.id"
+              :card="card"
+              :rate="rate"
+              show-wishlist
+              :wishlisted="wishlistIds.has(card.id)"
+              @wishlist="onWishlist"
+            />
+          </div>
+
+          <!-- Pagination -->
+          <div v-if="!loading && totalPages > 1 && cards.length > 0" class="mt-8 sm:mt-10">
+            <p class="mb-3 text-center text-xs text-muted-foreground">
+              Page <span class="font-medium tabular-nums text-foreground">{{ currentPage.toLocaleString() }}</span>
+              of <span class="font-medium tabular-nums text-foreground">{{ totalPages.toLocaleString() }}</span>
+              <span class="hidden sm:inline"> · {{ total.toLocaleString() }} cards</span>
+            </p>
+
+            <!-- Mobile -->
+            <div class="flex items-center gap-2 sm:hidden">
+              <Button variant="outline" class="h-11 flex-1 gap-1 rounded-lg" :disabled="currentPage === 1" @click="prevPage">
+                <ChevronLeft class="h-4 w-4" />
+                Prev
+              </Button>
+              <div class="flex items-center gap-1">
+                <template v-for="p in mobilePages" :key="'m-' + p">
+                  <span v-if="p === '...'" class="px-0.5 text-sm text-muted-foreground">…</span>
+                  <Button
+                    v-else
+                    size="sm"
+                    :variant="p === currentPage ? 'default' : 'ghost'"
+                    class="h-9 min-w-9 rounded-lg px-2"
+                    @click="goToPage(p as number)"
+                  >{{ p }}</Button>
+                </template>
+              </div>
+              <Button variant="outline" class="h-11 flex-1 gap-1 rounded-lg" :disabled="currentPage === totalPages" @click="nextPage">
+                Next
+                <ChevronRight class="h-4 w-4" />
+              </Button>
+            </div>
+
+            <!-- Desktop -->
+            <div class="hidden items-center justify-center gap-2 sm:flex">
+              <Button variant="outline" size="icon-sm" class="rounded-lg" :disabled="currentPage === 1" @click="prevPage">
+                <ChevronLeft class="h-4 w-4" />
+              </Button>
+              <template v-for="(page, index) in visiblePages" :key="index">
+                <span v-if="page === '...'" class="px-1.5 text-muted-foreground">...</span>
+                <Button
+                  v-else
+                  size="sm"
+                  :variant="page === currentPage ? 'default' : 'outline'"
+                  class="min-w-9 rounded-lg px-3"
+                  @click="goToPage(page as number)"
+                >{{ page }}</Button>
+              </template>
+              <Button variant="outline" size="icon-sm" class="rounded-lg" :disabled="currentPage === totalPages" @click="nextPage">
+                <ChevronRight class="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
-      <!-- Shop & Follow -->
-      <section class="mx-auto mt-10 max-w-7xl px-4 sm:mt-14">
-        <div class="glass-card rounded-3xl px-4 py-8 text-center sm:px-8 sm:py-10">
-          <div class="mx-auto mb-3 flex items-center justify-center gap-2.5">
-            <img src="/hibikishop-logo.png" alt="HIBIKISHOP" class="h-8 w-8 rounded-full object-contain" />
-            <p class="text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">Shop & Follow HIBIKISHOP</p>
-          </div>
-          <p class="mb-5 text-sm text-slate-500 dark:text-slate-400">Belanja photocard original & update terbaru</p>
-          <SocialLinks variant="card" />
-        </div>
-      </section>
     </main>
+
+    <!-- Mobile filter sheet -->
+    <Sheet v-model:open="mobileFiltersOpen">
+      <SheetContent side="bottom" class="max-h-[85vh] overflow-y-auto rounded-t-2xl p-0 sm:max-w-md sm:rounded-2xl sm:bottom-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2">
+        <SheetHeader class="border-b border-zinc-200 px-4 py-4 text-left dark:border-zinc-800">
+          <SheetTitle class="text-base font-semibold">Filters</SheetTitle>
+          <SheetDescription class="text-sm text-muted-foreground">
+            Narrow results by member, card type, and price.
+          </SheetDescription>
+        </SheetHeader>
+
+        <div class="space-y-5 px-4 py-4">
+          <div>
+            <p class="mb-2 text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">Group</p>
+            <div class="flex flex-wrap gap-1.5">
+              <button
+                v-for="group in GROUPS"
+                :key="group"
+                type="button"
+                class="rounded-lg border px-3 py-1.5 text-sm font-medium"
+                :class="selectedGroup === group ? groupAccentActive(group) : 'border-zinc-200 text-muted-foreground dark:border-zinc-800'"
+                @click="selectedGroup = group"
+              >{{ group }}</button>
+            </div>
+          </div>
+
+          <div>
+            <p class="mb-2 text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">Member</p>
+            <div class="flex flex-wrap gap-1.5">
+              <button
+                type="button"
+                class="rounded-md border px-2.5 py-1.5 text-xs font-medium"
+                :class="!selectedMember ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900' : 'border-zinc-200 text-muted-foreground dark:border-zinc-800'"
+                @click="selectedMember = null"
+              >All</button>
+              <button
+                v-for="m in MEMBERS[selectedGroup] || []"
+                :key="m"
+                type="button"
+                class="rounded-md border px-2.5 py-1.5 text-xs font-medium"
+                :class="selectedMember === m ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900' : 'border-zinc-200 text-muted-foreground dark:border-zinc-800'"
+                @click="selectedMember = m"
+              >{{ m }}</button>
+            </div>
+          </div>
+
+          <div>
+            <p class="mb-2 text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">Card Type</p>
+            <div class="flex flex-wrap gap-1.5">
+              <button
+                type="button"
+                class="rounded-md border px-2.5 py-1.5 text-xs font-medium"
+                :class="!selectedCardType ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900' : 'border-zinc-200 text-muted-foreground dark:border-zinc-800'"
+                @click="selectedCardType = null"
+              >All</button>
+              <button
+                v-for="t in CARD_TYPES"
+                :key="t"
+                type="button"
+                class="rounded-md border px-2.5 py-1.5 text-xs font-medium"
+                :class="selectedCardType === t ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900' : 'border-zinc-200 text-muted-foreground dark:border-zinc-800'"
+                @click="selectedCardType = t"
+              >{{ t }}</button>
+            </div>
+          </div>
+
+          <div>
+            <p class="mb-2 text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">Price (IDR)</p>
+            <div class="flex gap-2">
+              <Input v-model="minPriceIDR" type="number" inputmode="numeric" placeholder="Min" class="h-10 rounded-lg" aria-label="Minimum price" />
+              <Input v-model="maxPriceIDR" type="number" inputmode="numeric" placeholder="Max" class="h-10 rounded-lg" aria-label="Maximum price" />
+            </div>
+          </div>
+        </div>
+
+        <SheetFooter class="gap-2 border-t border-zinc-200 px-4 py-4 dark:border-zinc-800 sm:flex-row">
+          <Button variant="outline" class="flex-1 rounded-lg" @click="clearFilters">Clear</Button>
+          <Button class="flex-1 rounded-lg" @click="mobileFiltersOpen = false">Show results</Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
 
     <SiteFooter />
     <MobileTabBar />
   </div>
 </template>
-
-<style scoped>
-.slide-enter-active, .slide-leave-active { transition: all 0.3s ease; }
-.slide-enter-from, .slide-leave-to { opacity: 0; transform: translateY(-10px); max-height: 0; }
-.slide-enter-to, .slide-leave-from { max-height: 500px; }
-</style>

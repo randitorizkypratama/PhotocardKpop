@@ -1,154 +1,296 @@
 <script setup lang="ts">
-import {
-  Heart, Package, DollarSign, Target,
-  Trash2, X
-} from 'lucide-vue-next'
+import { Trash2, BookOpen } from 'lucide-vue-next'
+import { GROUPS, groupDot, formatUSD } from '@/lib/catalog'
 
-const { items, stats, loading, fetchCollection, removeFromCollection } = useCollection()
+useHead({ title: 'My Collection — HIBIKISHOP PC' })
 
-const activeTab = ref<'all' | 'owned' | 'wishlist'>('all')
+const route = useRoute()
+const router = useRouter()
 
-onMounted(() => { fetchCollection() })
+const {
+  items, stats, loading, error, fetchCollection, removeFromCollection,
+} = useCollection()
+
+const activeTab = ref<'all' | 'owned' | 'wishlist'>(
+  route.query.tab === 'wishlist' || route.query.tab === 'owned' ? route.query.tab : 'all',
+)
+const removeTarget = ref<number | null>(null)
+const exchangeRates = ref<any>(null)
+const groupTotals = ref<Record<string, number>>({})
+
+onMounted(() => {
+  fetchCollection(true)
+  loadExchangeRates()
+  loadGroupTotals()
+})
+
+async function loadGroupTotals() {
+  try {
+    const results = await Promise.all(
+      GROUPS.map(async (group) => {
+        const res = await $fetch<any>(`/api/cards?group=${encodeURIComponent(group)}&page=1&limit=1`)
+        return [group, res?.pagination?.total ?? 0] as const
+      }),
+    )
+    const next: Record<string, number> = {}
+    for (const [group, total] of results) next[group] = total
+    groupTotals.value = next
+  } catch (e) {
+    console.error('Failed to load group totals:', e)
+  }
+}
+
+watch(activeTab, (value) => {
+  router.replace({ query: { ...route.query, tab: value === 'all' ? undefined : value } })
+})
+
+async function loadExchangeRates() {
+  try {
+    const response = await $fetch<any>('/api/exchangerate')
+    if (response.success) exchangeRates.value = response.data
+  } catch (e) {
+    console.error('Failed to load exchange rates:', e)
+  }
+}
+
+const rate = computed(() => exchangeRates.value?.usd?.rate || 17800)
 
 const filteredItems = computed(() => {
   if (activeTab.value === 'all') return items.value
   return items.value.filter(item => item.status === activeTab.value)
 })
 
-async function handleRemove(id: number) {
-  if (confirm('Remove from collection?')) await removeFromCollection(id)
+const groupedItems = computed(() => {
+  return GROUPS.map((group) => {
+    const groupItems = filteredItems.value.filter(item => item.group_name === group)
+    const ownedCount = items.value.filter(i => i.group_name === group && i.status === 'owned').length
+    const total = groupTotals.value[group] ?? 0
+    return {
+      group,
+      items: groupItems,
+      ownedCount,
+      total,
+      hasProgress: total > 0,
+    }
+  }).filter(section => section.items.length > 0)
+})
+
+const orphans = computed(() => {
+  const known = new Set(GROUPS as unknown as string[])
+  return filteredItems.value.filter(item => !known.has(item.group_name))
+})
+
+async function confirmRemove() {
+  if (removeTarget.value == null) return
+  await removeFromCollection(removeTarget.value)
+  removeTarget.value = null
 }
 
-function formatPrice(price: number) {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(price)
+function mapForCard(item: any) {
+  return {
+    id: item.card_id,
+    name: item.name,
+    image: item.image,
+    member_name: item.member_name,
+    group_name: item.group_name,
+    card_type: item.card_type,
+    price: item.last_price,
+    discounted_price: item.last_discounted_price,
+  }
 }
+
+function removeById(collectionId: number) {
+  removeTarget.value = collectionId
+}
+
+const tabDefs = computed(() => [
+  { key: 'all' as const, label: 'All', count: items.value.length },
+  { key: 'owned' as const, label: 'Owned', count: stats.value.totalOwned },
+  { key: 'wishlist' as const, label: 'Wishlist', count: stats.value.totalWishlist },
+])
 </script>
 
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50 dark:from-slate-950 dark:via-purple-950 dark:to-slate-950">
-    <header class="sticky top-0 z-50 glass border-b border-white/20">
-      <div class="container mx-auto flex h-14 items-center justify-between px-4 sm:h-16">
-        <NuxtLink to="/" class="flex items-center gap-2">
-          <img src="/hibikishop-logo.png" alt="HIBIKISHOP" class="h-9 w-9 rounded-full object-cover" />
-          <span class="text-base font-bold text-slate-900 sm:text-lg dark:text-white">HIBIKISHOP</span>
-        </NuxtLink>
-        <div class="flex items-center gap-4">
-          <nav class="hidden items-center gap-4 md:flex">
-            <NuxtLink to="/" class="text-sm font-medium text-slate-500 transition-colors hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">Home</NuxtLink>
-            <NuxtLink to="/browse" class="text-sm font-medium text-slate-500 transition-colors hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">Browse</NuxtLink>
-            <NuxtLink to="/collection" class="text-sm font-medium text-slate-900 dark:text-white">Collection</NuxtLink>
-          </nav>
-          <DarkModeToggle />
-        </div>
-      </div>
-    </header>
+  <div class="min-h-screen bg-background">
+    <AppHeader active="collection" />
 
-    <main class="container mx-auto px-4 py-6 sm:py-8">
-      <div class="mb-6 sm:mb-8">
-        <h1 class="text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">My Collection</h1>
-        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400 sm:text-base">Manage your photocard collection</p>
+    <main class="page-shell py-6 sm:py-8">
+      <div class="mb-5 sm:mb-6">
+        <p class="eyebrow">Binder</p>
+        <h1 class="mt-1 text-xl font-semibold tracking-tight text-foreground sm:text-2xl">My Collection</h1>
+        <p class="mt-1 text-sm text-muted-foreground">Keep track of cards you own and want.</p>
       </div>
 
-      <!-- Stats -->
-      <div class="mb-6 grid grid-cols-2 gap-3 sm:mb-8 sm:gap-4 md:grid-cols-4">
-        <div class="glass-card rounded-3xl p-4 sm:p-6">
-          <div class="mb-2 flex h-9 w-9 items-center justify-center rounded-2xl bg-green-100 dark:bg-green-900/30 sm:h-10 sm:w-10">
-            <Package class="h-4 w-4 text-green-600 dark:text-green-400 sm:h-5 sm:w-5" />
-          </div>
-          <p class="text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">{{ stats.totalOwned }}</p>
-          <p class="text-xs text-slate-500 dark:text-slate-400 sm:text-sm">Owned Cards</p>
+      <!-- Compact summary -->
+      <div class="mb-6 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-zinc-200 bg-card px-4 py-3.5 text-sm dark:border-zinc-800 sm:mb-8">
+        <div class="flex items-baseline gap-2">
+          <span class="text-lg font-semibold tabular-nums text-foreground">{{ items.length }}</span>
+          <span class="text-muted-foreground">cards</span>
         </div>
-        <div class="glass-card rounded-3xl p-4 sm:p-6">
-          <div class="mb-2 flex h-9 w-9 items-center justify-center rounded-2xl bg-pink-100 dark:bg-pink-900/30 sm:h-10 sm:w-10">
-            <Heart class="h-4 w-4 text-pink-600 dark:text-pink-400 sm:h-5 sm:w-5" />
-          </div>
-          <p class="text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">{{ stats.totalWishlist }}</p>
-          <p class="text-xs text-slate-500 dark:text-slate-400 sm:text-sm">Wishlist</p>
+        <span class="hidden h-4 w-px bg-zinc-200 dark:bg-zinc-800 sm:block" aria-hidden="true" />
+        <div class="flex items-baseline gap-2">
+          <span class="font-medium tabular-nums text-foreground">
+            {{ formatUSD(stats.totalOwnedValue) }}
+          </span>
+          <span class="text-muted-foreground">owned value</span>
         </div>
-        <div class="glass-card rounded-3xl p-4 sm:p-6">
-          <div class="mb-2 flex h-9 w-9 items-center justify-center rounded-2xl bg-purple-100 dark:bg-purple-900/30 sm:h-10 sm:w-10">
-            <DollarSign class="h-4 w-4 text-purple-600 dark:text-purple-400 sm:h-5 sm:w-5" />
-          </div>
-          <p class="text-xl font-bold text-slate-900 dark:text-white sm:text-3xl">{{ formatPrice(stats.totalOwnedValue) }}</p>
-          <p class="text-xs text-slate-500 dark:text-slate-400 sm:text-sm">Owned Value</p>
-        </div>
-        <div class="glass-card rounded-3xl p-4 sm:p-6">
-          <div class="mb-2 flex h-9 w-9 items-center justify-center rounded-2xl bg-blue-100 dark:bg-blue-900/30 sm:h-10 sm:w-10">
-            <Target class="h-4 w-4 text-blue-600 dark:text-blue-400 sm:h-5 sm:w-5" />
-          </div>
-          <p class="text-xl font-bold text-slate-900 dark:text-white sm:text-3xl">{{ formatPrice(stats.totalWishlistValue) }}</p>
-          <p class="text-xs text-slate-500 dark:text-slate-400 sm:text-sm">Wishlist Value</p>
+        <span class="hidden h-4 w-px bg-zinc-200 dark:bg-zinc-800 sm:block" aria-hidden="true" />
+        <div class="flex items-baseline gap-2">
+          <span class="font-medium tabular-nums text-foreground">{{ stats.totalWishlist }}</span>
+          <span class="text-muted-foreground">wishlist</span>
         </div>
       </div>
 
       <!-- Tabs -->
-      <div class="mb-6 flex flex-wrap gap-2 sm:mb-8">
-        <button v-for="tab in [{ key: 'all', label: 'All', count: items.length }, { key: 'owned', label: 'Owned', count: stats.totalOwned }, { key: 'wishlist', label: 'Wishlist', count: stats.totalWishlist }]" :key="tab.key" :class="[
-          'rounded-full px-4 py-2 text-sm font-medium transition-all sm:px-5 sm:py-2.5',
-          activeTab === tab.key
-            ? 'gradient-primary text-white shadow-lg shadow-purple-500/30'
-            : 'glass-card text-slate-700 hover:shadow-md dark:text-slate-300'
-        ]" @click="activeTab = tab.key as any">
-          {{ tab.label }} ({{ tab.count }})
-        </button>
+      <Tabs v-model="activeTab" class="mb-6">
+        <TabsList class="h-10 w-full justify-start gap-1 rounded-lg bg-muted p-1 sm:w-auto">
+          <TabsTrigger
+            v-for="tab in tabDefs"
+            :key="tab.key"
+            :value="tab.key"
+            class="rounded-md px-3 py-1.5 text-sm data-[state=active]:bg-background data-[state=active]:shadow-sm"
+          >
+            {{ tab.label }}
+            <span class="ml-1 tabular-nums text-muted-foreground">({{ tab.count }})</span>
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      <!-- Error -->
+      <div
+        v-if="error && !loading"
+        class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200"
+        role="alert"
+      >
+        Unable to load your collection. Please try again.
+        <button type="button" class="ml-2 font-medium underline underline-offset-2" @click="fetchCollection(true)">Retry</button>
       </div>
 
       <!-- Loading -->
-      <div v-if="loading" class="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-        <div v-for="i in 6" :key="i" class="glass-card overflow-hidden rounded-2xl">
-          <div class="aspect-square animate-pulse bg-gradient-to-br from-purple-200 to-pink-200 dark:from-purple-800 dark:to-pink-800" />
-          <div class="space-y-3 p-4">
-            <div class="h-3 w-1/3 animate-pulse rounded-full bg-slate-200 dark:bg-slate-700" />
-            <div class="h-4 w-full animate-pulse rounded-full bg-slate-200 dark:bg-slate-700" />
-            <div class="h-4 w-2/3 animate-pulse rounded-full bg-slate-200 dark:bg-slate-700" />
+      <div v-if="loading" class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
+        <div v-for="i in 8" :key="i" class="pc-skeleton">
+          <div class="skeleton-block aspect-square rounded-none" />
+          <div class="space-y-2.5 p-3">
+            <div class="skeleton-block h-3 w-1/3" />
+            <div class="skeleton-block h-3.5 w-full" />
+            <div class="skeleton-block h-4 w-1/2" />
           </div>
         </div>
       </div>
 
       <!-- Empty -->
-      <div v-else-if="filteredItems.length === 0" class="py-16 text-center">
-        <div class="gradient-primary mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-3xl text-white">
-          <Package class="h-10 w-10" />
-        </div>
-        <h3 class="mb-2 text-xl font-semibold text-slate-900 dark:text-white">No cards yet</h3>
-        <p class="mb-6 text-slate-500 dark:text-slate-400">Start building your collection</p>
-        <NuxtLink to="/browse" class="gradient-primary inline-flex items-center gap-2 rounded-full px-6 py-3 font-medium text-white shadow-lg shadow-purple-500/30 transition-all hover:scale-105">
-          Browse Cards
-        </NuxtLink>
+      <div
+        v-else-if="filteredItems.length === 0"
+        class="rounded-xl border border-dashed border-zinc-300 px-6 py-14 text-center dark:border-zinc-700"
+      >
+        <BookOpen class="mx-auto h-8 w-8 text-zinc-400 dark:text-zinc-500" aria-hidden="true" />
+        <p class="mt-3 text-sm font-medium text-foreground">
+          <template v-if="activeTab === 'wishlist'">Your wishlist is empty.</template>
+          <template v-else-if="activeTab === 'owned'">You haven't marked any cards as owned.</template>
+          <template v-else>Your collection is empty.</template>
+        </p>
+        <p class="mt-1 text-sm text-muted-foreground">Start adding photocards you want to keep track of.</p>
+        <Button variant="outline" class="mt-4 rounded-lg" as-child>
+          <NuxtLink to="/browse">Browse Photocards</NuxtLink>
+        </Button>
       </div>
 
-      <!-- Grid -->
-      <div v-else class="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-        <div v-for="item in filteredItems" :key="item.id" class="group glass-card relative overflow-hidden rounded-2xl card-hover">
-          <div :class="['absolute left-2 top-2 z-10 flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium backdrop-blur sm:px-3 sm:py-1 sm:text-xs', item.status === 'owned' ? 'bg-green-500/90 text-white' : 'bg-blue-500/90 text-white']">
-            <Package v-if="item.status === 'owned'" class="h-3 w-3" />
-            <Heart v-else class="h-3 w-3" />
-            {{ item.status === 'owned' ? 'Owned' : 'Wishlist' }}
+      <!-- Grouped binder sections -->
+      <div v-else class="space-y-10">
+        <section
+          v-for="section in groupedItems"
+          :key="section.group"
+        >
+          <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="h-2 w-2 rounded-full" :class="groupDot(section.group)" />
+              <h2 class="text-base font-semibold text-foreground sm:text-lg">{{ section.group }}</h2>
+            </div>
+            <div class="flex items-center gap-3 text-xs text-muted-foreground">
+              <span v-if="section.hasProgress" class="tabular-nums">
+                {{ section.ownedCount }} / {{ section.total.toLocaleString() }} collected
+              </span>
+              <span v-else class="tabular-nums">{{ section.ownedCount }} owned</span>
+              <div
+                v-if="section.hasProgress"
+                class="flex h-1.5 w-24 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800"
+                role="progressbar"
+                :aria-valuenow="section.ownedCount"
+                :aria-valuemin="0"
+                :aria-valuemax="section.total"
+                :aria-label="`${section.group} collection progress`"
+              >
+                <div
+                  class="h-full rounded-full bg-foreground transition-all duration-300"
+                  :style="{
+                    width: `${Math.min(100, Math.round((section.ownedCount / section.total) * 100))}%`,
+                  }"
+                />
+              </div>
+            </div>
           </div>
-          <button class="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-red-500/90 text-white opacity-100 backdrop-blur transition-all group-hover:opacity-100 hover:bg-red-600 sm:opacity-0" @click="handleRemove(item.id)">
-            <Trash2 class="h-4 w-4" />
-          </button>
-          <NuxtLink :to="`/card/${item.card_id}`">
-            <div class="relative aspect-square overflow-hidden">
-              <img :src="item.image" :alt="item.name" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" />
-              <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+
+          <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
+            <div v-for="item in section.items" :key="item.id" class="group relative">
+              <PhotocardCard
+                :card="mapForCard(item)"
+                :rate="rate"
+                :badge="item.status === 'owned' ? 'Owned' : 'Wishlist'"
+              />
+              <button
+                type="button"
+                class="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white/90 text-zinc-500 shadow-sm backdrop-blur-sm transition duration-150 hover:border-red-200 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:border-zinc-700 dark:bg-zinc-900/90 dark:text-zinc-400 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                :aria-label="`Remove ${item.name} from collection`"
+                @click.stop="removeById(item.id)"
+              >
+                <Trash2 class="h-4 w-4" />
+              </button>
             </div>
-            <div class="p-3 sm:p-4">
-              <div class="mb-1 flex items-center justify-between gap-1">
-                <span class="truncate text-[10px] font-medium text-purple-600 dark:text-purple-400 sm:text-xs">{{ item.group_name }}</span>
-                <span class="shrink-0 rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600 dark:bg-slate-800 dark:text-slate-400 sm:px-2 sm:text-xs">{{ item.card_type }}</span>
-              </div>
-              <h3 class="line-clamp-2 text-xs font-semibold text-slate-900 dark:text-white sm:text-sm">{{ item.name }}</h3>
-              <p class="mt-1 truncate text-[10px] text-slate-500 dark:text-slate-400 sm:text-xs">{{ item.member_name }}</p>
-              <div class="mt-2 flex flex-wrap items-center justify-between gap-1 sm:mt-3">
-                <span class="text-sm font-bold text-slate-900 dark:text-white sm:text-xl">{{ formatPrice(item.last_price) }}</span>
-                <span v-if="item.bought_price" class="text-[10px] text-green-500 sm:text-xs">Bought: {{ formatPrice(item.bought_price) }}</span>
-              </div>
+          </div>
+        </section>
+
+        <!-- Non-standard group names -->
+        <section v-if="orphans.length > 0">
+          <div class="mb-4 flex items-center gap-2">
+            <h2 class="text-base font-semibold text-foreground sm:text-lg">Other</h2>
+            <span class="text-xs text-muted-foreground tabular-nums">{{ orphans.length }}</span>
+          </div>
+          <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
+            <div v-for="item in orphans" :key="item.id" class="group relative">
+              <PhotocardCard
+                :card="mapForCard(item)"
+                :rate="rate"
+                :badge="item.status === 'owned' ? 'Owned' : 'Wishlist'"
+              />
+              <button
+                type="button"
+                class="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white/90 text-zinc-500 shadow-sm backdrop-blur-sm transition duration-150 hover:border-red-200 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:border-zinc-700 dark:bg-zinc-900/90 dark:text-zinc-400 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                :aria-label="`Remove ${item.name} from collection`"
+                @click.stop="removeById(item.id)"
+              >
+                <Trash2 class="h-4 w-4" />
+              </button>
             </div>
-          </NuxtLink>
-        </div>
+          </div>
+        </section>
       </div>
     </main>
+
+    <!-- Remove Dialog -->
+    <AlertDialog :open="removeTarget != null" @update:open="(v: boolean) => { if (!v) removeTarget = null }">
+      <AlertDialogContent class="max-w-sm rounded-xl">
+        <AlertDialogHeader>
+          <AlertDialogTitle class="text-base">Remove from collection?</AlertDialogTitle>
+          <AlertDialogDescription class="text-muted-foreground">
+            This card will be removed from your collection. You can add it again later.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter class="gap-2 sm:justify-end">
+          <AlertDialogCancel class="rounded-lg">Cancel</AlertDialogCancel>
+          <AlertDialogAction class="rounded-lg" @click="confirmRemove">Remove</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
 
     <SiteFooter />
     <MobileTabBar />

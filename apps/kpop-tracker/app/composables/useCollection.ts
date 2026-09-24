@@ -27,17 +27,37 @@ interface CollectionResponse {
 }
 
 export function useCollection() {
-  const items = ref<CollectionItem[]>([])
-  const stats = ref<CollectionStats>({
+  const items = useState<CollectionItem[]>('collection-items', () => [])
+  const stats = useState<CollectionStats>('collection-stats', () => ({
     totalOwned: 0,
     totalWishlist: 0,
     totalOwnedValue: 0,
     totalWishlistValue: 0,
-  })
-  const loading = ref(false)
-  const error = ref<string | null>(null)
+  }))
+  const loading = useState<boolean>('collection-loading', () => false)
+  const error = useState<string | null>('collection-error', () => null)
+  const loaded = useState<boolean>('collection-loaded', () => false)
 
-  async function fetchCollection() {
+  const wishlistIds = computed(() => {
+    const set = new Set<number>()
+    for (const item of items.value) {
+      if (item.status === 'wishlist') set.add(item.card_id)
+    }
+    return set
+  })
+
+  const ownedIds = computed(() => {
+    const set = new Set<number>()
+    for (const item of items.value) {
+      if (item.status === 'owned') set.add(item.card_id)
+    }
+    return set
+  })
+
+  const allIds = computed(() => new Set(items.value.map(item => item.card_id)))
+
+  async function fetchCollection(force = false) {
+    if (loaded.value && !force) return
     loading.value = true
     error.value = null
 
@@ -47,6 +67,7 @@ export function useCollection() {
       if (response.success) {
         items.value = response.data
         stats.value = response.stats
+        loaded.value = true
       }
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Failed to fetch collection'
@@ -65,7 +86,7 @@ export function useCollection() {
           bought_price: boughtPrice,
         },
       })
-      await fetchCollection()
+      await fetchCollection(true)
       return true
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Failed to add to collection'
@@ -78,7 +99,7 @@ export function useCollection() {
       await $fetch(`/api/collection/${collectionId}`, {
         method: 'DELETE',
       })
-      await fetchCollection()
+      await fetchCollection(true)
       return true
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Failed to remove from collection'
@@ -86,13 +107,34 @@ export function useCollection() {
     }
   }
 
+  function findItemByCardId(cardId: number) {
+    return items.value.find(item => item.card_id === cardId) ?? null
+  }
+
+  async function toggleWishlist(cardId: number) {
+    const existing = findItemByCardId(cardId)
+    if (existing?.status === 'wishlist') {
+      return removeFromCollection(existing.id)
+    }
+    if (existing?.status === 'owned') {
+      return addToCollection(cardId, 'owned', existing.bought_price ?? undefined)
+    }
+    return addToCollection(cardId, 'wishlist')
+  }
+
   return {
     items,
     stats,
     loading,
     error,
+    loaded,
+    wishlistIds,
+    ownedIds,
+    allIds,
     fetchCollection,
     addToCollection,
     removeFromCollection,
+    toggleWishlist,
+    findItemByCardId,
   }
 }

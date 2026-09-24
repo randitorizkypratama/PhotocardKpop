@@ -7,6 +7,14 @@ export default defineNuxtConfig({
     '@nuxtjs/google-fonts',
   ],
 
+  components: [
+    {
+      path: '~/components',
+      pathPrefix: false,
+      ignore: ['**/ui/**/index.ts', '**/ui/**/interface.ts', '**/ui/**/use*.ts'],
+    },
+  ],
+
   css: ['~/assets/css/main.css'],
 
   postcss: {
