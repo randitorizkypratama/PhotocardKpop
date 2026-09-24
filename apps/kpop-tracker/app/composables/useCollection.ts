@@ -99,9 +99,10 @@ export function useCollection() {
     }
   }
 
-  async function removeFromCollection(collectionId: number) {
+  async function removeFromCollection(collectionId: number, status?: 'owned' | 'wishlist') {
     try {
-      await $fetch(`/api/collection/${collectionId}`, {
+      const query = status ? `?status=${status}` : ''
+      await $fetch(`/api/collection/${collectionId}${query}`, {
         method: 'DELETE',
       })
       await fetchCollection(true)
@@ -112,15 +113,18 @@ export function useCollection() {
     }
   }
 
-  function findItemByCardId(cardId: number) {
+  function findItemByCardId(cardId: number, status?: 'owned' | 'wishlist') {
+    if (status) {
+      return items.value.find(item => item.card_id === cardId && item.status === status) ?? null
+    }
     return items.value.find(item => item.card_id === cardId) ?? null
   }
 
   async function toggleWishlist(cardId: number) {
     if (pendingCardIds.value.has(cardId)) return false
-    const existing = findItemByCardId(cardId)
-    if (existing) {
-      return removeFromCollection(existing.id)
+    const wish = findItemByCardId(cardId, 'wishlist')
+    if (wish) {
+      return removeFromCollection(wish.id)
     }
     return addToCollection(cardId, 'wishlist')
   }

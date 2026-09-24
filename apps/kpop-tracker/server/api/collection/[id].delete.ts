@@ -10,13 +10,20 @@ export default defineEventHandler(async (event) => {
   }
 
   const db = getTursoClient()
+  const status = getQuery(event).status
 
-  // Accept either collection row id or card_id (card ids are much larger)
   if (id > 100000) {
-    await db.execute({
-      sql: 'DELETE FROM collections WHERE card_id = ?',
-      args: [id],
-    })
+    if (status === 'wishlist' || status === 'owned') {
+      await db.execute({
+        sql: 'DELETE FROM collections WHERE card_id = ? AND status = ?',
+        args: [id, status],
+      })
+    } else {
+      await db.execute({
+        sql: 'DELETE FROM collections WHERE card_id = ?',
+        args: [id],
+      })
+    }
   } else {
     await db.execute({
       sql: 'DELETE FROM collections WHERE id = ?',
@@ -26,6 +33,6 @@ export default defineEventHandler(async (event) => {
 
   return {
     success: true,
-    message: 'Card removed from collection',
+    message: 'Card removed',
   }
 })

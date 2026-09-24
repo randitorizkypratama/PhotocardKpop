@@ -34,7 +34,7 @@ const total = ref(0)
 const totalPages = ref(0)
 const exchangeRates = ref<any>(null)
 
-const { fetchCollection, allIds, toggleWishlist } = useCollection()
+const { fetchCollection, wishlistIds, toggleWishlist } = useCollection()
 
 const activeFilterCount = computed(() => {
   let count = 0
@@ -491,7 +491,7 @@ const visiblePages = computed(() => {
               :card="card"
               :rate="rate"
               show-wishlist
-              :wishlisted="allIds.has(card.id)"
+              :wishlisted="wishlistIds.has(card.id)"
               @wishlist="onWishlist"
             />
           </div>

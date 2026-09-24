@@ -9,7 +9,7 @@ const searchQuery = ref('')
 const cards = ref<any[]>([])
 const loading = ref(true)
 const exchangeRates = ref<any>(null)
-const { fetchCollection, allIds, toggleWishlist } = useCollection()
+const { fetchCollection, wishlistIds, toggleWishlist } = useCollection()
 
 const groupTabs = GROUPS
 
@@ -181,7 +181,7 @@ async function onWishlist(id: number | string) {
             :card="card"
             :rate="rate"
             show-wishlist
-            :wishlisted="allIds.has(card.id)"
+            :wishlisted="wishlistIds.has(card.id)"
             @wishlist="onWishlist"
           />
         </div>

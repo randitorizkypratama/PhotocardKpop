@@ -9,11 +9,11 @@ export default defineEventHandler(async (event) => {
     ORDER BY c.added_at DESC
   `)
 
-  const seen = new Set<number>()
+  const seen = new Set<string>()
   const rows = result.rows.filter((row) => {
-    const cardId = row.card_id as number
-    if (seen.has(cardId)) return false
-    seen.add(cardId)
+    const key = `${row.card_id}:${row.status}`
+    if (seen.has(key)) return false
+    seen.add(key)
     return true
   })
 

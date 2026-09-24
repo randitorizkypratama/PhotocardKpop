@@ -23,18 +23,18 @@ export default defineEventHandler(async (event) => {
   try {
     await db.execute({
       sql: `INSERT INTO collections (card_id, status, bought_price, added_at) VALUES (?, ?, ?, ?)
-            ON CONFLICT(card_id) DO UPDATE SET status = excluded.status, bought_price = excluded.bought_price`,
+            ON CONFLICT(card_id, status) DO UPDATE SET bought_price = excluded.bought_price, added_at = excluded.added_at`,
       args: [card_id, status, bought_price || null, now],
     })
   } catch {
     await db.execute({
-      sql: 'UPDATE collections SET status = ?, bought_price = ? WHERE card_id = ?',
-      args: [status, bought_price || null, card_id],
+      sql: 'UPDATE collections SET bought_price = ? WHERE card_id = ? AND status = ?',
+      args: [bought_price || null, card_id, status],
     })
   }
 
   return {
     success: true,
-    message: 'Card saved to collection',
+    message: status === 'owned' ? 'Card added to collection' : 'Card added to wishlist',
   }
 })

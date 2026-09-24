@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {
   TrendingUp, TrendingDown, Minus,
-  Heart, Tag, Check, Clock, ExternalLink, AlertCircle, Package
+  Heart, Tag, Check, Clock, ExternalLink, AlertCircle
 } from 'lucide-vue-next'
 import { groupAccent, groupDot, formatIDR, formatUSD } from '@/lib/catalog'
 
@@ -14,14 +14,13 @@ useHead({
 
 const { history, fetchPriceHistory, getPriceTrend, getPriceChange } = usePriceHistory()
 const {
-  addToCollection, fetchCollection, findItemByCardId, toggleWishlist, allIds,
+  addToCollection, fetchCollection, toggleWishlist, wishlistIds, ownedIds,
 } = useCollection()
 
 const card = ref<any>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
 const showAddDialog = ref(false)
-const addToStatus = ref<'owned' | 'wishlist'>('wishlist')
 const boughtPrice = ref<string | number>('')
 const exchangeRates = ref<any>(null)
 const adding = ref(false)
@@ -50,14 +49,14 @@ onMounted(async () => {
 })
 
 const rate = computed(() => exchangeRates.value?.usd?.rate || 17800)
-const isWishlisted = computed(() => allIds.value.has(cardId))
-const collectionItem = computed(() => findItemByCardId(cardId))
+const isWishlisted = computed(() => wishlistIds.value.has(cardId))
+const isInCollection = computed(() => ownedIds.value.has(cardId))
 
 async function handleAddToCollection() {
   if (!card.value) return
   adding.value = true
   const price = boughtPrice.value === '' || boughtPrice.value == null ? undefined : Number(boughtPrice.value)
-  const success = await addToCollection(cardId, addToStatus.value, price)
+  const success = await addToCollection(cardId, 'owned', price)
   adding.value = false
   if (success) {
     showAddDialog.value = false
@@ -234,15 +233,13 @@ const chartData = computed(() => {
               </Button>
             </div>
 
-            <Button class="mt-2 h-11 w-full gap-2 rounded-lg sm:h-10" @click="showAddDialog = true">
+            <Button
+              class="mt-2 h-11 w-full gap-2 rounded-lg sm:h-10"
+              :variant="isInCollection ? 'secondary' : 'default'"
+              @click="showAddDialog = true"
+            >
               <Tag class="h-4 w-4" />
-              Add to Collection
-              <span
-                v-if="collectionItem"
-                class="ml-1 rounded-md bg-background/20 px-1.5 py-0.5 text-[10px] font-medium uppercase"
-              >
-                {{ collectionItem.status }}
-              </span>
+              {{ isInCollection ? 'In Collection' : 'Add to Collection' }}
             </Button>
           </div>
 
@@ -341,38 +338,12 @@ const chartData = computed(() => {
           <DialogHeader class="mb-1">
             <DialogTitle class="text-left text-lg">Add to Collection</DialogTitle>
             <DialogDescription class="text-left text-sm text-muted-foreground">
-              Save this photocard to your wishlist or owned list.
+              Save this photocard to your owned collection. Use the heart button for wishlist.
             </DialogDescription>
           </DialogHeader>
 
           <div class="space-y-5">
             <div>
-              <Label class="mb-2.5 block text-sm font-medium text-foreground">Status</Label>
-              <div class="grid grid-cols-2 gap-2.5">
-                <Button
-                  type="button"
-                  variant="outline"
-                  class="gap-2 rounded-lg py-2.5"
-                  :class="addToStatus === 'wishlist' ? 'border-foreground bg-zinc-100 text-foreground dark:bg-zinc-800' : ''"
-                  :aria-pressed="addToStatus === 'wishlist'"
-                  @click="addToStatus = 'wishlist'"
-                >
-                  <Heart class="h-4 w-4" /> Wishlist
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  class="gap-2 rounded-lg py-2.5"
-                  :class="addToStatus === 'owned' ? 'border-foreground bg-zinc-100 text-foreground dark:bg-zinc-800' : ''"
-                  :aria-pressed="addToStatus === 'owned'"
-                  @click="addToStatus = 'owned'"
-                >
-                  <Package class="h-4 w-4" /> Owned
-                </Button>
-              </div>
-            </div>
-
-            <div v-if="addToStatus === 'owned'">
               <Label for="bought-price" class="mb-2 block text-sm font-medium text-foreground">Bought Price (USD)</Label>
               <Input
                 id="bought-price"

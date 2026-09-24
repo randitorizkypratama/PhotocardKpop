@@ -71,16 +71,20 @@ export async function initializeDatabase() {
   } catch {}
 
   try {
+    await db.execute(`DROP INDEX IF EXISTS idx_collections_card`)
+  } catch {}
+
+  try {
     await db.execute(`
       DELETE FROM collections
       WHERE id NOT IN (
-        SELECT MIN(id) FROM collections GROUP BY card_id
+        SELECT MIN(id) FROM collections GROUP BY card_id, status
       )
     `)
   } catch {}
 
   try {
-    await db.execute(`CREATE UNIQUE INDEX IF NOT EXISTS idx_collections_card ON collections(card_id)`)
+    await db.execute(`CREATE UNIQUE INDEX IF NOT EXISTS idx_collections_card_status ON collections(card_id, status)`)
   } catch {}
 
   console.log('Database initialized successfully')
