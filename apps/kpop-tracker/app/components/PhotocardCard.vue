@@ -62,7 +62,7 @@ const memberDot = computed(() => groupDot(props.card.group_name))
 </script>
 
 <template>
-  <article class="group pc-card">
+  <article class="group pc-card min-w-0">
     <NuxtLink
       :to="`/card/${card.id}`"
       class="flex h-full flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"

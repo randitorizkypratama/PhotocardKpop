@@ -184,49 +184,28 @@ const visiblePages = computed(() => {
   }
   return pages
 })
-
-const mobilePages = computed(() => {
-  const t = totalPages.value
-  const c = currentPage.value
-  if (t <= 5) {
-    return Array.from({ length: t }, (_, i) => i + 1)
-  }
-  const pages: (number | string)[] = []
-  const start = Math.max(1, Math.min(c - 1, t - 3))
-  const end = Math.min(t, start + 3)
-  if (start > 1) {
-    pages.push(1)
-    if (start > 2) pages.push('...')
-  }
-  for (let i = start; i <= end; i++) pages.push(i)
-  if (end < t) {
-    if (end < t - 1) pages.push('...')
-    pages.push(t)
-  }
-  return pages
-})
 </script>
 
 <template>
-  <div class="min-h-screen bg-background">
+  <div class="min-h-screen overflow-x-clip bg-background">
     <AppHeader active="browse" />
 
     <!-- Exchange Rate Bar -->
     <div v-if="exchangeRates" class="border-b border-zinc-200 bg-card dark:border-zinc-800">
-      <div class="page-shell flex flex-wrap items-center justify-center gap-x-4 gap-y-1 py-2 text-xs">
-        <span class="text-muted-foreground">
+      <div class="page-shell flex flex-col items-center justify-center gap-0.5 py-2 text-xs sm:flex-row sm:flex-wrap sm:gap-x-4 sm:gap-y-1">
+        <span class="max-w-full truncate text-center text-muted-foreground sm:max-w-none">
           Kurs BI · 1 USD = <span class="font-medium tabular-nums text-foreground">{{ Math.round(exchangeRates.usd?.rate)?.toLocaleString('id-ID') }}</span> IDR
         </span>
-        <span class="text-zinc-300 dark:text-zinc-700" aria-hidden="true">|</span>
-        <span class="text-muted-foreground">
+        <span class="hidden text-zinc-300 dark:text-zinc-700 sm:inline" aria-hidden="true">|</span>
+        <span class="max-w-full truncate text-center text-muted-foreground sm:max-w-none">
           1 MYR = <span class="font-medium tabular-nums text-foreground">{{ Math.round(exchangeRates.myr?.rate)?.toLocaleString('id-ID') }}</span> IDR
         </span>
         <span class="hidden text-muted-foreground sm:inline">{{ exchangeRates.date }}</span>
       </div>
     </div>
 
-    <main class="page-shell py-6 sm:py-8">
-      <div class="mb-5 sm:mb-6">
+    <main class="page-shell min-w-0 py-6 sm:py-8">
+      <div class="mb-5 min-w-0 sm:mb-6">
         <p class="eyebrow">Catalog</p>
         <h1 class="mt-1 text-xl font-semibold tracking-tight text-foreground sm:text-2xl">Browse Photocards</h1>
         <p class="mt-1 text-sm text-muted-foreground">
@@ -237,7 +216,7 @@ const mobilePages = computed(() => {
         </p>
       </div>
 
-      <div class="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-8">
+      <div class="grid min-w-0 gap-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-8">
         <!-- Desktop sidebar filters -->
         <aside class="hidden lg:block">
           <div class="sticky top-20 space-y-6 rounded-xl border border-zinc-200 bg-card p-4 dark:border-zinc-800">
@@ -341,10 +320,10 @@ const mobilePages = computed(() => {
         </aside>
 
         <!-- Content -->
-        <div class="min-w-0">
+        <div class="min-w-0 overflow-x-clip">
           <!-- Toolbar -->
-          <div class="mb-4 space-y-3">
-            <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+          <div class="mb-4 min-w-0 space-y-3">
+            <div class="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
               <div class="relative w-full min-w-0 sm:flex-1 md:max-w-sm">
                 <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -356,27 +335,30 @@ const mobilePages = computed(() => {
                 />
               </div>
 
-              <div class="flex items-center gap-2">
+              <div class="flex w-full min-w-0 items-center gap-2 sm:w-auto">
                 <Button
                   variant="outline"
                   size="sm"
-                  class="h-10 flex-1 gap-1.5 rounded-lg sm:flex-none lg:hidden"
+                  class="h-10 min-w-0 flex-1 gap-1.5 rounded-lg sm:flex-none lg:hidden"
                   @click="mobileFiltersOpen = true"
                 >
-                  <SlidersHorizontal class="h-4 w-4" />
-                  Filters
+                  <SlidersHorizontal class="h-4 w-4 shrink-0" />
+                  <span class="truncate">Filters</span>
                   <span
                     v-if="activeFilterCount > 0"
-                    class="ml-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-foreground px-1.5 text-[10px] font-semibold text-background"
+                    class="ml-0.5 flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-foreground px-1.5 text-[10px] font-semibold text-background"
                   >{{ activeFilterCount }}</span>
                 </Button>
 
                 <Select v-model="selectedSort">
-                  <SelectTrigger class="h-10 w-full min-w-0 flex-1 gap-2 rounded-lg sm:w-auto sm:min-w-[9.5rem] sm:flex-none" aria-label="Sort">
-                    <ArrowUpDown class="h-3.5 w-3.5 text-muted-foreground" />
-                    <SelectValue />
+                  <SelectTrigger
+                    class="h-10 w-full min-w-0 flex-1 gap-1.5 rounded-lg sm:w-auto sm:min-w-[8.5rem] sm:flex-none md:min-w-[9.5rem]"
+                    aria-label="Sort"
+                  >
+                    <ArrowUpDown class="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    <SelectValue class="min-w-0 truncate" />
                   </SelectTrigger>
-                  <SelectContent class="min-w-[12rem]">
+                  <SelectContent class="min-w-[12rem] max-w-[calc(100vw-2rem)]">
                     <SelectItem v-for="opt in SORT_OPTIONS" :key="opt.value" :value="opt.value">
                       {{ opt.label }}
                     </SelectItem>
@@ -385,13 +367,13 @@ const mobilePages = computed(() => {
               </div>
             </div>
 
-            <!-- Group pills (mobile-visible primary) + active chips -->
-            <div class="flex flex-wrap items-center gap-2">
+            <!-- Group pills + active chips -->
+            <div class="flex min-w-0 flex-wrap items-center gap-2">
               <button
                 v-for="group in GROUPS"
                 :key="group"
                 type="button"
-                class="rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors duration-150 sm:text-sm"
+                class="max-w-full shrink-0 truncate rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors duration-150 sm:text-sm"
                 :class="selectedGroup === group ? groupAccentActive(group) : 'border-zinc-200 bg-card text-muted-foreground hover:border-zinc-300 hover:text-foreground dark:border-zinc-800'"
                 :aria-pressed="selectedGroup === group"
                 @click="selectedGroup = group"
@@ -401,28 +383,28 @@ const mobilePages = computed(() => {
 
               <span
                 v-if="selectedMember"
-                class="inline-flex items-center gap-1 rounded-md border border-zinc-200 bg-card px-2 py-1 text-xs font-medium text-foreground dark:border-zinc-800"
+                class="inline-flex max-w-full items-center gap-1 rounded-md border border-zinc-200 bg-card px-2 py-1 text-xs font-medium text-foreground dark:border-zinc-800"
               >
-                {{ selectedMember }}
-                <button type="button" class="text-muted-foreground hover:text-foreground" :aria-label="`Clear member ${selectedMember}`" @click="selectedMember = null">
+                <span class="truncate">{{ selectedMember }}</span>
+                <button type="button" class="shrink-0 text-muted-foreground hover:text-foreground" :aria-label="`Clear member ${selectedMember}`" @click="selectedMember = null">
                   <X class="h-3 w-3" />
                 </button>
               </span>
               <span
                 v-if="selectedCardType"
-                class="inline-flex items-center gap-1 rounded-md border border-zinc-200 bg-card px-2 py-1 text-xs font-medium text-foreground dark:border-zinc-800"
+                class="inline-flex max-w-full items-center gap-1 rounded-md border border-zinc-200 bg-card px-2 py-1 text-xs font-medium text-foreground dark:border-zinc-800"
               >
-                {{ selectedCardType }}
-                <button type="button" class="text-muted-foreground hover:text-foreground" :aria-label="`Clear card type ${selectedCardType}`" @click="selectedCardType = null">
+                <span class="truncate">{{ selectedCardType }}</span>
+                <button type="button" class="shrink-0 text-muted-foreground hover:text-foreground" :aria-label="`Clear card type ${selectedCardType}`" @click="selectedCardType = null">
                   <X class="h-3 w-3" />
                 </button>
               </span>
               <span
                 v-if="minPriceIDR || maxPriceIDR"
-                class="inline-flex items-center gap-1 rounded-md border border-zinc-200 bg-card px-2 py-1 text-xs font-medium text-foreground dark:border-zinc-800"
+                class="inline-flex max-w-full min-w-0 items-center gap-1 rounded-md border border-zinc-200 bg-card px-2 py-1 text-xs font-medium text-foreground dark:border-zinc-800"
               >
-                Rp {{ Number(minPriceIDR || 0).toLocaleString('id-ID') }} – Rp {{ Number(maxPriceIDR || 0).toLocaleString('id-ID') }}
-                <button type="button" class="text-muted-foreground hover:text-foreground" aria-label="Clear price filter" @click="minPriceIDR = ''; maxPriceIDR = ''">
+                <span class="truncate">Rp {{ Number(minPriceIDR || 0).toLocaleString('id-ID') }} – Rp {{ Number(maxPriceIDR || 0).toLocaleString('id-ID') }}</span>
+                <button type="button" class="shrink-0 text-muted-foreground hover:text-foreground" aria-label="Clear price filter" @click="minPriceIDR = ''; maxPriceIDR = ''">
                   <X class="h-3 w-3" />
                 </button>
               </span>
@@ -430,7 +412,7 @@ const mobilePages = computed(() => {
               <button
                 v-if="activeFilterCount > 0"
                 type="button"
-                class="text-xs font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                class="shrink-0 text-xs font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
                 @click="clearFilters"
               >
                 Clear all
@@ -457,8 +439,8 @@ const mobilePages = computed(() => {
           </div>
 
           <!-- Loading skeletons -->
-          <div v-if="loading" class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-            <div v-for="i in pageSize" :key="i" class="pc-skeleton">
+          <div v-if="loading" class="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+            <div v-for="i in pageSize" :key="i" class="pc-skeleton min-w-0">
               <div class="skeleton-block aspect-square rounded-none" />
               <div class="space-y-2.5 p-3">
                 <div class="skeleton-block h-3 w-1/3" />
@@ -483,11 +465,12 @@ const mobilePages = computed(() => {
           <!-- Cards -->
           <div
             v-else
-            class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
+            class="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
           >
             <PhotocardCard
               v-for="card in cards"
               :key="card.id"
+              class="min-w-0"
               :card="card"
               :rate="rate"
               show-wishlist
@@ -497,39 +480,40 @@ const mobilePages = computed(() => {
           </div>
 
           <!-- Pagination -->
-          <div v-if="!loading && totalPages > 1 && cards.length > 0" class="mt-8 sm:mt-10">
+          <div v-if="!loading && totalPages > 1 && cards.length > 0" class="mt-8 min-w-0 sm:mt-10">
             <p class="mb-3 text-center text-xs text-muted-foreground">
               Page <span class="font-medium tabular-nums text-foreground">{{ currentPage.toLocaleString() }}</span>
               of <span class="font-medium tabular-nums text-foreground">{{ totalPages.toLocaleString() }}</span>
               <span class="hidden sm:inline"> · {{ total.toLocaleString() }} cards</span>
             </p>
 
-            <!-- Mobile -->
-            <div class="flex items-center gap-2 sm:hidden">
-              <Button variant="outline" class="h-11 flex-1 gap-1 rounded-lg" :disabled="currentPage === 1" @click="prevPage">
-                <ChevronLeft class="h-4 w-4" />
-                Prev
+            <!-- Mobile: Prev / page indicator / Next only -->
+            <div class="flex min-w-0 items-center justify-between gap-2 sm:hidden">
+              <Button
+                variant="outline"
+                class="h-11 min-w-0 flex-1 gap-1 rounded-lg"
+                :disabled="currentPage === 1"
+                @click="prevPage"
+              >
+                <ChevronLeft class="h-4 w-4 shrink-0" />
+                <span class="truncate">Prev</span>
               </Button>
-              <div class="flex items-center gap-1">
-                <template v-for="p in mobilePages" :key="'m-' + p">
-                  <span v-if="p === '...'" class="px-0.5 text-sm text-muted-foreground">…</span>
-                  <Button
-                    v-else
-                    size="sm"
-                    :variant="p === currentPage ? 'default' : 'ghost'"
-                    class="h-9 min-w-9 rounded-lg px-2"
-                    @click="goToPage(p as number)"
-                  >{{ p }}</Button>
-                </template>
-              </div>
-              <Button variant="outline" class="h-11 flex-1 gap-1 rounded-lg" :disabled="currentPage === totalPages" @click="nextPage">
-                Next
-                <ChevronRight class="h-4 w-4" />
+              <span class="shrink-0 whitespace-nowrap px-1 text-xs font-medium tabular-nums text-muted-foreground">
+                {{ currentPage }} / {{ totalPages }}
+              </span>
+              <Button
+                variant="outline"
+                class="h-11 min-w-0 flex-1 gap-1 rounded-lg"
+                :disabled="currentPage === totalPages"
+                @click="nextPage"
+              >
+                <span class="truncate">Next</span>
+                <ChevronRight class="h-4 w-4 shrink-0" />
               </Button>
             </div>
 
             <!-- Desktop -->
-            <div class="hidden items-center justify-center gap-2 sm:flex">
+            <div class="hidden min-w-0 flex-wrap items-center justify-center gap-2 sm:flex">
               <Button variant="outline" size="icon-sm" class="rounded-lg" :disabled="currentPage === 1" @click="prevPage">
                 <ChevronLeft class="h-4 w-4" />
               </Button>
