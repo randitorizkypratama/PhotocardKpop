@@ -187,6 +187,29 @@ async function onWishlist(id: number | string) {
         </div>
       </section>
 
+      <!-- Shop CTA -->
+      <section class="border-t border-zinc-200 dark:border-zinc-800">
+        <div class="page-shell py-10 sm:py-12">
+          <div class="flex flex-col gap-4 rounded-xl border border-zinc-200 bg-card p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6 dark:border-zinc-800">
+            <div class="min-w-0">
+              <p class="eyebrow">HIBIKISHOP Store</p>
+              <h2 class="mt-1 text-lg font-semibold tracking-tight text-foreground sm:text-xl">
+                Etalase &amp; video TikTok
+              </h2>
+              <p class="mt-1.5 text-sm text-muted-foreground">
+                Beli photocard di Shopee / Tokopedia, atau tonton konten terbaru kami.
+              </p>
+            </div>
+            <Button class="h-10 shrink-0 gap-2 rounded-lg" as-child>
+              <NuxtLink to="/shop">
+                Buka Shop
+                <ArrowRight class="h-4 w-4" />
+              </NuxtLink>
+            </Button>
+          </div>
+        </div>
+      </section>
+
       <!-- Explore Groups -->
       <section id="groups" class="scroll-mt-20 border-t border-zinc-200 dark:border-zinc-800">
         <div class="page-shell py-10 sm:py-12">

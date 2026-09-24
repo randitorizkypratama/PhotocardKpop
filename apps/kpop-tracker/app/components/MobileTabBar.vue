@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { Home, LayoutGrid, Heart } from 'lucide-vue-next'
+import { Home, LayoutGrid, Heart, ShoppingBag } from 'lucide-vue-next'
 
 const route = useRoute()
 
 const tabs = [
   { to: '/', label: 'Home', icon: Home },
   { to: '/browse', label: 'Browse', icon: LayoutGrid },
+  { to: '/shop', label: 'Shop', icon: ShoppingBag },
   { to: '/collection', label: 'Collection', icon: Heart },
 ]
 

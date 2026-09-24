@@ -21,6 +21,7 @@
         <nav class="flex flex-col gap-2.5" aria-label="Footer">
           <NuxtLink to="/browse" class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">Browse</NuxtLink>
           <NuxtLink to="/#groups" class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">Groups</NuxtLink>
+          <NuxtLink to="/shop" class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">Shop</NuxtLink>
           <NuxtLink to="/collection" class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">Collection</NuxtLink>
         </nav>
       </div>
