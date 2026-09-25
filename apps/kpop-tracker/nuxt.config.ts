@@ -34,6 +34,12 @@ export default defineNuxtConfig({
   runtimeConfig: {
     tursoDatabaseUrl: process.env.TURSO_DATABASE_URL || '',
     tursoAuthToken: process.env.TURSO_AUTH_TOKEN || '',
+    tiktokClientKey: process.env.TIKTOK_CLIENT_KEY || '',
+    tiktokClientSecret: process.env.TIKTOK_CLIENT_SECRET || '',
+    tiktokRedirectUri: process.env.TIKTOK_REDIRECT_URI || '',
+    tiktokShopAccessToken: process.env.TIKTOK_SHOP_ACCESS_TOKEN || '',
+    tiktokShopBaseUrl: process.env.TIKTOK_SHOP_BASE_URL || 'https://open-api.tiktokglobalshop.com',
+    tiktokShopShopCipher: process.env.TIKTOK_SHOP_SHOP_CIPHER || '',
     public: {
       apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || '',
     },

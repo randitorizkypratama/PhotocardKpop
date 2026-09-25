@@ -87,5 +87,36 @@ export async function initializeDatabase() {
     await db.execute(`CREATE UNIQUE INDEX IF NOT EXISTS idx_collections_card_status ON collections(card_id, status)`)
   } catch {}
 
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS tiktok_auth (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      access_token TEXT,
+      refresh_token TEXT,
+      open_id TEXT,
+      expires_at INTEGER,
+      refresh_expires_at INTEGER,
+      scope TEXT,
+      updated_at TEXT
+    )
+  `)
+
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS tiktok_videos (
+      id TEXT PRIMARY KEY,
+      title TEXT,
+      video_description TEXT,
+      duration INTEGER,
+      cover_image_url TEXT,
+      share_url TEXT,
+      embed_link TEXT,
+      create_time INTEGER,
+      like_count INTEGER,
+      comment_count INTEGER,
+      share_count INTEGER,
+      view_count INTEGER,
+      fetched_at TEXT
+    )
+  `)
+
   console.log('Database initialized successfully')
 }
