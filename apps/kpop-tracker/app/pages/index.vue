@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { ArrowRight, Search } from 'lucide-vue-next'
 import { GROUPS, groupAccentActive, groupDot } from '@/lib/catalog'
+import { FEATURED_CARD_TYPES, cardTypeBlurb } from '@/lib/cardTypes'
 
-useHead({ title: 'HIBIKISHOP PC — K-Pop Photocard Catalog' })
+useHead({ title: 'HIBIKISHOP PC — K-Pop Photocard Database' })
+
+const cardTypeTabs = FEATURED_CARD_TYPES as unknown as string[]
 
 const selectedGroup = ref<string>('IVE')
 const searchQuery = ref('')
@@ -90,26 +93,25 @@ async function onWishlist(id: number | string) {
       <section class="border-b border-zinc-200 dark:border-zinc-800">
         <div class="page-shell py-10 sm:py-14 lg:py-16">
           <div class="mx-auto max-w-2xl text-center">
-            <p class="eyebrow">K-Pop Photocard Catalog</p>
+            <p class="eyebrow">K-pop photocard database</p>
             <h1 class="mt-3 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
-              Browse photocards from your favorite groups.
+              HIBIKISHOP PC
             </h1>
-            <p class="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground sm:text-base">
-              Track prices from
-              <a href="https://pocamarket.com" target="_blank" rel="noopener noreferrer" class="font-medium text-foreground underline-offset-2 hover:underline">Pocamarket</a>
-              for IVE, aespa, and Hearts2Hearts.
+            <p class="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+              Explore album PCs, POBs, lucky draws and special photocards — by group, member, album, and market reference from
+              <a href="https://pocamarket.com" target="_blank" rel="noopener noreferrer" class="font-medium text-foreground underline-offset-2 hover:underline">Pocamarket</a>.
             </p>
 
-            <form class="mx-auto mt-6 max-w-md" role="search" @submit.prevent="submitSearch">
-              <label for="hero-search" class="sr-only">Search member, album, photocard</label>
+            <form class="mx-auto mt-7 max-w-md" role="search" @submit.prevent="submitSearch">
+              <label for="hero-search" class="sr-only">Search member, album, card type</label>
               <div class="relative">
-                <Search class="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Search class="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input
                   id="hero-search"
                   v-model="searchQuery"
                   type="search"
-                  placeholder="Search member, album, photocard..."
-                  class="h-11 w-full rounded-xl border border-zinc-200 bg-card pl-10 pr-4 text-sm text-foreground shadow-sm placeholder:text-muted-foreground focus:border-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:border-zinc-800 dark:bg-zinc-900/60 dark:focus:border-zinc-600 dark:focus:ring-zinc-600"
+                  placeholder="Search member, album, card type..."
+                  class="h-12 w-full rounded-xl border border-zinc-300 bg-card pl-11 pr-4 text-sm text-foreground shadow-sm placeholder:text-muted-foreground focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900/60 dark:focus:border-zinc-500 dark:focus:ring-zinc-500"
                 />
               </div>
             </form>
@@ -134,6 +136,42 @@ async function onWishlist(id: number | string) {
                 </span>
               </button>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Explore by card type -->
+      <section id="card-types" class="scroll-mt-20 border-b border-zinc-200 dark:border-zinc-800">
+        <div class="page-shell py-10 sm:py-12">
+          <div class="mb-5 flex flex-wrap items-end justify-between gap-3 sm:mb-6">
+            <div>
+              <p class="eyebrow">Explore by card type</p>
+              <h2 class="mt-1.5 section-title">What kind of card is it?</h2>
+            </div>
+            <NuxtLink
+              to="/browse"
+              class="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              All card types
+              <ArrowRight class="h-4 w-4" />
+            </NuxtLink>
+          </div>
+
+          <div class="grid gap-px overflow-hidden rounded-xl border border-zinc-200 bg-zinc-200 sm:grid-cols-2 lg:grid-cols-3 dark:border-zinc-800 dark:bg-zinc-800">
+            <NuxtLink
+              v-for="type in cardTypeTabs"
+              :key="type"
+              :to="{ path: '/browse', query: { card_type: type } }"
+              class="group flex items-start justify-between gap-3 bg-card p-4 transition-colors duration-150 hover:bg-zinc-50 sm:p-5 dark:hover:bg-zinc-900"
+            >
+              <span class="min-w-0">
+                <span class="block text-sm font-medium text-foreground">{{ type }}</span>
+                <span class="mt-1.5 block line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                  {{ cardTypeBlurb(type) }}
+                </span>
+              </span>
+              <ArrowRight class="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-150 group-hover:translate-x-0.5" aria-hidden="true" />
+            </NuxtLink>
           </div>
         </div>
       </section>
@@ -187,6 +225,36 @@ async function onWishlist(id: number | string) {
         </div>
       </section>
 
+      <!-- Explore Groups -->
+      <section id="groups" class="scroll-mt-20 border-t border-zinc-200 dark:border-zinc-800">
+        <div class="page-shell py-10 sm:py-12">
+          <div class="mb-5 sm:mb-6">
+            <p class="eyebrow">Explore groups</p>
+            <h2 class="mt-1.5 section-title">Browse by group</h2>
+          </div>
+
+          <div class="grid gap-3 sm:gap-4 md:grid-cols-3">
+            <NuxtLink
+              v-for="group in exploreGroups"
+              :key="group.name"
+              :to="`/groups/${encodeURIComponent(group.name)}`"
+              class="group rounded-xl border bg-card p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md sm:p-6"
+              :class="group.accent"
+            >
+              <div class="flex items-center gap-2">
+                <span class="h-2 w-2 rounded-full" :class="group.dot" />
+                <h3 class="text-base font-semibold text-foreground sm:text-lg">{{ group.name }}</h3>
+              </div>
+              <p class="mt-2 text-sm leading-relaxed text-muted-foreground">{{ group.description }}</p>
+              <span class="mt-4 inline-flex items-center gap-1.5 text-sm font-medium" :class="group.text">
+                Open catalog
+                <ArrowRight class="h-4 w-4 transition-transform duration-150 group-hover:translate-x-0.5" />
+              </span>
+            </NuxtLink>
+          </div>
+        </div>
+      </section>
+
       <!-- Shop CTA -->
       <section class="border-t border-zinc-200 dark:border-zinc-800">
         <div class="page-shell py-10 sm:py-12">
@@ -206,36 +274,6 @@ async function onWishlist(id: number | string) {
                 <ArrowRight class="h-4 w-4" />
               </NuxtLink>
             </Button>
-          </div>
-        </div>
-      </section>
-
-      <!-- Explore Groups -->
-      <section id="groups" class="scroll-mt-20 border-t border-zinc-200 dark:border-zinc-800">
-        <div class="page-shell py-10 sm:py-12">
-          <div class="mb-5 sm:mb-6">
-            <p class="eyebrow">Catalog</p>
-            <h2 class="mt-1 text-lg font-semibold tracking-tight text-foreground sm:text-xl">Explore Groups</h2>
-          </div>
-
-          <div class="grid gap-3 sm:gap-4 md:grid-cols-3">
-            <NuxtLink
-              v-for="group in exploreGroups"
-              :key="group.name"
-              :to="`/browse?group=${encodeURIComponent(group.name)}`"
-              class="group rounded-xl border bg-card p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md sm:p-6"
-              :class="group.accent"
-            >
-              <div class="flex items-center gap-2">
-                <span class="h-2 w-2 rounded-full" :class="group.dot" />
-                <h3 class="text-base font-semibold text-foreground sm:text-lg">{{ group.name }}</h3>
-              </div>
-              <p class="mt-2 text-sm leading-relaxed text-muted-foreground">{{ group.description }}</p>
-              <span class="mt-4 inline-flex items-center gap-1.5 text-sm font-medium" :class="group.text">
-                Browse {{ group.name }}
-                <ArrowRight class="h-4 w-4 transition-transform duration-150 group-hover:translate-x-0.5" />
-              </span>
-            </NuxtLink>
           </div>
         </div>
       </section>

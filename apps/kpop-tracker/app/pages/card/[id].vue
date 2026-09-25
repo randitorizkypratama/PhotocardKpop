@@ -4,6 +4,7 @@ import {
   Heart, Tag, Check, Clock, ExternalLink, AlertCircle
 } from 'lucide-vue-next'
 import { groupAccent, groupDot, formatIDR, formatUSD } from '@/lib/catalog'
+import { cardTypeBlurb, cardTypeLabel } from '@/lib/cardTypes'
 
 const route = useRoute()
 const cardId = parseInt(route.params.id as string)
@@ -75,6 +76,25 @@ function formatDate(dateString: string) {
 const effectivePrice = computed(() => {
   if (!card.value) return 0
   return Number(card.value.discounted_price) || Number(card.value.price) || 0
+})
+
+const typeLabel = computed(() => cardTypeLabel(card.value?.card_type))
+const typeBlurb = computed(() => cardTypeBlurb(card.value?.card_type))
+
+const showPromo = computed(() => {
+  if (!card.value) return false
+  const discounted = Number(card.value.discounted_price) || 0
+  const price = Number(card.value.price) || 0
+  return discounted > 0 && price > 0 && discounted < price
+})
+
+const promoRate = computed(() => {
+  if (!card.value) return 0
+  if (card.value.discount_rate) return card.value.discount_rate
+  const discounted = Number(card.value.discounted_price) || 0
+  const price = Number(card.value.price) || 0
+  if (!price || !discounted || discounted >= price) return 0
+  return Math.round((1 - discounted / price) * 100)
 })
 
 const chartData = computed(() => {
@@ -158,9 +178,9 @@ const chartData = computed(() => {
                 :alt="`${card.name} photocard`"
                 class="h-full w-full object-contain"
               />
-              <div v-if="card.is_in_promotion && card.discount_rate" class="absolute left-3 top-3">
-                <span class="rounded-md bg-emerald-600 px-2 py-1 text-xs font-semibold text-white">
-                  -{{ card.discount_rate }}%
+              <div v-if="showPromo && promoRate" class="absolute left-3 top-3">
+                <span class="pc-status-badge text-emerald-700 dark:text-emerald-400">
+                  −{{ promoRate }}%
                 </span>
               </div>
             </div>
@@ -168,54 +188,89 @@ const chartData = computed(() => {
         </div>
 
         <!-- Right: details -->
-        <div class="space-y-5">
+        <div class="space-y-6">
+          <!-- Identity -->
           <div>
             <div class="flex flex-wrap items-center gap-2">
-              <span class="inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-[0.12em]" :class="groupAccent(card.group_name)">
-                <span class="h-1.5 w-1.5 rounded-full" :class="groupDot(card.group_name)" />
+              <span v-if="typeLabel" class="pc-type-badge">{{ typeLabel }}</span>
+              <span class="inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.12em]" :class="groupAccent(card.group_name)">
+                <span class="h-1.5 w-1.5 rounded-full" :class="groupDot(card.group_name)" aria-hidden="true" />
                 {{ card.group_name }}
-              </span>
-              <span v-if="card.card_type" class="rounded-md border border-zinc-200 bg-card px-2 py-0.5 text-xs font-medium text-muted-foreground dark:border-zinc-800">
-                {{ card.card_type }}
               </span>
             </div>
 
-            <p class="mt-3 text-sm font-medium text-muted-foreground">{{ card.member_name }}</p>
-            <h1 class="mt-1 text-xl font-semibold tracking-tight text-foreground sm:text-2xl lg:text-3xl">
-              {{ card.name }}
+            <h1 class="mt-4 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+              {{ card.member_name }}
             </h1>
-            <p v-if="card.release_name" class="mt-2 text-sm text-muted-foreground">
+            <p class="mt-1.5 text-sm leading-relaxed text-muted-foreground sm:text-base">
+              {{ card.name }}
+            </p>
+            <p v-if="card.release_name" class="mt-1 text-sm text-muted-foreground">
               {{ card.release_name }}
             </p>
           </div>
 
-          <!-- Price -->
-          <div class="rounded-xl border border-zinc-200 bg-card p-4 dark:border-zinc-800 sm:p-5">
-            <div class="flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <p class="text-xs font-medium uppercase tracking-[0.1em] text-muted-foreground">Current price</p>
-                <template v-if="effectivePrice > 0">
-                  <p class="mt-1.5 text-2xl font-semibold tabular-nums tracking-tight text-foreground sm:text-3xl">
-                    Rp {{ formatIDR(effectivePrice, rate) }}
-                  </p>
-                  <p class="mt-1 text-sm tabular-nums text-muted-foreground">
-                    {{ formatUSD(effectivePrice) }}
-                    <span v-if="card.is_in_promotion && card.price > 0" class="ml-1.5 line-through">
-                      {{ formatUSD(card.price) }}
-                    </span>
-                  </p>
-                </template>
-                <p v-else class="mt-1.5 text-lg font-medium text-muted-foreground">Tidak tersedia</p>
+          <!-- Card information -->
+          <div class="rounded-xl border border-border bg-card p-4 sm:p-5">
+            <p class="pc-meta-label">Card information</p>
+            <dl class="mt-3 divide-y divide-border text-sm">
+              <div class="flex items-start justify-between gap-4 py-2.5">
+                <dt class="shrink-0 text-muted-foreground">Type</dt>
+                <dd class="text-right font-medium text-foreground">{{ typeLabel || 'Album' }}</dd>
               </div>
-              <p class="text-xs text-muted-foreground">Source · Pocamarket</p>
+              <div class="flex items-start justify-between gap-4 py-2.5">
+                <dt class="shrink-0 text-muted-foreground">Group</dt>
+                <dd class="text-right font-medium text-foreground">{{ card.group_name }}</dd>
+              </div>
+              <div class="flex items-start justify-between gap-4 py-2.5">
+                <dt class="shrink-0 text-muted-foreground">Member</dt>
+                <dd class="text-right font-medium text-foreground">{{ card.member_name }}</dd>
+              </div>
+              <div class="flex items-start justify-between gap-4 py-2.5">
+                <dt class="shrink-0 text-muted-foreground">Album / release</dt>
+                <dd class="text-right font-medium text-foreground">{{ card.release_name || '—' }}</dd>
+              </div>
+            </dl>
+          </div>
+
+          <!-- Market reference -->
+          <div class="rounded-xl border border-border bg-card p-4 sm:p-5">
+            <div class="flex items-center justify-between gap-3">
+              <p class="pc-meta-label">Market reference</p>
+              <p class="text-[11px] text-muted-foreground">Data source · Pocamarket</p>
+            </div>
+
+            <template v-if="effectivePrice > 0">
+              <p class="mt-2 text-2xl font-semibold tabular-nums tracking-tight text-foreground sm:text-3xl">
+                Rp {{ formatIDR(effectivePrice, rate) }}
+              </p>
+              <p class="mt-1 text-sm tabular-nums text-muted-foreground">
+                {{ formatUSD(effectivePrice) }}
+                <span v-if="showPromo && Number(card.price) > 0" class="ml-1.5 line-through">
+                  {{ formatUSD(card.price) }}
+                </span>
+                <span v-if="showPromo && promoRate" class="ml-1.5 font-medium text-emerald-700 dark:text-emerald-400">
+                  −{{ promoRate }}%
+                </span>
+              </p>
+            </template>
+            <p v-else class="mt-2 text-base font-medium text-muted-foreground">Not available</p>
+
+            <div v-if="history.length >= 2" class="mt-4 flex items-center gap-2.5 border-t border-border pt-4">
+              <TrendingUp v-if="getPriceTrend() === 'up'" class="h-4 w-4 text-red-500" aria-hidden="true" />
+              <TrendingDown v-else-if="getPriceTrend() === 'down'" class="h-4 w-4 text-emerald-600" aria-hidden="true" />
+              <Minus v-else class="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+              <span
+                class="text-sm font-semibold tabular-nums"
+                :class="getPriceChange() > 0 ? 'text-red-500' : getPriceChange() < 0 ? 'text-emerald-600' : 'text-muted-foreground'"
+              >
+                {{ getPriceChange() > 0 ? '+' : '' }}${{ getPriceChange().toFixed(2) }}
+              </span>
+              <span class="text-xs text-muted-foreground">since last snapshot</span>
             </div>
 
             <div class="mt-4 grid grid-cols-1 gap-2 sm:flex sm:flex-row">
-              <Button
-                variant="outline"
-                class="h-11 w-full gap-2 rounded-lg sm:h-10 sm:flex-1"
-                as-child
-              >
+              <Button variant="outline" class="h-11 w-full gap-2 rounded-lg sm:h-10 sm:flex-1" as-child>
                 <a href="https://pocamarket.com" target="_blank" rel="noopener noreferrer">
                   View on Pocamarket
                   <ExternalLink class="h-4 w-4" />
@@ -243,21 +298,20 @@ const chartData = computed(() => {
             </Button>
           </div>
 
-          <!-- Trend -->
-          <div v-if="history.length >= 2" class="rounded-xl border border-zinc-200 bg-card p-4 dark:border-zinc-800 sm:p-5">
-            <p class="text-xs font-medium uppercase tracking-[0.1em] text-muted-foreground">Price trend</p>
-            <div class="mt-2 flex items-center gap-2.5">
-              <TrendingUp v-if="getPriceTrend() === 'up'" class="h-5 w-5 text-red-500" aria-hidden="true" />
-              <TrendingDown v-else-if="getPriceTrend() === 'down'" class="h-5 w-5 text-emerald-600" aria-hidden="true" />
-              <Minus v-else class="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-              <span
-                class="text-base font-semibold tabular-nums"
-                :class="getPriceChange() > 0 ? 'text-red-500' : getPriceChange() < 0 ? 'text-emerald-600' : 'text-muted-foreground'"
-              >
-                {{ getPriceChange() > 0 ? '+' : '' }}${{ getPriceChange().toFixed(2) }}
-              </span>
-              <span class="text-xs text-muted-foreground">since last snapshot</span>
-            </div>
+          <!-- What is this card type -->
+          <div v-if="typeBlurb" class="rounded-xl border border-border bg-card p-4 sm:p-5">
+            <p class="pc-meta-label">What is this?</p>
+            <h2 class="mt-2 text-base font-semibold tracking-tight text-foreground">
+              What is {{ typeLabel }}?
+            </h2>
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">{{ typeBlurb }}</p>
+            <NuxtLink
+              v-if="typeLabel"
+              :to="{ path: '/browse', query: { card_type: card.card_type, group: card.group_name } }"
+              class="mt-3 inline-block text-sm font-medium text-foreground underline decoration-zinc-300 underline-offset-4 hover:decoration-foreground dark:decoration-zinc-700"
+            >
+              Browse more {{ typeLabel }}
+            </NuxtLink>
           </div>
 
           <!-- Price history -->

@@ -3,51 +3,53 @@
 @tailwind utilities;
 
 :root {
-  --background: 0 0% 98%;
-  --foreground: 240 6% 10%;
+  --background: 60 6% 96%;
+  --foreground: 0 0% 9%;
   --card: 0 0% 100%;
-  --card-foreground: 240 6% 10%;
+  --card-foreground: 0 0% 9%;
   --popover: 0 0% 100%;
-  --popover-foreground: 240 6% 10%;
-  --primary: 240 6% 10%;
+  --popover-foreground: 0 0% 9%;
+  --primary: 0 0% 9%;
   --primary-foreground: 0 0% 98%;
-  --secondary: 240 5% 96%;
-  --secondary-foreground: 240 6% 10%;
-  --muted: 240 5% 96%;
-  --muted-foreground: 240 5% 46%;
-  --accent: 240 5% 96%;
-  --accent-foreground: 240 6% 10%;
+  --secondary: 60 5% 94%;
+  --secondary-foreground: 0 0% 9%;
+  --muted: 60 5% 94%;
+  --muted-foreground: 0 0% 45%;
+  --accent: 60 5% 94%;
+  --accent-foreground: 0 0% 9%;
   --destructive: 0 72% 51%;
   --destructive-foreground: 0 0% 98%;
-  --border: 240 6% 90%;
-  --input: 240 6% 90%;
-  --ring: 240 6% 10%;
+  --border: 60 4% 91%;
+  --input: 60 4% 91%;
+  --ring: 0 0% 9%;
   --radius: 0.5rem;
+  --brand: 252 24% 64%;
   --ive: 59 130 246;
   --aespa: 139 92 246;
   --h2h: 236 72 153;
 }
 
 .dark {
-  --background: 240 6% 5%;
+  --background: 0 0% 6%;
   --foreground: 0 0% 98%;
-  --card: 240 5% 9%;
+  --card: 0 0% 9%;
   --card-foreground: 0 0% 98%;
-  --popover: 240 5% 9%;
+  --popover: 0 0% 9%;
   --popover-foreground: 0 0% 98%;
   --primary: 0 0% 98%;
-  --primary-foreground: 240 6% 10%;
-  --secondary: 240 5% 15%;
+  --primary-foreground: 0 0% 9%;
+  --secondary: 0 0% 14%;
   --secondary-foreground: 0 0% 98%;
-  --muted: 240 5% 15%;
-  --muted-foreground: 240 4% 63%;
-  --accent: 240 5% 15%;
+  --muted: 0 0% 14%;
+  --muted-foreground: 0 0% 64%;
+  --accent: 0 0% 14%;
   --accent-foreground: 0 0% 98%;
   --destructive: 0 63% 31%;
   --destructive-foreground: 0 0% 98%;
-  --border: 240 4% 22%;
-  --input: 240 4% 22%;
+  --border: 0 0% 18%;
+  --input: 0 0% 18%;
   --ring: 0 0% 98%;
+  --brand: 252 30% 72%;
   --ive: 96 165 250;
   --aespa: 167 139 250;
   --h2h: 249 168 212;
@@ -104,6 +106,11 @@ body {
   ::selection {
     @apply bg-foreground/10;
   }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
 }
 
 @layer components {
@@ -112,19 +119,59 @@ body {
   }
 
   .eyebrow {
-    @apply text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground;
+    @apply text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground;
+  }
+
+  .section-title {
+    @apply text-lg font-semibold tracking-tight text-foreground sm:text-xl;
   }
 
   .pc-card {
-    @apply relative flex flex-col overflow-hidden rounded-xl border border-zinc-200 bg-card shadow-sm transition-[box-shadow,transform,border-color] duration-200 ease-out hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:hover:border-zinc-700;
+    @apply relative flex flex-col overflow-hidden rounded-xl border border-border bg-card transition-[border-color,box-shadow] duration-200 ease-out hover:border-zinc-300 hover:shadow-sm dark:hover:border-zinc-700;
   }
 
   .pc-card-image {
     @apply relative aspect-square overflow-hidden bg-zinc-100 dark:bg-zinc-900;
   }
 
+  .pc-type-badge {
+    @apply inline-flex max-w-[calc(100%-1rem)] items-center truncate rounded-md border border-zinc-300/90 bg-white/95 px-1.5 py-[3px] text-[10px] font-semibold uppercase tracking-[0.09em] text-zinc-800 backdrop-blur-[2px] dark:border-zinc-600 dark:bg-zinc-950/90 dark:text-zinc-100;
+  }
+
+  .pc-status-badge {
+    @apply inline-flex items-center rounded-md border border-zinc-300/90 bg-white/95 px-1.5 py-[3px] text-[10px] font-medium text-zinc-700 backdrop-blur-[2px] dark:border-zinc-600 dark:bg-zinc-950/90 dark:text-zinc-200;
+  }
+
+  .pc-meta-label {
+    @apply text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground;
+  }
+
+  .chip {
+    @apply inline-flex max-w-full shrink-0 items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors duration-150 hover:border-zinc-300 hover:text-foreground dark:hover:border-zinc-700;
+  }
+
+  .chip-active {
+    @apply border-foreground bg-foreground text-background hover:border-foreground hover:text-background dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-950 dark:hover:border-zinc-100 dark:hover:text-zinc-950;
+  }
+
+  .chip-quiet {
+    @apply border-transparent bg-transparent px-2 hover:border-border hover:bg-card;
+  }
+
+  .filter-link {
+    @apply flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-sm text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground;
+  }
+
+  .filter-link-active {
+    @apply bg-muted font-medium text-foreground;
+  }
+
+  .text-link {
+    @apply underline decoration-zinc-300 underline-offset-4 transition-colors hover:decoration-foreground dark:decoration-zinc-700;
+  }
+
   .pc-skeleton {
-    @apply rounded-xl border border-zinc-200 bg-card dark:border-zinc-800;
+    @apply rounded-xl border border-border bg-card;
   }
 
   .skeleton-block {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowLeft, Heart, Search } from 'lucide-vue-next'
+import { ArrowLeft, Heart, Search, ShoppingBag } from 'lucide-vue-next'
 
 withDefaults(
   defineProps<{
@@ -16,8 +16,9 @@ const router = useRouter()
 const headerSearch = ref('')
 
 const navLinks = [
-  { to: '/browse', label: 'Browse', key: 'browse' },
+  { to: '/browse', label: 'Catalog', key: 'browse' },
   { to: '/#groups', label: 'Groups', key: 'groups' },
+  { to: '/#card-types', label: 'Card Types', key: 'card-types' },
   { to: '/collection', label: 'Collection', key: 'collection' },
   { to: '/shop', label: 'Shop', key: 'shop' },
 ]
@@ -99,6 +100,18 @@ function submitSearch() {
         >
           <NuxtLink to="/browse">
             <Search class="h-4 w-4" />
+          </NuxtLink>
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          class="rounded-lg md:hidden"
+          aria-label="Shop"
+          as-child
+        >
+          <NuxtLink to="/shop">
+            <ShoppingBag class="h-4 w-4" />
           </NuxtLink>
         </Button>
 

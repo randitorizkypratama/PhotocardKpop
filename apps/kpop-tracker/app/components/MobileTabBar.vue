@@ -1,18 +1,25 @@
 <script setup lang="ts">
-import { Home, LayoutGrid, Heart, ShoppingBag } from 'lucide-vue-next'
+import { Home, LayoutGrid, Users, Heart } from 'lucide-vue-next'
 
 const route = useRoute()
 
 const tabs = [
   { to: '/', label: 'Home', icon: Home },
-  { to: '/browse', label: 'Browse', icon: LayoutGrid },
-  { to: '/shop', label: 'Shop', icon: ShoppingBag },
+  { to: '/browse', label: 'Catalog', icon: LayoutGrid },
+  { to: '/#groups', label: 'Groups', icon: Users },
   { to: '/collection', label: 'Collection', icon: Heart },
 ]
 
 function isActive(to: string) {
-  if (to === '/') return route.path === '/'
-  if (to === '/browse') return route.path.startsWith('/browse') || route.path.startsWith('/card')
+  if (to === '/') return route.path === '/' && !route.hash
+  if (to === '/#groups') return route.path === '/' && route.hash === '#groups'
+  if (to === '/browse') {
+    return (
+      route.path.startsWith('/browse') ||
+      route.path.startsWith('/card') ||
+      route.path.startsWith('/groups')
+    )
+  }
   return route.path.startsWith(to)
 }
 </script>
@@ -34,6 +41,7 @@ function isActive(to: string) {
             ? 'text-foreground'
             : 'text-muted-foreground hover:text-foreground',
         ]"
+        :aria-current="isActive(tab.to) ? 'page' : undefined"
       >
         <component :is="tab.icon" class="h-5 w-5" :stroke-width="isActive(tab.to) ? 2.25 : 1.75" />
         <span class="text-[10px] font-medium">{{ tab.label }}</span>

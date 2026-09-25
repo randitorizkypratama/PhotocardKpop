@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Heart } from 'lucide-vue-next'
-import { formatIDR, formatUSD, groupAccent, groupDot } from '@/lib/catalog'
+import { formatIDR, formatUSD, groupDot } from '@/lib/catalog'
+import { cardTypeLabel } from '@/lib/cardTypes'
 
 interface PhotocardCardData {
   id: number | string
@@ -43,7 +44,6 @@ const effectivePrice = computed(() => {
 })
 
 const showPromo = computed(() => {
-  if (props.card.is_in_promotion && props.card.discount_rate) return true
   const discounted = Number(props.card.discounted_price) || 0
   const price = Number(props.card.price) || 0
   return discounted > 0 && price > 0 && discounted < price
@@ -57,16 +57,23 @@ const promoRate = computed(() => {
   return Math.round((1 - discounted / price) * 100)
 })
 
-const memberAccent = computed(() => groupAccent(props.card.group_name))
+const typeLabel = computed(() => cardTypeLabel(props.card.card_type))
 const memberDot = computed(() => groupDot(props.card.group_name))
+const releaseLine = computed(() => {
+  const release = props.card.release_name?.trim()
+  if (!release) return ''
+  const type = typeLabel.value
+  if (type && release.toUpperCase() === type.toUpperCase()) return ''
+  return release
+})
 </script>
 
 <template>
   <article class="group pc-card min-w-0">
     <NuxtLink
       :to="`/card/${card.id}`"
-      class="flex h-full flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-      :aria-label="`${card.name} — ${card.member_name}, ${card.group_name}`"
+      class="flex h-full flex-col focus-visible:outline-none"
+      :aria-label="`${typeLabel ? `${typeLabel}. ` : ''}${card.name} — ${card.member_name}, ${card.group_name}`"
     >
       <div class="pc-card-image">
         <img
@@ -74,63 +81,50 @@ const memberDot = computed(() => groupDot(props.card.group_name))
           :alt="`${card.name} photocard`"
           loading="lazy"
           decoding="async"
-          class="h-full w-full object-cover object-top transition-transform duration-200 ease-out group-hover:scale-[1.02]"
+          class="h-full w-full object-cover object-top"
         />
 
-        <div class="absolute left-2 top-2 flex flex-wrap gap-1">
-          <span
-            v-if="showPromo"
-            class="rounded-md bg-emerald-600 px-1.5 py-0.5 text-[10px] font-semibold text-white"
-          >
-            -{{ promoRate }}%
-          </span>
-          <span
-            v-if="badge"
-            class="rounded-md border border-zinc-200 bg-white/90 px-1.5 py-0.5 text-[10px] font-medium text-zinc-700 backdrop-blur-sm dark:border-zinc-700 dark:bg-zinc-900/90 dark:text-zinc-200"
-          >
-            {{ badge }}
-          </span>
+        <div class="absolute left-2 top-2 flex flex-col items-start gap-1">
+          <span v-if="typeLabel" class="pc-type-badge">{{ typeLabel }}</span>
+          <span v-if="badge" class="pc-status-badge">{{ badge }}</span>
         </div>
-
-        <span
-          v-if="card.release_name"
-          class="absolute bottom-2 left-2 max-w-[calc(100%-1rem)] truncate rounded-md border border-zinc-200 bg-white/90 px-1.5 py-0.5 text-[10px] font-medium text-zinc-600 backdrop-blur-sm dark:border-zinc-700 dark:bg-zinc-900/90 dark:text-zinc-300"
-        >
-          {{ card.release_name }}
-        </span>
       </div>
 
-      <div class="flex flex-1 flex-col gap-1 p-3">
-        <div class="flex items-center gap-1.5">
-          <span class="h-1.5 w-1.5 shrink-0 rounded-full" :class="memberDot" />
-          <p class="truncate text-[11px] font-medium uppercase tracking-wide" :class="memberAccent">
+      <div class="flex flex-1 flex-col p-3">
+        <div class="flex items-baseline justify-between gap-2">
+          <p class="truncate text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground">
             {{ card.member_name }}
           </p>
+          <span class="flex shrink-0 items-center gap-1.5 text-[11px] text-muted-foreground">
+            <span class="h-1.5 w-1.5 rounded-full" :class="memberDot" aria-hidden="true" />
+            {{ card.group_name }}
+          </span>
         </div>
 
-        <h3 class="line-clamp-2 min-h-[2.25rem] text-[13px] font-medium leading-snug text-foreground">
+        <h3 class="mt-1.5 line-clamp-2 text-[13px] font-medium leading-snug text-foreground">
           {{ card.name }}
         </h3>
 
-        <p class="truncate text-[11px] text-muted-foreground">
-          {{ card.group_name }}<template v-if="card.card_type"> · {{ card.card_type }}</template>
+        <p v-if="releaseLine" class="mt-1 truncate text-[11px] text-muted-foreground">
+          {{ releaseLine }}
         </p>
 
-        <div class="mt-auto pt-2">
+        <div class="mt-auto pt-3">
+          <p class="pc-meta-label">Market reference</p>
           <template v-if="effectivePrice > 0">
-            <div class="flex flex-wrap items-baseline gap-1.5">
-              <span class="text-sm font-semibold tabular-nums text-foreground">
+            <div class="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <span class="text-[13px] font-medium tabular-nums text-foreground">
                 Rp {{ formatIDR(effectivePrice, rate) }}
               </span>
-              <span v-if="showPromo && Number(card.price) > 0" class="text-[11px] text-muted-foreground line-through">
-                Rp {{ formatIDR(card.price, rate) }}
+              <span class="text-[11px] tabular-nums text-muted-foreground">
+                {{ formatUSD(effectivePrice) }}
+              </span>
+              <span v-if="showPromo" class="text-[11px] font-medium tabular-nums text-emerald-700 dark:text-emerald-400">
+                −{{ promoRate }}%
               </span>
             </div>
-            <p class="mt-0.5 text-[11px] tabular-nums text-muted-foreground">
-              {{ formatUSD(effectivePrice) }}
-            </p>
           </template>
-          <span v-else class="text-[13px] text-muted-foreground">Tidak tersedia</span>
+          <p v-else class="mt-1 text-[12px] text-muted-foreground">Not available</p>
         </div>
       </div>
     </NuxtLink>
@@ -138,7 +132,7 @@ const memberDot = computed(() => groupDot(props.card.group_name))
     <button
       v-if="showWishlist"
       type="button"
-      class="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white/90 text-zinc-500 opacity-100 shadow-sm backdrop-blur-sm transition duration-150 hover:text-rose-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:opacity-0 sm:group-hover:opacity-100 dark:border-zinc-700 dark:bg-zinc-900/90 dark:text-zinc-400"
+      class="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white/95 text-zinc-500 shadow-sm backdrop-blur-sm transition duration-150 hover:text-rose-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 dark:border-zinc-700 dark:bg-zinc-950/90 dark:text-zinc-400"
       :class="wishlisted ? 'text-rose-500 sm:opacity-100' : ''"
       :aria-label="wishlisted ? 'Remove from wishlist' : 'Add to wishlist'"
       :aria-pressed="wishlisted"
