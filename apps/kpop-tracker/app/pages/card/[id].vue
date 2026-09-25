@@ -25,6 +25,8 @@ const showAddDialog = ref(false)
 const boughtPrice = ref<string | number>('')
 const exchangeRates = ref<any>(null)
 const adding = ref(false)
+const release = ref<any>(null)
+const releaseLoading = ref(false)
 
 onMounted(async () => {
   fetchCollection()
@@ -36,6 +38,7 @@ onMounted(async () => {
     if (cardRes.success) {
       card.value = cardRes.data
       await fetchPriceHistory(cardId)
+      loadRelease()
     } else {
       error.value = 'Photocard not found.'
     }
@@ -48,6 +51,23 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+/** Release metadata is enrichment only — failures simply hide the section. */
+async function loadRelease() {
+  const title = card.value?.release_name
+  if (!title) return
+  releaseLoading.value = true
+  try {
+    const response = await $fetch<any>('/api/releases/lookup', {
+      query: { artist: card.value?.group_name || '', title },
+    })
+    if (response?.success && response.data) release.value = response.data
+  } catch {
+    release.value = null
+  } finally {
+    releaseLoading.value = false
+  }
+}
 
 const rate = computed(() => exchangeRates.value?.usd?.rate || 17800)
 const isWishlisted = computed(() => wishlistIds.value.has(cardId))
@@ -72,6 +92,44 @@ async function handleWishlistToggle() {
 function formatDate(dateString: string) {
   return new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
 }
+
+function formatReleaseDate(value?: string) {
+  if (!value) return ''
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value)
+  const date = match
+    ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+    : new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+}
+
+const releaseSourceLabel = computed(() => {
+  if (!release.value) return ''
+  const raw = Array.isArray(release.value.sources) && release.value.sources.length
+    ? release.value.sources
+    : [release.value.source]
+  const names = raw.map((source: string) => (source === 'musicbrainz' ? 'MusicBrainz' : 'Apple Music'))
+  return [...new Set(names)].join(' + ')
+})
+
+const visibleTracks = computed(() => {
+  const tracks = release.value?.tracks
+  if (!Array.isArray(tracks) || tracks.length === 0) return []
+  return tracks.slice(0, 20)
+})
+
+const hiddenTrackCount = computed(() =>
+  Math.max(0, (release.value?.tracks?.length || 0) - visibleTracks.value.length),
+)
+
+/** Only surface the raw label when it actually says something the type does not. */
+const showRawType = computed(() => {
+  const raw = card.value?.card_type_raw
+  const normalized = card.value?.card_type
+  if (!raw || !normalized) return false
+  const strip = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+  return strip(String(raw)) !== strip(String(normalized))
+})
 
 const effectivePrice = computed(() => {
   if (!card.value) return 0
@@ -230,7 +288,64 @@ const chartData = computed(() => {
                 <dt class="shrink-0 text-muted-foreground">Album / release</dt>
                 <dd class="text-right font-medium text-foreground">{{ card.release_name || '—' }}</dd>
               </div>
+              <div v-if="card.store" class="flex items-start justify-between gap-4 py-2.5">
+                <dt class="shrink-0 text-muted-foreground">Store</dt>
+                <dd class="text-right font-medium text-foreground">{{ card.store }}</dd>
+              </div>
+              <div v-if="card.event" class="flex items-start justify-between gap-4 py-2.5">
+                <dt class="shrink-0 text-muted-foreground">Event</dt>
+                <dd class="text-right font-medium text-foreground">{{ card.event }}</dd>
+              </div>
+              <div v-if="showRawType" class="flex items-start justify-between gap-4 py-2.5">
+                <dt class="shrink-0 text-muted-foreground">Listed as</dt>
+                <dd class="text-right font-medium text-foreground">{{ card.card_type_raw }}</dd>
+              </div>
             </dl>
+          </div>
+
+          <!-- Release information (enrichment layer, optional) -->
+          <div v-if="release" class="rounded-xl border border-border bg-card p-4 sm:p-5">
+            <div class="flex items-center justify-between gap-3">
+              <p class="pc-meta-label">Release information</p>
+              <p class="text-[11px] text-muted-foreground">Source · {{ releaseSourceLabel }}</p>
+            </div>
+
+            <div class="mt-3 flex gap-4">
+              <img
+                v-if="release.artwork"
+                :src="release.artwork"
+                :alt="`${release.title} album artwork`"
+                loading="lazy"
+                decoding="async"
+                class="h-20 w-20 shrink-0 rounded-lg border border-border object-cover sm:h-24 sm:w-24"
+              />
+              <div class="min-w-0">
+                <h2 class="truncate text-base font-semibold tracking-tight text-foreground">{{ release.title }}</h2>
+                <p class="mt-0.5 truncate text-sm text-muted-foreground">{{ release.artist }}</p>
+                <p v-if="release.releaseDate" class="mt-1 text-sm text-muted-foreground">
+                  Released {{ formatReleaseDate(release.releaseDate) }}
+                </p>
+              </div>
+            </div>
+
+            <template v-if="visibleTracks.length">
+              <p class="pc-meta-label mt-4">Tracks</p>
+              <ol class="mt-2 grid gap-x-4 gap-y-1 sm:grid-cols-2">
+                <li
+                  v-for="(track, index) in visibleTracks"
+                  :key="`${track.position}-${index}`"
+                  class="flex items-baseline gap-2 text-sm"
+                >
+                  <span class="w-5 shrink-0 text-right text-[11px] tabular-nums text-muted-foreground">
+                    {{ String(track.position || index + 1).padStart(2, '0') }}
+                  </span>
+                  <span class="min-w-0 truncate text-foreground">{{ track.title }}</span>
+                </li>
+              </ol>
+              <p v-if="hiddenTrackCount > 0" class="mt-2 text-xs text-muted-foreground">
+                + {{ hiddenTrackCount }} more tracks
+              </p>
+            </template>
           </div>
 
           <!-- Market reference -->

@@ -11,6 +11,8 @@ interface PhotocardCardData {
   group_name: string
   card_type?: string
   release_name?: string | null
+  store?: string | null
+  event?: string | null
   price?: number
   discounted_price?: number | null
   discount_rate?: number
@@ -66,6 +68,11 @@ const releaseLine = computed(() => {
   if (type && release.toUpperCase() === type.toUpperCase()) return ''
   return release
 })
+
+const metaLine = computed(() => {
+  const parts = [releaseLine.value, props.card.store || '', props.card.event || ''].filter(Boolean)
+  return parts.join(' · ')
+})
 </script>
 
 <template>
@@ -105,8 +112,8 @@ const releaseLine = computed(() => {
           {{ card.name }}
         </h3>
 
-        <p v-if="releaseLine" class="mt-1 truncate text-[11px] text-muted-foreground">
-          {{ releaseLine }}
+        <p v-if="metaLine" class="mt-1 truncate text-[11px] text-muted-foreground">
+          {{ metaLine }}
         </p>
 
         <div class="mt-auto pt-3">

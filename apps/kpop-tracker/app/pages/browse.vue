@@ -19,10 +19,12 @@ if (!GROUPS.includes(selectedGroup.value as any)) selectedGroup.value = 'IVE'
 const initialMember = String(route.query.member || '')
 const initialCardType = String(route.query.card_type || '')
 const initialRelease = String(route.query.release || '')
+const initialStore = String(route.query.store || '')
 
 const selectedMember = ref<string | null>(initialMember || null)
 const selectedCardType = ref<string | null>(initialCardType || null)
 const selectedRelease = ref<string | null>(initialRelease || null)
+const selectedStore = ref<string | null>(initialStore || null)
 const selectedSort = ref('popular')
 const searchQuery = ref(String(route.query.q || ''))
 const minPriceIDR = ref<string>('')
@@ -40,6 +42,16 @@ const loadError = ref(false)
 const total = ref(0)
 const totalPages = ref(0)
 const exchangeRates = ref<any>(null)
+const storeCounts = ref<{ store: string, count: number, by_group: Record<string, number> }[]>([])
+
+/** Stores are counted for the selected group so the number matches the results. */
+const stores = computed(() => {
+  const group = selectedGroup.value
+  return storeCounts.value
+    .map(entry => ({ store: entry.store, count: entry.by_group?.[group] || 0 }))
+    .filter(entry => entry.count > 0)
+    .sort((a, b) => b.count - a.count)
+})
 
 const { fetchCollection, wishlistIds, toggleWishlist } = useCollection()
 
@@ -48,6 +60,7 @@ const activeFilterCount = computed(() => {
   if (selectedMember.value) count++
   if (selectedCardType.value) count++
   if (selectedRelease.value) count++
+  if (selectedStore.value) count++
   if (selectedSort.value !== 'popular') count++
   if (minPriceIDR.value) count++
   if (maxPriceIDR.value) count++
@@ -58,8 +71,18 @@ const activeFilterCount = computed(() => {
 onMounted(() => {
   loadCards()
   loadExchangeRates()
+  loadStores()
   fetchCollection()
 })
+
+async function loadStores() {
+  try {
+    const response = await $fetch<any>('/api/stores')
+    if (response?.success) storeCounts.value = response.data || []
+  } catch (e) {
+    console.error('Failed to load stores:', e)
+  }
+}
 
 async function loadExchangeRates() {
   try {
@@ -75,11 +98,24 @@ async function loadExchangeRates() {
 
 const rate = computed(() => exchangeRates.value?.usd?.rate || 17800)
 
+let suppressStoreWatch = false
+
 watch(selectedGroup, () => {
   selectedMember.value = null
   selectedCardType.value = null
   selectedRelease.value = null
   currentPage.value = 1
+
+  // Drop a store filter that has no cards in the newly selected group.
+  if (selectedStore.value) {
+    const available = storeCounts.value.find(entry => entry.store === selectedStore.value)
+    if (!available?.by_group?.[selectedGroup.value]) {
+      suppressStoreWatch = true
+      selectedStore.value = null
+      nextTick(() => { suppressStoreWatch = false })
+    }
+  }
+
   syncFilterQuery()
   loadCards()
 })
@@ -93,7 +129,8 @@ watch([minPriceIDR, maxPriceIDR], () => {
   }, 400)
 })
 
-watch([selectedMember, selectedCardType, selectedRelease, selectedSort], () => {
+watch([selectedMember, selectedCardType, selectedRelease, selectedStore, selectedSort], () => {
+  if (suppressStoreWatch) return
   currentPage.value = 1
   syncFilterQuery()
   loadCards()
@@ -151,6 +188,14 @@ watch(
   },
 )
 
+watch(
+  () => route.query.store,
+  (value) => {
+    const next = String(value || '')
+    if (next !== (selectedStore.value || '')) selectedStore.value = next || null
+  },
+)
+
 function syncFilterQuery() {
   const query: Record<string, any> = { ...route.query, group: selectedGroup.value }
   const q = searchQuery.value.trim()
@@ -162,6 +207,8 @@ function syncFilterQuery() {
   else delete query.card_type
   if (selectedRelease.value) query.release = selectedRelease.value
   else delete query.release
+  if (selectedStore.value) query.store = selectedStore.value
+  else delete query.store
   router.replace({ query })
 }
 
@@ -187,6 +234,7 @@ async function loadCards() {
     if (selectedMember.value) params.set('member', selectedMember.value)
     if (selectedCardType.value) params.set('card_type', selectedCardType.value)
     if (selectedRelease.value) params.set('release', selectedRelease.value)
+    if (selectedStore.value) params.set('store', selectedStore.value)
     if (searchQuery.value.trim()) params.set('search', searchQuery.value.trim())
     if (minPriceIDR.value) params.set('min_price', idrToUSD(Number(minPriceIDR.value)).toFixed(4))
     if (maxPriceIDR.value) params.set('max_price', idrToUSD(Number(maxPriceIDR.value)).toFixed(4))
@@ -209,6 +257,7 @@ function clearFilters() {
   selectedMember.value = null
   selectedCardType.value = null
   selectedRelease.value = null
+  selectedStore.value = null
   selectedSort.value = 'popular'
   searchQuery.value = ''
   minPriceIDR.value = ''
@@ -356,6 +405,40 @@ const visiblePages = computed(() => {
             <Separator />
 
             <div>
+              <p class="pc-meta-label mb-2">Store</p>
+              <div class="flex flex-col gap-0.5">
+                <button
+                  type="button"
+                  class="filter-link"
+                  :class="!selectedStore ? 'filter-link-active' : ''"
+                  :aria-pressed="!selectedStore"
+                  @click="selectedStore = null"
+                >
+                  <span class="truncate">All stores</span>
+                  <Check v-if="!selectedStore" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                </button>
+                <button
+                  v-for="s in stores"
+                  :key="s.store"
+                  type="button"
+                  class="filter-link"
+                  :class="selectedStore === s.store ? 'filter-link-active' : ''"
+                  :aria-pressed="selectedStore === s.store"
+                  @click="selectedStore = s.store"
+                >
+                  <span class="truncate">{{ s.store }}</span>
+                  <span class="ml-auto flex shrink-0 items-center gap-1.5">
+                    <span class="text-[11px] tabular-nums text-muted-foreground">{{ s.count.toLocaleString() }}</span>
+                    <Check v-if="selectedStore === s.store" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  </span>
+                </button>
+                <p v-if="stores.length === 0" class="mt-1 text-xs text-muted-foreground">No store data yet.</p>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div>
               <p class="pc-meta-label mb-2">Price (IDR)</p>
               <div class="flex flex-col gap-2">
                 <Input
@@ -400,7 +483,7 @@ const visiblePages = computed(() => {
                 <Input
                   v-model="searchQuery"
                   type="search"
-                  placeholder="Search member, album, photocard..."
+                  placeholder="Search member, group, album, card type, store..."
                   class="h-10 rounded-lg pl-9"
                   aria-label="Search photocards"
                 />
@@ -494,6 +577,15 @@ const visiblePages = computed(() => {
               >
                 <span class="truncate">{{ selectedRelease }}</span>
                 <button type="button" class="shrink-0 text-muted-foreground hover:text-foreground" aria-label="Clear release filter" @click="selectedRelease = null">
+                  <X class="h-3 w-3" />
+                </button>
+              </span>
+              <span
+                v-if="selectedStore"
+                class="chip max-w-full"
+              >
+                <span class="truncate">{{ selectedStore }}</span>
+                <button type="button" class="shrink-0 text-muted-foreground hover:text-foreground" :aria-label="`Clear store ${selectedStore}`" @click="selectedStore = null">
                   <X class="h-3 w-3" />
                 </button>
               </span>
@@ -699,6 +791,26 @@ const visiblePages = computed(() => {
                 :class="selectedMember === m ? 'chip-active' : ''"
                 @click="selectedMember = m"
               >{{ m }}</button>
+            </div>
+          </div>
+
+          <div v-if="stores.length > 0">
+            <p class="mb-2 pc-meta-label">Store</p>
+            <div class="flex flex-wrap gap-1.5">
+              <button
+                type="button"
+                class="chip"
+                :class="!selectedStore ? 'chip-active' : ''"
+                @click="selectedStore = null"
+              >All stores</button>
+              <button
+                v-for="s in stores"
+                :key="s.store"
+                type="button"
+                class="chip"
+                :class="selectedStore === s.store ? 'chip-active' : ''"
+                @click="selectedStore = s.store"
+              >{{ s.store }}</button>
             </div>
           </div>
 

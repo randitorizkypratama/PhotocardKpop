@@ -101,6 +101,19 @@ export async function initializeDatabase() {
   `)
 
   await db.execute(`
+    CREATE TABLE IF NOT EXISTS release_cache (
+      cache_key TEXT PRIMARY KEY,
+      artist TEXT,
+      title TEXT,
+      status TEXT NOT NULL,
+      payload TEXT,
+      source TEXT,
+      fetched_at INTEGER NOT NULL
+    )
+  `)
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_release_cache_fetched ON release_cache(fetched_at)`)
+
+  await db.execute(`
     CREATE TABLE IF NOT EXISTS tiktok_videos (
       id TEXT PRIMARY KEY,
       title TEXT,

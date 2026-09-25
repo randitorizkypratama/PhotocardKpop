@@ -30,8 +30,8 @@ export default defineEventHandler(async (event) => {
         member_name: row.member_name,
         group_image: row.group_image,
         member_image: row.member_image,
-        card_type: row.card_type,
         release_name: row.release_name,
+        ...cardTypeFields(row),
         price: row.last_price,
         discounted_price: row.last_discounted_price,
         discount_rate: hasDiscount

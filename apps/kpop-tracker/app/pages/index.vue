@@ -12,6 +12,7 @@ const searchQuery = ref('')
 const cards = ref<any[]>([])
 const loading = ref(true)
 const exchangeRates = ref<any>(null)
+const releases = ref<any[]>([])
 const { fetchCollection, wishlistIds, toggleWishlist } = useCollection()
 
 const groupTabs = GROUPS
@@ -43,6 +44,7 @@ const exploreGroups = [
 onMounted(() => {
   loadCards()
   loadExchangeRates()
+  loadReleases()
   fetchCollection()
 })
 
@@ -54,6 +56,15 @@ async function loadExchangeRates() {
     if (response.success) exchangeRates.value = response.data
   } catch (e) {
     console.error('Failed to load exchange rates:', e)
+  }
+}
+
+async function loadReleases() {
+  try {
+    const response = await $fetch<any>('/api/releases?limit=12')
+    if (response?.success) releases.value = response.data || []
+  } catch {
+    releases.value = []
   }
 }
 
@@ -171,6 +182,55 @@ async function onWishlist(id: number | string) {
                 </span>
               </span>
               <ArrowRight class="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-150 group-hover:translate-x-0.5" aria-hidden="true" />
+            </NuxtLink>
+          </div>
+        </div>
+      </section>
+
+      <!-- Explore releases -->
+      <section
+        v-if="releases.length > 0"
+        id="releases"
+        class="scroll-mt-20 border-b border-zinc-200 dark:border-zinc-800"
+      >
+        <div class="page-shell py-10 sm:py-12">
+          <div class="mb-5 flex flex-wrap items-end justify-between gap-3 sm:mb-6">
+            <div>
+              <p class="eyebrow">Explore releases</p>
+              <h2 class="mt-1.5 section-title">Albums &amp; releases</h2>
+            </div>
+            <NuxtLink
+              to="/browse"
+              class="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Open catalog
+              <ArrowRight class="h-4 w-4" />
+            </NuxtLink>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-6">
+            <NuxtLink
+              v-for="release in releases"
+              :key="release.release_name"
+              :to="{ path: '/browse', query: { release: release.release_name } }"
+              class="group min-w-0"
+            >
+              <span class="block aspect-square overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900">
+                <img
+                  v-if="release.image"
+                  :src="release.image"
+                  :alt="`${release.release_name} release`"
+                  loading="lazy"
+                  decoding="async"
+                  class="h-full w-full object-cover object-top transition-transform duration-200 group-hover:scale-[1.02]"
+                />
+              </span>
+              <span class="mt-2 block truncate text-[13px] font-medium text-foreground">
+                {{ release.release_name }}
+              </span>
+              <span class="mt-0.5 block truncate text-[11px] text-muted-foreground">
+                {{ release.group_name || 'Photocards' }} · {{ release.count.toLocaleString() }} cards
+              </span>
             </NuxtLink>
           </div>
         </div>
