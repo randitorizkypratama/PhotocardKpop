@@ -16,6 +16,9 @@ const activeTab = ref<'all' | 'owned' | 'wishlist'>(
 )
 const showRemoveDialog = ref(false)
 const removeTarget = ref<number | null>(null)
+const removeTargetStatus = ref<'owned' | 'wishlist' | null>(null)
+const removeTargetName = ref('')
+const removing = ref(false)
 const exchangeRates = ref<any>(null)
 const groupTotals = ref<Record<string, number>>({})
 
@@ -90,11 +93,18 @@ const orphans = computed(() => {
 })
 
 async function confirmRemove() {
-  if (removeTarget.value == null) return
   const id = removeTarget.value
-  removeTarget.value = null
-  showRemoveDialog.value = false
-  await removeFromCollection(id)
+  if (id == null || removing.value) return
+  removing.value = true
+  try {
+    await removeFromCollection(id)
+    showRemoveDialog.value = false
+    removeTarget.value = null
+    removeTargetStatus.value = null
+    removeTargetName.value = ''
+  } finally {
+    removing.value = false
+  }
 }
 
 function mapForCard(item: any) {
@@ -110,13 +120,17 @@ function mapForCard(item: any) {
   }
 }
 
-function removeById(collectionId: number) {
-  removeTarget.value = collectionId
+function removeById(item: { id: number; status?: string; name?: string }) {
+  removeTarget.value = item.id
+  removeTargetStatus.value = item.status === 'owned' || item.status === 'wishlist' ? item.status : null
+  removeTargetName.value = item.name || ''
   showRemoveDialog.value = true
 }
 
 function cancelRemove() {
   removeTarget.value = null
+  removeTargetStatus.value = null
+  removeTargetName.value = ''
   showRemoveDialog.value = false
 }
 
@@ -255,8 +269,8 @@ const tabDefs = computed(() => [
               <button
                 type="button"
                 class="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white/90 text-zinc-500 shadow-sm backdrop-blur-sm transition duration-150 hover:border-red-200 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:border-zinc-700 dark:bg-zinc-900/90 dark:text-zinc-400 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
-                :aria-label="`Remove ${item.name} from collection`"
-                @click.stop="removeById(item.id)"
+                :aria-label="`Remove ${item.name} from ${item.status === 'owned' ? 'collection' : 'wishlist'}`"
+                @click.stop="removeById(item)"
               >
                 <Trash2 class="h-4 w-4" />
               </button>
@@ -280,8 +294,8 @@ const tabDefs = computed(() => [
               <button
                 type="button"
                 class="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white/90 text-zinc-500 shadow-sm backdrop-blur-sm transition duration-150 hover:border-red-200 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:border-zinc-700 dark:bg-zinc-900/90 dark:text-zinc-400 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
-                :aria-label="`Remove ${item.name} from collection`"
-                @click.stop="removeById(item.id)"
+                :aria-label="`Remove ${item.name} from ${item.status === 'owned' ? 'collection' : 'wishlist'}`"
+                @click.stop="removeById(item)"
               >
                 <Trash2 class="h-4 w-4" />
               </button>
@@ -291,18 +305,32 @@ const tabDefs = computed(() => [
       </div>
     </main>
 
-    <!-- Remove Dialog -->
+    <!-- Remove Dialog: use plain Button (not AlertDialogAction) so confirm click is not raced by reka-ui auto-close -->
     <AlertDialog :open="showRemoveDialog" @update:open="(v: boolean) => { if (!v) cancelRemove() }">
       <AlertDialogContent class="max-w-sm rounded-xl">
         <AlertDialogHeader>
-          <AlertDialogTitle class="text-base">Remove from collection?</AlertDialogTitle>
+          <AlertDialogTitle class="text-base">
+            Remove from {{ removeTargetStatus === 'owned' ? 'collection' : removeTargetStatus === 'wishlist' ? 'wishlist' : 'collection' }}?
+          </AlertDialogTitle>
           <AlertDialogDescription class="text-muted-foreground">
-            This card will be removed from your collection. You can add it again later.
+            <template v-if="removeTargetName">
+              “{{ removeTargetName }}” will be removed. You can add it again later.
+            </template>
+            <template v-else>
+              This card will be removed. You can add it again later.
+            </template>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter class="gap-2 sm:justify-end">
           <AlertDialogCancel class="rounded-lg" @click="cancelRemove">Cancel</AlertDialogCancel>
-          <AlertDialogAction class="rounded-lg" @click="confirmRemove">Remove</AlertDialogAction>
+          <Button
+            type="button"
+            class="rounded-lg"
+            :disabled="removing"
+            @click="confirmRemove"
+          >
+            {{ removing ? 'Removing…' : 'Remove' }}
+          </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
