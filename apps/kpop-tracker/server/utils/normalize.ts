@@ -270,3 +270,16 @@ export function storeLikePatterns(display: string): string[] {
   const nospace = `%${upper.replace(/\s+/g, '')}%`
   return spaced === nospace ? [spaced] : [spaced, nospace]
 }
+
+/**
+ * URL slug for a release ("I'VE MINE" → "ive-mine"). The album page matches the
+ * slug back against the known releases of its group, so collisions are harmless.
+ */
+export function releaseSlug(name?: string | null): string {
+  const slug = String(name || '')
+    .toLowerCase()
+    .replace(/['\u2019\u02bc`]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+  return slug || 'release'
+}

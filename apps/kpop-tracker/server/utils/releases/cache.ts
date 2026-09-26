@@ -73,6 +73,51 @@ export async function readReleaseCache(key: string): Promise<ReleaseCacheEntry> 
   }
 }
 
+/**
+ * Bulk variant of {@link readReleaseCache} — one query for the whole release
+ * list instead of a query per row. Expired entries are simply left out.
+ */
+export async function readReleaseCacheMany(keys: string[]): Promise<Map<string, ReleaseCacheEntry>> {
+  const found = new Map<string, ReleaseCacheEntry>()
+  const unique = [...new Set(keys.filter(key => key && key !== '|'))]
+  if (unique.length === 0) return found
+
+  try {
+    await ensureTable()
+    const db = await getDb()
+    const now = Date.now()
+    const chunkSize = 200
+
+    for (let i = 0; i < unique.length; i += chunkSize) {
+      const chunk = unique.slice(i, i + chunkSize)
+      const result = await db.execute({
+        sql: `SELECT cache_key, status, payload, fetched_at FROM release_cache
+              WHERE cache_key IN (${chunk.map(() => '?').join(', ')})`,
+        args: chunk,
+      })
+
+      for (const row of result.rows) {
+        const key = String(row.cache_key)
+        const fetchedAt = Number(row.fetched_at) || 0
+        const ttl = row.status === 'hit' ? POSITIVE_TTL_MS : NEGATIVE_TTL_MS
+        if (now - fetchedAt > ttl) continue
+
+        if (row.status === 'hit' && row.payload) {
+          try {
+            found.set(key, { status: 'hit', match: JSON.parse(String(row.payload)) as ReleaseMatch })
+            continue
+          } catch {}
+        }
+        found.set(key, { status: 'negative' })
+      }
+    }
+  } catch {
+    // Cache read failures fall back to "no date known".
+  }
+
+  return found
+}
+
 export async function writeReleaseCache(
   key: string,
   artist: string,

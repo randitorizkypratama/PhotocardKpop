@@ -4,7 +4,7 @@ import { ArrowLeft, Heart, Search, ShoppingBag } from 'lucide-vue-next'
 withDefaults(
   defineProps<{
     back?: boolean
-    active?: 'home' | 'browse' | 'collection' | 'shop'
+    active?: 'home' | 'browse' | 'collection' | 'shop' | 'releases'
   }>(),
   {
     back: false,
@@ -19,6 +19,7 @@ const navLinks = [
   { to: '/browse', label: 'Catalog', key: 'browse' },
   { to: '/#groups', label: 'Groups', key: 'groups' },
   { to: '/#card-types', label: 'Card Types', key: 'card-types' },
+  { to: '/releases', label: 'Releases', key: 'releases' },
   { to: '/collection', label: 'Collection', key: 'collection' },
   { to: '/shop', label: 'Shop', key: 'shop' },
 ]

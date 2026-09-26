@@ -70,26 +70,67 @@ export function inferCardType(name: string): string {
   return 'Album'
 }
 
-export function extractReleaseName(name: string, groupName: string): string | null {
-  const n = name.toUpperCase()
-  const g = groupName.toUpperCase()
-
-  const albumPatterns: [RegExp, string][] = [
+// Album tokens are scoped per group so a generic word in one group's card name
+// (aespa "Girls", Hearts2Hearts "Focus") can never be misread as another
+// group's release.
+const RELEASE_PATTERNS: Record<string, [RegExp, string][]> = {
+  AESPA: [
+    [/KISS\s*N\s*TELL/, 'KISS N TELL'],
+    [/LEMONADE/, 'Lemonade'],
+    [/DIRTY\s*WORK/, 'Dirty Work'],
+    [/RICH\s*MAN/, 'Rich Man'],
+    [/ARMAGEDDON/, 'Armageddon'],
+    [/WHIPLASH/, 'Whiplash'],
+    [/HOT MESS/, 'Hot Mess'],
+    [/BETTER THINGS/, 'Better Things'],
+    [/SUPERNOVA/, 'Supernova'],
+    [/MY WORLD/, 'MY WORLD'],
+    [/NEXT\s*LEVEL/, 'Next Level'],
+    [/LIFE['\u2019\u02bc]S?\s*TOO\s*SHORT/, "Life's Too Short"],
+    [/BLACK\s*MAMBA/, 'Black Mamba'],
+    [/DRAMA/, 'Drama'],
+    [/GIRLS/, 'Girls'],
+    [/SAVAGE/, 'Savage'],
+  ],
+  HEARTS2HEARTS: [
+    [/ICONIC\s*HEART/, 'ICONIC HEART'],
+    [/THE\s*CHASE/, 'The Chase'],
+    [/FOCUS/, 'FOCUS'],
+    [/LEMON\s*TANG/, 'Lemon Tang'],
+    [/STYLE/, 'STYLE'],
+  ],
+  IVE: [
+    [/IVE\s*SWITCH/, 'IVE SWITCH'],
+    [/BE\s*ALRIGHT/, 'Be Alright'],
+    [/LUCID\s*DREAM/, 'LUCID DREAM'],
+    [/\bALIVE\b/, 'ALIVE'],
     [/EMPATHY/, 'EMPATHY'],
     [/REVIVE\+/, 'REVIVE+'],
     [/SECRET(?:\s|\.|$)/, 'SECRET'],
+    // "I'VE MINE" is the album; LOVED / BADDIE / I AM are its tracks, so it
+    // has to be checked before them.
+    [/I['\u2019\u02bc]\s*VE\s*MINE/, "I'VE MINE"],
     [/LOVED(?:\s|\.|$)/, 'LOVED'],
     [/HEAVEN/, 'HEAVEN'],
     [/BADDIE/, 'BADDIE'],
     [/ALL\s*NIGHT/, 'ALL NIGHT'],
     [/I\s*AM(?:\s|\.|$)/, 'I AM'],
-    [/I['']VE\s*IVE/, "I'VE IVE"],
+    [/I['\u2019\u02bc]\s*VE\s*IVE/, "I'VE IVE"],
     [/AFTER\s*LIKE/, 'AFTER LIKE'],
     [/LOVE\s*DIVE/, 'LOVE DIVE'],
     [/ELEVEN/, 'ELEVEN'],
-  ]
+  ],
+}
 
-  for (const [pattern, label] of albumPatterns) {
+export function extractReleaseName(name: string, groupName: string): string | null {
+  const n = name.toUpperCase()
+  const g = groupName.toUpperCase()
+  const patterns =
+    g.includes('HEARTS') ? RELEASE_PATTERNS.HEARTS2HEARTS
+    : g.includes('AESPA') ? RELEASE_PATTERNS.AESPA
+    : RELEASE_PATTERNS.IVE
+
+  for (const [pattern, label] of patterns) {
     if (pattern.test(n)) return label
   }
 

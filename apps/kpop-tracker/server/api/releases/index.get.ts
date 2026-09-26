@@ -18,6 +18,7 @@ export default defineEventHandler(async (event) => {
 
   const data = result.rows.map(row => ({
     release_name: String(row.release_name),
+    slug: releaseSlug(String(row.release_name)),
     count: Number(row.count) || 0,
     image: row.image ? String(row.image) : null,
     card_id: row.card_id == null ? null : Number(row.card_id),

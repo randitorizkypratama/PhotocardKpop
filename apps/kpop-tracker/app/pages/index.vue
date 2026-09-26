@@ -200,10 +200,10 @@ async function onWishlist(id: number | string) {
               <h2 class="mt-1.5 section-title">Albums &amp; releases</h2>
             </div>
             <NuxtLink
-              to="/browse"
+              to="/releases"
               class="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
-              Open catalog
+              All releases
               <ArrowRight class="h-4 w-4" />
             </NuxtLink>
           </div>
@@ -212,7 +212,7 @@ async function onWishlist(id: number | string) {
             <NuxtLink
               v-for="release in releases"
               :key="release.release_name"
-              :to="{ path: '/browse', query: { release: release.release_name } }"
+              :to="`/releases/${encodeURIComponent(release.group_name || 'IVE')}/${release.slug}`"
               class="group min-w-0"
             >
               <span class="block aspect-square overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900">

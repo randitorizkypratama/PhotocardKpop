@@ -11,6 +11,7 @@ export default defineEventHandler(async (event) => {
 
   const db = getTursoClient()
   const now = new Date().toISOString()
+  const releaseIndex = await loadReleaseIndex(group)
 
   // Get total count first
   const firstPage = await fetchPocamarketCards(group, 1)
@@ -23,7 +24,7 @@ export default defineEventHandler(async (event) => {
   let totalSynced = 0
 
   // Insert first page
-  const firstMapped = mapCards(firstPage.data.results)
+  const firstMapped = mapCards(firstPage.data.results, releaseIndex)
   await batchUpsert(db, firstMapped, now)
   totalSynced += firstMapped.length
 
@@ -35,7 +36,7 @@ export default defineEventHandler(async (event) => {
     for (let p = startPage; p <= endPage; p++) {
       promises.push(
         fetchPocamarketCards(group, p)
-          .then(res => res.success ? mapCards(res.data.results) : [])
+          .then(res => res.success ? mapCards(res.data.results, releaseIndex) : [])
           .catch(() => [])
       )
     }
@@ -58,7 +59,7 @@ export default defineEventHandler(async (event) => {
   }
 })
 
-function mapCards(results: any[]) {
+function mapCards(results: any[], releaseIndex: ReleaseMatchEntry[]) {
   return results.map(card => ({
     id: card.id,
     name: card.name_en,
@@ -68,7 +69,7 @@ function mapCards(results: any[]) {
     group_image: card.group_image,
     member_image: card.member_image,
     card_type: inferCardType(card.name_en),
-    release_name: extractReleaseName(card.name_en, card.group_name_en),
+    release_name: resolveCardReleaseSync(card.name_en, card.group_name_en, releaseIndex),
     price: parseFloat(card.price),
     discounted_price: parseFloat(card.discounted_price),
     wish_count: card.wish_count,
