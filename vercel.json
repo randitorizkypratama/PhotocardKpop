@@ -1,9 +1,0 @@
-{
-  "buildCommand": "bun run build && rm -rf .vercel/output && cp -R apps/kpop-tracker/.vercel/output .vercel/output",
-  "crons": [
-    {
-      "path": "/api/cron/sync",
-      "schedule": "0 17 * * *"
-    }
-  ]
-}
