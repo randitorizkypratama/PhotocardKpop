@@ -33,11 +33,13 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 - `tailwind.config.js` is **ESM** — `import tailwindcssAnimate from 'tailwindcss-animate'` (never `require`). Colors use `hsl(var(--…))` with shadcn vars in `app/assets/css/main.css`; keep custom component classes inside `@layer components` (an extra `}` there breaks the build).
 - Pages: `app/pages/{index,browse,collection}.vue` + `app/pages/card/[id].vue`; shared header `app/components/AppHeader.vue` (`back`/`active` props); tab bar `MobileTabBar.vue`.
 - Server: `server/api/*` (cards, collection, cron/sync, sync/group, init, exchangerate); DB client `server/utils/turso.ts`; Pocamarket `server/utils/pocamarket.ts`; FX `server/utils/exchangerate.ts`.
-- Runtime env (server): `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `NUXT_PUBLIC_API_BASE_URL`; example in `.env` / `.env.example` under `apps/kpop-tracker` (README's `apps/web/` path is stale).
+- Runtime env (server): `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `NUXT_PUBLIC_API_BASE_URL`, `CRON_SECRET`; example in `.env` / `.env.example` under `apps/kpop-tracker`.
 
 ## Data / API notes
 
 - Pocamarket search: `https://pocamarket.com/apis/card/gb/v2/search?q=GROUP&page=1`; daily Vercel cron `0 17 * * *` UTC (= 00:00 WIB) → `POST /api/cron/sync`; ~16,203 cards in Turso.
+- Releases: `cards.release_name` comes from matching the card name against the group's MusicBrainz discography (`server/utils/releases/discography.ts`, table `discography`, refreshed by the daily cron — 3 MB requests, 1 req/s limit). Version siblings (Japanese/English/track-video) merge into one entry, earliest date wins. The token list in `server/utils/pocamarket.ts` is only a fallback for when MB is unreachable; `getGroupDiscography` falls back to the stale cache first. `cards_release_name_backup` holds pre-migration labels (rollback).
+- `/api/releases/timeline` and `/api/releases/detail` read the discography **first**, so releases with zero photocards still render ("No cards yet"); `app/pages/releases/` is the timeline + album pages.
 - Currency: IDR primary; rates from Frankfurter with fallback 17800; price `0` renders as "Tidak tersedia".
 - Branding: HIBIKISHOP (`public/hibikishop-logo.png`); outbound POCAMARKET links → `https://pocamarket.com`. Social: Tokopedia/Shopee/TikTok URLs live in `SocialLinks` / footer components; assets under `public/social/`.
 

@@ -1,4 +1,4 @@
-const GROUPS = ['IVE', 'aespa', 'Hearts2Hearts']
+const GROUPS = [...DISCOGRAPHY_GROUPS]
 const BATCH_SIZE = 10
 
 export default defineEventHandler(async (event) => {
@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
 
   const db = getTursoClient()
   const now = new Date().toISOString()
-  const releaseIndex = await loadReleaseIndex(group)
+  const releaseIndex = await loadReleaseIndex(group, { refresh: true })
 
   // Get total count first
   const firstPage = await fetchPocamarketCards(group, 1)

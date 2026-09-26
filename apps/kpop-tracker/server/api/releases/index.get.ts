@@ -23,7 +23,28 @@ export default defineEventHandler(async (event) => {
     image: row.image ? String(row.image) : null,
     card_id: row.card_id == null ? null : Number(row.card_id),
     group_name: row.group_name ? String(row.group_name) : null,
+    release_date: null as string | null,
+    release_type: null as string | null,
   }))
+
+  // Attach discography dates/types so the homepage can show when each release
+  // came out instead of only how many cards it has.
+  const groups = [...DISCOGRAPHY_GROUPS]
+  const fetched = await Promise.allSettled(groups.map(name => getGroupDiscography(name)))
+  const lookup = new Map<string, DiscographyRelease>()
+  fetched.forEach((result, index) => {
+    if (result.status !== 'fulfilled') return
+    for (const entry of result.value) lookup.set(`${groups[index]}::${entry.key}`, entry)
+  })
+
+  for (const row of data) {
+    const entry = row.group_name
+      ? lookup.get(`${row.group_name}::${discographyKey(row.release_name)}`)
+      : undefined
+    if (!entry) continue
+    row.release_date = entry.release_date
+    row.release_type = entry.release_type
+  }
 
   return { success: true, data }
 })

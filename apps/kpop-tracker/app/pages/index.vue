@@ -70,6 +70,13 @@ async function loadReleases() {
 
 const rate = computed(() => exchangeRates.value?.usd?.rate || 17800)
 
+function releaseDate(value?: string | null) {
+  if (!value) return ''
+  const date = new Date(value.length === 10 ? `${value}T00:00:00` : value)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
 async function loadCards() {
   loading.value = true
   try {
@@ -230,6 +237,12 @@ async function onWishlist(id: number | string) {
               </span>
               <span class="mt-0.5 block truncate text-[11px] text-muted-foreground">
                 {{ release.group_name || 'Photocards' }} · {{ release.count.toLocaleString() }} cards
+              </span>
+              <span
+                v-if="release.release_date"
+                class="mt-0.5 block truncate text-[11px] tabular-nums text-muted-foreground"
+              >
+                {{ releaseDate(release.release_date) }}<template v-if="release.release_type"> · {{ release.release_type }}</template>
               </span>
             </NuxtLink>
           </div>

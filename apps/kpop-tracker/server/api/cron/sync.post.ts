@@ -1,4 +1,4 @@
-const GROUPS = ['IVE', 'aespa', 'Hearts2Hearts']
+const GROUPS = [...DISCOGRAPHY_GROUPS]
 const BATCH_SIZE = 10
 
 export default defineEventHandler(async (event) => {
@@ -24,7 +24,9 @@ export default defineEventHandler(async (event) => {
       const totalPages = Math.ceil(totalCards / 20)
       let totalSynced = 0
 
-      const releaseIndex = await loadReleaseIndex(group)
+      // Refresh the discography (3 MusicBrainz requests) so this week's
+      // comeback shows up on the timeline tomorrow, not in 30 days.
+      const releaseIndex = await loadReleaseIndex(group, { refresh: true })
       const firstMapped = mapCards(firstPage.data.results, releaseIndex)
       await batchUpsert(db, firstMapped, now)
       totalSynced += firstMapped.length

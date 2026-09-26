@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
     db.execute({
       sql: `SELECT release_name, COUNT(*) as count FROM cards
             WHERE group_name = ? AND release_name IS NOT NULL AND TRIM(release_name) != ''
-            GROUP BY release_name ORDER BY count DESC LIMIT 16`,
+            GROUP BY release_name ORDER BY count DESC`,
       args: [group],
     }),
     db.execute({
@@ -33,6 +33,59 @@ export default defineEventHandler(async (event) => {
 
   const total = Number(totalRes.rows[0]?.total) || 0
 
+  // The discography (not just card counts) decides which releases a group has,
+  // so this list matches the /releases timeline — including releases with no
+  // photocards yet.
+  let discography: DiscographyRelease[] = []
+  try {
+    discography = await getGroupDiscography(group)
+  } catch {
+    // MusicBrainz down: fall back to the card-backed list below.
+  }
+
+  const counts = new Map<string, { name: string, count: number }>()
+  for (const row of releaseRes.rows) {
+    const name = String(row.release_name || '')
+    const key = discographyKey(name)
+    const existing = counts.get(key)
+    const count = Number(row.count) || 0
+    if (existing) existing.count += count
+    else counts.set(key, { name, count })
+  }
+
+  const claimed = new Set<string>()
+  const releases = discography.map((release) => {
+    claimed.add(release.key)
+    return {
+      release_name: release.title,
+      slug: releaseSlug(release.title),
+      release_type: release.release_type,
+      release_date: release.release_date,
+      count: counts.get(release.key)?.count || 0,
+    }
+  })
+
+  for (const [key, entry] of counts) {
+    if (claimed.has(key)) continue
+    releases.push({
+      release_name: entry.name,
+      slug: releaseSlug(entry.name),
+      release_type: null,
+      release_date: null,
+      count: entry.count,
+    })
+  }
+
+  releases.sort((a, b) => {
+    if (a.release_date && b.release_date) {
+      if (a.release_date !== b.release_date) return a.release_date < b.release_date ? 1 : -1
+      return b.count - a.count
+    }
+    if (a.release_date) return -1
+    if (b.release_date) return 1
+    return b.count - a.count
+  })
+
   const byType = typeRes.rows.map(row => ({
     card_type: String(row.card_type || ''),
     count: Number(row.count) || 0,
@@ -40,11 +93,6 @@ export default defineEventHandler(async (event) => {
 
   const byMember = memberRes.rows.map(row => ({
     member_name: String(row.member_name || ''),
-    count: Number(row.count) || 0,
-  }))
-
-  const releases = releaseRes.rows.map(row => ({
-    release_name: String(row.release_name || ''),
     count: Number(row.count) || 0,
   }))
 

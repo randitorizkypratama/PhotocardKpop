@@ -113,6 +113,22 @@ export async function initializeDatabase() {
   `)
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_release_cache_fetched ON release_cache(fetched_at)`)
 
+  // MusicBrainz discography per group — the source of truth for the release
+  // timeline (see server/utils/releases/discography.ts).
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS discography (
+      group_name TEXT NOT NULL,
+      release_key TEXT NOT NULL,
+      title TEXT NOT NULL,
+      release_type TEXT,
+      release_date TEXT,
+      mbid TEXT,
+      fetched_at INTEGER NOT NULL,
+      PRIMARY KEY (group_name, release_key)
+    )
+  `)
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_discography_group ON discography(group_name)`)
+
   await db.execute(`
     CREATE TABLE IF NOT EXISTS tiktok_videos (
       id TEXT PRIMARY KEY,

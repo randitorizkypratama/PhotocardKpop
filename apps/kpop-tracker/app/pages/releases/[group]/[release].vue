@@ -48,7 +48,9 @@ async function load() {
     }
     detail.value = release.data
     if (rates?.success) exchangeRates.value = rates.data
-    await loadCards(1)
+    // Releases listed in the discography but absent from Pocamarket have no
+    // cards to fetch — skip the request and render the empty state directly.
+    if (detail.value.count > 0) await loadCards(1)
   } catch (e: any) {
     if (e?.statusCode === 404) notFound.value = true
     else {

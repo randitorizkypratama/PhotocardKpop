@@ -191,10 +191,17 @@ async function onWishlist(id: number | string) {
                   v-for="release in info.releases"
                   :key="release.release_name"
                   class="flex items-center justify-between gap-3 bg-card px-4 py-3 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900"
-                  :to="{ path: '/browse', query: { group, release: release.release_name } }"
+                  :to="
+                    release.count > 0
+                      ? { path: '/browse', query: { group, release: release.release_name } }
+                      : `/releases/${encodeURIComponent(group)}/${release.slug}`
+                  "
                 >
-                  <span class="min-w-0 truncate text-sm text-foreground">{{ release.release_name }}</span>
-                  <span class="shrink-0 text-xs tabular-nums text-muted-foreground">{{ release.count.toLocaleString() }}</span>
+                  <span class="min-w-0 truncate text-sm text-foreground">
+                    {{ release.release_name }}
+                    <span v-if="release.release_date" class="text-xs text-muted-foreground">· {{ release.release_date.slice(0, 4) }}</span>
+                  </span>
+                  <span class="shrink-0 text-xs tabular-nums text-muted-foreground">{{ release.count > 0 ? release.count.toLocaleString() : '—' }}</span>
                 </NuxtLink>
               </div>
             </section>

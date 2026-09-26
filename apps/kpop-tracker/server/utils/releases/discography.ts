@@ -217,16 +217,18 @@ export async function writeGroupDiscography(releases: DiscographyRelease[], db?:
 
   const now = Date.now()
   const group = releases[0].group_name
-  await client.execute({ sql: 'DELETE FROM discography WHERE group_name = ?', args: [group] })
-
-  const statements = releases.map(entry => ({
-    sql: `INSERT INTO discography (group_name, release_key, title, release_type, release_date, mbid, fetched_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    args: [entry.group_name, entry.key, entry.title, entry.release_type, entry.release_date, entry.mbid, now],
-  }))
-  for (let i = 0; i < statements.length; i += 50) {
-    await client.batch(statements.slice(i, i + 50), 'write')
-  }
+  // Delete + insert run in one transaction (a group has <100 releases, so a
+  // single batch is plenty): readers never see the table half-empty if this
+  // process dies midway.
+  const statements = [
+    { sql: 'DELETE FROM discography WHERE group_name = ?', args: [group] },
+    ...releases.map(entry => ({
+      sql: `INSERT INTO discography (group_name, release_key, title, release_type, release_date, mbid, fetched_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      args: [entry.group_name, entry.key, entry.title, entry.release_type, entry.release_date, entry.mbid, now],
+    })),
+  ]
+  await client.batch(statements, 'write')
 }
 
 /** Cached discography read; refreshes from MusicBrainz when older than 30 days. */
@@ -351,9 +353,12 @@ export function resolveCardReleaseSync(
   return canonicalizeReleaseToken(token, index) || token
 }
 
-export async function loadReleaseIndex(group: string): Promise<ReleaseMatchEntry[]> {
+export async function loadReleaseIndex(
+  group: string,
+  options: { refresh?: boolean } = {},
+): Promise<ReleaseMatchEntry[]> {
   try {
-    return buildReleaseMatchIndex(group, await getGroupDiscography(group))
+    return buildReleaseMatchIndex(group, await getGroupDiscography(group, options))
   } catch {
     // Sync must keep working when MusicBrainz and the cache are both down —
     // the token fallback then labels cards the way it always has.

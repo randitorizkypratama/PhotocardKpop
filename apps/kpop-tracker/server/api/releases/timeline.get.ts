@@ -33,15 +33,19 @@ export default defineEventHandler(async (event) => {
 
   // The discography is the source of truth for which releases exist — it even
   // lists releases with no photocards yet, which cards alone can never do.
-  const groups = group ? [group] : [...DISCOGRAPHY_GROUPS]
+  const groups = !group
+    ? [...DISCOGRAPHY_GROUPS]
+    : (DISCOGRAPHY_GROUPS as readonly string[]).includes(group) ? [group] : []
+
+  const fetched = await Promise.allSettled(groups.map(name => getGroupDiscography(name)))
   const discography: DiscographyRelease[] = []
-  for (const name of groups) {
-    try {
-      discography.push(...await getGroupDiscography(name))
-    } catch (error) {
-      console.error(`Discography unavailable for ${name}:`, error)
+  fetched.forEach((result, index) => {
+    if (result.status === 'fulfilled') {
+      discography.push(...result.value)
+    } else {
+      console.error(`Discography unavailable for ${groups[index]}:`, result.reason)
     }
-  }
+  })
 
   const cardsByKey = new Map<string, typeof cardRows[number][]>()
   for (const row of cardRows) {
