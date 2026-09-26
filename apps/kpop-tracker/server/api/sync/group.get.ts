@@ -2,6 +2,7 @@ const GROUPS = [...DISCOGRAPHY_GROUPS]
 const BATCH_SIZE = 10
 
 export default defineEventHandler(async (event) => {
+  requireCronSecret(event)
   const query = getQuery(event)
   const group = (query.group as string) || undefined
 

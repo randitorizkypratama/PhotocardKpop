@@ -2,11 +2,7 @@ const GROUPS = [...DISCOGRAPHY_GROUPS]
 const BATCH_SIZE = 10
 
 export default defineEventHandler(async (event) => {
-  // Verify cron secret
-  const authHeader = getHeader(event, 'authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
-  }
+  requireCronSecret(event)
 
   const db = getTursoClient()
   const now = new Date().toISOString()

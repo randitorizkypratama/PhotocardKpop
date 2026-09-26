@@ -1,4 +1,5 @@
-export default defineEventHandler(async () => {
+export default defineEventHandler(async (event) => {
+  requireCronSecret(event)
   try {
     await initializeDatabase()
     return {
