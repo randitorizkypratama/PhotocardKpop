@@ -243,7 +243,13 @@ export async function getGroupDiscography(
 
   try {
     const rows = await fetchGroupDiscography(group)
-    if (rows.length > 0) await writeGroupDiscography(rows, options.db)
+    if (rows.length > 0) {
+      await writeGroupDiscography(rows, options.db)
+      return rows
+    }
+    // MB answered but returned nothing — treat it like a failed fetch so a
+    // flaky response can't replace a good discography with an empty one.
+    if (cached && cached.rows.length > 0) return cached.rows
     return rows
   } catch (error) {
     // A stale discography still beats an empty timeline when MB is down.
