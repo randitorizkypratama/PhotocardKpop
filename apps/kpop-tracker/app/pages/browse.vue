@@ -388,6 +388,40 @@ const visiblePages = computed(() => {
             <Separator />
 
             <div>
+              <p class="pc-meta-label mb-2">Store</p>
+              <div class="flex flex-col gap-0.5">
+                <button
+                  type="button"
+                  class="filter-link"
+                  :class="!selectedStore ? 'filter-link-active' : ''"
+                  :aria-pressed="!selectedStore"
+                  @click="selectedStore = null"
+                >
+                  <span class="truncate">All stores</span>
+                  <Check v-if="!selectedStore" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                </button>
+                <button
+                  v-for="s in stores"
+                  :key="s.store"
+                  type="button"
+                  class="filter-link"
+                  :class="selectedStore === s.store ? 'filter-link-active' : ''"
+                  :aria-pressed="selectedStore === s.store"
+                  @click="selectedStore = s.store"
+                >
+                  <span class="truncate">{{ s.store }}</span>
+                  <span class="ml-auto flex shrink-0 items-center gap-1.5">
+                    <span class="text-[11px] tabular-nums text-muted-foreground">{{ s.count.toLocaleString() }}</span>
+                    <Check v-if="selectedStore === s.store" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  </span>
+                </button>
+                <p v-if="stores.length === 0" class="mt-1 text-xs text-muted-foreground">No store data yet.</p>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div>
               <p class="pc-meta-label mb-2">Card Type</p>
               <div class="flex flex-col gap-0.5">
                 <button
@@ -441,40 +475,6 @@ const visiblePages = computed(() => {
                   :aria-pressed="selectedMember === m"
                   @click="selectedMember = m"
                 >{{ m }}</button>
-              </div>
-            </div>
-
-            <Separator />
-
-            <div>
-              <p class="pc-meta-label mb-2">Store</p>
-              <div class="flex flex-col gap-0.5">
-                <button
-                  type="button"
-                  class="filter-link"
-                  :class="!selectedStore ? 'filter-link-active' : ''"
-                  :aria-pressed="!selectedStore"
-                  @click="selectedStore = null"
-                >
-                  <span class="truncate">All stores</span>
-                  <Check v-if="!selectedStore" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                </button>
-                <button
-                  v-for="s in stores"
-                  :key="s.store"
-                  type="button"
-                  class="filter-link"
-                  :class="selectedStore === s.store ? 'filter-link-active' : ''"
-                  :aria-pressed="selectedStore === s.store"
-                  @click="selectedStore = s.store"
-                >
-                  <span class="truncate">{{ s.store }}</span>
-                  <span class="ml-auto flex shrink-0 items-center gap-1.5">
-                    <span class="text-[11px] tabular-nums text-muted-foreground">{{ s.count.toLocaleString() }}</span>
-                    <Check v-if="selectedStore === s.store" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                  </span>
-                </button>
-                <p v-if="stores.length === 0" class="mt-1 text-xs text-muted-foreground">No store data yet.</p>
               </div>
             </div>
 
@@ -797,6 +797,27 @@ const visiblePages = computed(() => {
           </div>
 
           <div>
+            <p class="mb-2 pc-meta-label">Store</p>
+            <div class="flex flex-wrap gap-1.5">
+              <button
+                type="button"
+                class="chip"
+                :class="!selectedStore ? 'chip-active' : ''"
+                @click="selectedStore = null"
+              >All stores</button>
+              <button
+                v-for="s in stores"
+                :key="s.store"
+                type="button"
+                class="chip"
+                :class="selectedStore === s.store ? 'chip-active' : ''"
+                @click="selectedStore = s.store"
+              >{{ s.store }}</button>
+            </div>
+            <p v-if="stores.length === 0" class="mt-1 text-xs text-muted-foreground">No store data yet.</p>
+          </div>
+
+          <div>
             <p class="mb-2 pc-meta-label">Card Type</p>
             <div class="flex flex-wrap gap-1.5">
               <button
@@ -833,26 +854,6 @@ const visiblePages = computed(() => {
                 :class="selectedMember === m ? 'chip-active' : ''"
                 @click="selectedMember = m"
               >{{ m }}</button>
-            </div>
-          </div>
-
-          <div v-if="stores.length > 0">
-            <p class="mb-2 pc-meta-label">Store</p>
-            <div class="flex flex-wrap gap-1.5">
-              <button
-                type="button"
-                class="chip"
-                :class="!selectedStore ? 'chip-active' : ''"
-                @click="selectedStore = null"
-              >All stores</button>
-              <button
-                v-for="s in stores"
-                :key="s.store"
-                type="button"
-                class="chip"
-                :class="selectedStore === s.store ? 'chip-active' : ''"
-                @click="selectedStore = s.store"
-              >{{ s.store }}</button>
             </div>
           </div>
 

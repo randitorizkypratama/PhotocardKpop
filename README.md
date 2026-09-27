@@ -7,14 +7,21 @@ Track K-pop photocard prices from Pocamarket for IVE, aespa, and Hearts2Hearts.
 ## Features
 
 - Browse 16,200+ photocards; filter by group, member, card type, release, store and price
+- **Faceted filters** — store and card-type counts update to match every other active
+  filter (pick Hearts2Hearts + POB → the store counts only those cards)
 - Card type normalization (POB, Lucky Draw, MD, Season's Greetings, …) plus smart search parsing
 - Price history and trends (IDR primary, USD via Frankfurter with fallback rate)
-- Collection binder: wishlist / owned per card
+- **Top price movers** on the homepage — biggest drops and risers over the last 36 hours
+- Collection binder: wishlist / owned per card, wishlist count badge in the header
 - **Release timeline** (`/releases`) — every Album, EP and Single from MusicBrainz, newest first,
   including releases that have no photocards in the catalog yet
 - **Album pages** (`/releases/:group/:release`) — artwork, release date, tracklist, cheapest card,
   card-type and member breakdown, full card grid
 - Release enrichment from MusicBrainz + Apple Music (dates, artwork, labels, tracklists)
+- **Sync status page** (`/status`) — summary plus per-run history from the `sync_log` table
+- **Command palette** (`Ctrl/⌘ K`) — jump to pages or search cards from anywhere
+- **ID/EN language toggle** for navigation and key labels
+- SEO: sitemap (`/sitemap.xml`), robots.txt, Open Graph / Twitter cards
 - Daily auto-sync from Pocamarket at 00:00 WIB, dark mode UI
 
 ## How releases are labeled
@@ -99,13 +106,18 @@ bun run dev
 | GET | `/api/cards` | Browse/search cards (group, member, type, release, store, price) |
 | GET | `/api/cards/:id` | Card details + release info |
 | GET | `/api/cards/:id/history` | Price history |
+| GET | `/api/movers` | Biggest price drops / risers over the last 36 hours |
 | GET | `/api/stores` | Stores with per-group card counts |
+| GET | `/api/cardtypes` | Card type counts (total + per group) |
+| GET | `/api/facets` | Store + card type counts under the given filters (each facet ignores its own selection) |
 | GET | `/api/groups/:group` | Group overview |
 | GET | `/api/releases` | Popular releases (homepage section) |
 | GET | `/api/releases/timeline` | Full release timeline from the discography |
 | GET | `/api/releases/detail` | Album page payload (`?group=&slug=`), works with 0 cards |
 | GET | `/api/releases/lookup` | On-demand MusicBrainz/Apple enrichment (`?artist=&title=`) |
 | GET | `/api/exchangerate` | USD/IDR rates |
+| GET | `/api/sync/status` | Sync badge data + last cron run (reads `sync_log`) |
+| GET | `/api/sync/history` | Last 30 cron runs for the `/status` page |
 | GET | `/api/collection` | Get collection |
 | POST | `/api/collection` | Add to collection |
 | DELETE | `/api/collection/:id` | Remove from collection |
@@ -120,12 +132,14 @@ bun run dev
 - **collections** — user collection (wishlist/owned)
 - **discography** — MusicBrainz release list per group (source of truth for releases)
 - **release_cache** — cached release enrichment (dates, artwork, tracks, labels)
+- **sync_log** — one row per cron run (`running` → `ok` / `partial` / `error`), powers `/status` and the footer badge
 - **tiktok_auth** / **tiktok_videos** — TikTok Shop integration
 
 ## Cron Job
 
 Daily sync at 00:00 WIB (17:00 UTC) via Vercel Cron Jobs. Free on Vercel Hobby plan.
-Each run re-labels cards against the (cached) discography and upserts prices.
+Each run re-labels cards against the (cached) discography, upserts prices, and writes a
+`sync_log` row so `/status` and the footer badge can flag failed or stuck runs.
 
 ## Deploy
 
