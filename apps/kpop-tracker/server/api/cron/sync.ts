@@ -7,52 +7,68 @@ export default defineEventHandler(async (event) => {
   const db = getTursoClient()
   const now = new Date().toISOString()
   const results: any[] = []
+  const logId = await beginSyncLog(db, now)
 
-  for (const group of GROUPS) {
-    try {
-      const firstPage = await fetchPocamarketCards(group, 1)
-      if (!firstPage.success) {
-        results.push({ group, success: false, error: 'Failed to fetch' })
-        continue
-      }
-
-      const totalCards = firstPage.data.count
-      const totalPages = Math.ceil(totalCards / 20)
-      let totalSynced = 0
-
-      // Refresh the discography (3 MusicBrainz requests) so this week's
-      // comeback shows up on the timeline tomorrow, not in 30 days.
-      const releaseIndex = await loadReleaseIndex(group, { refresh: true })
-      const firstMapped = mapCards(firstPage.data.results, releaseIndex)
-      await batchUpsert(db, firstMapped, now)
-      totalSynced += firstMapped.length
-
-      for (let startPage = 2; startPage <= totalPages; startPage += BATCH_SIZE) {
-        const endPage = Math.min(startPage + BATCH_SIZE - 1, totalPages)
-        const promises: Promise<any>[] = []
-
-        for (let p = startPage; p <= endPage; p++) {
-          promises.push(
-            fetchPocamarketCards(group, p)
-              .then(res => res.success ? mapCards(res.data.results, releaseIndex) : [])
-              .catch(() => [])
-          )
+  try {
+    for (const group of GROUPS) {
+      try {
+        const firstPage = await fetchPocamarketCards(group, 1)
+        if (!firstPage.success) {
+          results.push({ group, success: false, error: 'Failed to fetch' })
+          continue
         }
 
-        const results2 = await Promise.all(promises)
-        const allCards = results2.flat()
+        const totalCards = firstPage.data.count
+        const totalPages = Math.ceil(totalCards / 20)
+        let totalSynced = 0
 
-        if (allCards.length > 0) {
-          await batchUpsert(db, allCards, now)
-          totalSynced += allCards.length
+        // Refresh the discography (3 MusicBrainz requests) so this week's
+        // comeback shows up on the timeline tomorrow, not in 30 days.
+        const releaseIndex = await loadReleaseIndex(group, { refresh: true })
+        const firstMapped = mapCards(firstPage.data.results, releaseIndex)
+        await batchUpsert(db, firstMapped, now)
+        totalSynced += firstMapped.length
+
+        for (let startPage = 2; startPage <= totalPages; startPage += BATCH_SIZE) {
+          const endPage = Math.min(startPage + BATCH_SIZE - 1, totalPages)
+          const promises: Promise<any>[] = []
+
+          for (let p = startPage; p <= endPage; p++) {
+            promises.push(
+              fetchPocamarketCards(group, p)
+                .then(res => res.success ? mapCards(res.data.results, releaseIndex) : [])
+                .catch(() => [])
+            )
+          }
+
+          const results2 = await Promise.all(promises)
+          const allCards = results2.flat()
+
+          if (allCards.length > 0) {
+            await batchUpsert(db, allCards, now)
+            totalSynced += allCards.length
+          }
         }
-      }
 
-      results.push({ group, success: true, totalSynced, totalCards, pages: totalPages })
-    } catch (e: any) {
-      results.push({ group, success: false, error: e.message })
+        results.push({ group, success: true, totalSynced, totalCards, pages: totalPages })
+      } catch (e: any) {
+        results.push({ group, success: false, error: e.message })
+      }
     }
+  } catch (error: any) {
+    // Top-level failure (e.g. the log table itself) — record and rethrow so
+    // Vercel still reports the invocation as failed.
+    await finishSyncLog(db, logId, { status: 'error', error: error?.message || String(error) })
+    throw error
   }
+
+  const totalSynced = results.reduce((sum, row) => sum + (Number(row.totalSynced) || 0), 0)
+  const failed = results.filter(row => !row.success)
+  await finishSyncLog(db, logId, {
+    status: failed.length === 0 ? 'ok' : failed.length === results.length ? 'error' : 'partial',
+    totalSynced,
+    results,
+  })
 
   return { success: true, results }
 })

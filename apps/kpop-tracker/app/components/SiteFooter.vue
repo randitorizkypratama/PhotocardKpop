@@ -41,7 +41,22 @@
           >POCAMARKET</a>
         </p>
         <div class="flex flex-col items-start gap-1 sm:items-end">
-          <p v-if="syncedLabel" class="flex items-center gap-1.5 text-xs tabular-nums text-muted-foreground">
+          <p
+            v-if="syncIssue"
+            class="flex items-center gap-1.5 text-xs tabular-nums"
+            :class="syncIssue.level === 'error'
+              ? 'text-red-600 dark:text-red-400'
+              : 'text-amber-600 dark:text-amber-400'"
+            :title="syncIssue.title"
+          >
+            <span
+              class="h-1.5 w-1.5 rounded-full"
+              :class="syncIssue.level === 'error' ? 'bg-red-500' : 'bg-amber-500'"
+              aria-hidden="true"
+            />
+            {{ syncIssue.text }}<template v-if="syncedLabel"> · data {{ syncedLabel }}</template>
+          </p>
+          <p v-else-if="syncedLabel" class="flex items-center gap-1.5 text-xs tabular-nums text-muted-foreground">
             <span class="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
             Synced {{ syncedLabel }} · {{ statusTotal.toLocaleString() }} cards
           </p>
@@ -55,26 +70,37 @@
 <script setup lang="ts">
 const year = new Date().getFullYear()
 
+interface SyncLogRun {
+  started_at: string
+  finished_at: string | null
+  status: string
+  total_synced: number | null
+  error: string | null
+}
+
 const lastSynced = ref<string | null>(null)
 const statusTotal = ref(0)
+const lastRun = ref<SyncLogRun | null>(null)
 
 onMounted(async () => {
   try {
-    const response = await $fetch<{ success: boolean, data: { last_synced: string | null, total: number } }>(
-      '/api/sync/status',
-    )
+    const response = await $fetch<{
+      success: boolean
+      data: { last_synced: string | null, total: number, last_run?: SyncLogRun | null }
+    }>('/api/sync/status')
     if (response?.success && response.data?.last_synced) {
       lastSynced.value = response.data.last_synced
       statusTotal.value = response.data.total
+      lastRun.value = response.data.last_run ?? null
     }
   } catch {
     // The badge is optional — the footer still renders without it.
   }
 })
 
-const syncedLabel = computed(() => {
-  if (!lastSynced.value) return ''
-  const date = new Date(lastSynced.value)
+function formatStamp(value: string | null) {
+  if (!value) return ''
+  const date = new Date(value)
   if (Number.isNaN(date.getTime())) return ''
   return date.toLocaleString('en-GB', {
     day: 'numeric',
@@ -82,5 +108,32 @@ const syncedLabel = computed(() => {
     hour: '2-digit',
     minute: '2-digit',
   })
+}
+
+const syncedLabel = computed(() => formatStamp(lastSynced.value))
+
+/**
+ * Only surfaces *problems*: a failed/partial run, or one stuck in "running"
+ * for over 15 minutes (function killed mid-sync). Healthy runs keep the
+ * normal green badge.
+ */
+const syncIssue = computed<{ level: 'error' | 'warn', text: string, title: string } | null>(() => {
+  const run = lastRun.value
+  if (!run) return null
+  const detail = run.error || `run started ${formatStamp(run.started_at)}`
+
+  if (run.status === 'error') {
+    return { level: 'error', text: `Sync failed ${formatStamp(run.started_at)}`, title: detail }
+  }
+  if (run.status === 'partial') {
+    return { level: 'warn', text: `Sync partial ${formatStamp(run.finished_at || run.started_at)}`, title: detail }
+  }
+  if (run.status === 'running') {
+    const started = new Date(run.started_at).getTime()
+    if (Number.isFinite(started) && Date.now() - started > 15 * 60 * 1000) {
+      return { level: 'error', text: `Sync stuck since ${formatStamp(run.started_at)}`, title: detail }
+    }
+  }
+  return null
 })
 </script>

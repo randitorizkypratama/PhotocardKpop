@@ -10,6 +10,7 @@ export default defineEventHandler(async () => {
     data: {
       last_synced: row?.last_synced ? String(row.last_synced) : null,
       total: Number(row?.total) || 0,
+      last_run: await readLastSyncLog(db),
     },
   }
 })
