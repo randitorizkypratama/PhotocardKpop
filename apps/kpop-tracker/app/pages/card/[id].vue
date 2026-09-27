@@ -8,7 +8,7 @@ import { cardTypeBlurb, cardTypeLabel } from '@/lib/cardTypes'
 
 const route = useRoute()
 const cardId = parseInt(route.params.id as string)
-const { t } = useLocale()
+const { locale, t } = useLocale()
 
 const { history, fetchPriceHistory, getPriceTrend, getPriceChange } = usePriceHistory()
 const {
@@ -150,7 +150,14 @@ const effectivePrice = computed(() => {
 })
 
 const typeLabel = computed(() => cardTypeLabel(card.value?.card_type))
-const typeBlurb = computed(() => cardTypeBlurb(card.value?.card_type, t))
+const typeBlurb = computed(() => {
+  const type = card.value?.card_type
+  if (!type) return null
+  const key = `blurb.${type}`
+  const translated = t(key)
+  if (translated && translated !== key) return translated
+  return cardTypeBlurb(type)
+})
 
 const showPromo = computed(() => {
   if (!card.value) return false

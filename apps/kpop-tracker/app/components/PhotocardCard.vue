@@ -91,9 +91,9 @@ const metaLine = computed(() => {
           class="h-full w-full object-cover object-top"
         />
 
-        <div class="absolute left-5 top-4 flex flex-col items-start gap-1">
+        <div class="absolute left-3 top-2 flex flex-col items-start">
           <span v-if="typeLabel" class="pc-type-badge">{{ typeLabel }}</span>
-          <span v-if="badge" class="pc-status-badge">{{ badge }}</span>
+          <!--- <span v-if="badge" class="pc-status-badge">{{ badge }}</span>-->
         </div>
       </div>
 
