@@ -48,6 +48,7 @@ const total = ref(0)
 const totalPages = ref(0)
 const exchangeRates = ref<any>(null)
 const storeCounts = ref<{ store: string, count: number, by_group: Record<string, number> }[]>([])
+const typeCounts = ref<{ card_type: string, count: number, by_group: Record<string, number> }[]>([])
 
 /** Stores are counted for the selected group so the number matches the results. */
 const stores = computed(() => {
@@ -56,6 +57,14 @@ const stores = computed(() => {
     .map(entry => ({ store: entry.store, count: entry.by_group?.[group] || 0 }))
     .filter(entry => entry.count > 0)
     .sort((a, b) => b.count - a.count)
+})
+
+/** Card-type counts follow the selected group, same as the store filter. */
+const typeCountMap = computed(() => {
+  const group = selectedGroup.value
+  const map = new Map<string, number>()
+  for (const entry of typeCounts.value) map.set(entry.card_type, entry.by_group?.[group] ?? 0)
+  return map
 })
 
 const { fetchCollection, wishlistIds, toggleWishlist } = useCollection()
@@ -77,6 +86,7 @@ onMounted(() => {
   loadCards()
   loadExchangeRates()
   loadStores()
+  loadCardTypes()
   fetchCollection()
 })
 
@@ -86,6 +96,15 @@ async function loadStores() {
     if (response?.success) storeCounts.value = response.data || []
   } catch (e) {
     console.error('Failed to load stores:', e)
+  }
+}
+
+async function loadCardTypes() {
+  try {
+    const response = await $fetch<any>('/api/cardtypes')
+    if (response?.success) typeCounts.value = response.data || []
+  } catch (e) {
+    console.error('Failed to load card types:', e)
   }
 }
 
@@ -378,7 +397,12 @@ const visiblePages = computed(() => {
                   @click="selectedCardType = t"
                 >
                   <span class="truncate">{{ t }}</span>
-                  <Check v-if="selectedCardType === t" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <span class="ml-auto flex shrink-0 items-center gap-1.5">
+                    <span v-if="typeCountMap.has(t)" class="text-[11px] tabular-nums text-muted-foreground">
+                      {{ (typeCountMap.get(t) ?? 0).toLocaleString() }}
+                    </span>
+                    <Check v-if="selectedCardType === t" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  </span>
                 </button>
               </div>
             </div>
