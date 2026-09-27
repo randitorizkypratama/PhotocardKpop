@@ -4,6 +4,12 @@ import { GROUPS, groupAccentActive, groupDot } from '@/lib/catalog'
 import { FEATURED_CARD_TYPES, cardTypeBlurb } from '@/lib/cardTypes'
 
 useHead({ title: 'HIBIKISHOP PC — K-Pop Photocard Database' })
+useSeoMeta({
+  ogTitle: 'HIBIKISHOP PC — K-Pop Photocard Database',
+  ogDescription: 'Explore album PCs, POBs, lucky draws and special photocards — by group, member, album, with market reference from Pocamarket.',
+  ogUrl: 'https://kpop-tracker-six.vercel.app/',
+})
+const { t } = useLocale()
 
 const cardTypeTabs = FEATURED_CARD_TYPES as unknown as string[]
 
@@ -20,21 +26,21 @@ const groupTabs = GROUPS
 const exploreGroups = [
   {
     name: 'IVE',
-    description: 'Album pulls, POBs, and fan-signed cards.',
+    descKey: 'groups.desc.ive',
     accent: 'border-ive/25 bg-ive/5 hover:border-ive/40',
     dot: 'bg-ive',
     text: 'text-ive',
   },
   {
     name: 'aespa',
-    description: 'Tour merch, lucky draws, and essentials.',
+    descKey: 'groups.desc.aespa',
     accent: 'border-aespa/25 bg-aespa/5 hover:border-aespa/40',
     dot: 'bg-aespa',
     text: 'text-aespa',
   },
   {
     name: 'Hearts2Hearts',
-    description: 'Fresh releases tracked from Pocamarket.',
+    descKey: 'groups.desc.h2h',
     accent: 'border-h2h/25 bg-h2h/5 hover:border-h2h/40',
     dot: 'bg-h2h',
     text: 'text-h2h',
@@ -111,12 +117,12 @@ async function onWishlist(id: number | string) {
       <section class="border-b border-zinc-200 dark:border-zinc-800">
         <div class="page-shell py-10 sm:py-14 lg:py-16">
           <div class="mx-auto max-w-2xl text-center">
-            <p class="eyebrow">K-pop photocard database</p>
+            <p class="eyebrow">{{ t('home.eyebrow') }}</p>
             <h1 class="mt-3 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
               HIBIKISHOP PC
             </h1>
             <p class="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-              Explore album PCs, POBs, lucky draws and special photocards — by group, member, album, and market reference from
+              {{ t('home.heroDescA') }}
               <a href="https://pocamarket.com" target="_blank" rel="noopener noreferrer" class="font-medium text-foreground underline-offset-2 hover:underline">Pocamarket</a>.
             </p>
 
@@ -128,7 +134,7 @@ async function onWishlist(id: number | string) {
                   id="hero-search"
                   v-model="searchQuery"
                   type="search"
-                  placeholder="Search member, album, card type..."
+                  :placeholder="t('home.searchPlaceholder')"
                   class="h-12 w-full rounded-xl border border-zinc-300 bg-card pl-11 pr-4 text-sm text-foreground shadow-sm placeholder:text-muted-foreground focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900/60 dark:focus:border-zinc-500 dark:focus:ring-zinc-500"
                 />
               </div>
@@ -163,14 +169,14 @@ async function onWishlist(id: number | string) {
         <div class="page-shell py-10 sm:py-12">
           <div class="mb-5 flex flex-wrap items-end justify-between gap-3 sm:mb-6">
             <div>
-              <p class="eyebrow">Explore by card type</p>
-              <h2 class="mt-1.5 section-title">What kind of card is it?</h2>
+              <p class="eyebrow">{{ t('cardTypes.eyebrow') }}</p>
+              <h2 class="mt-1.5 section-title">{{ t('cardTypes.title') }}</h2>
             </div>
             <NuxtLink
               to="/browse"
               class="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
-              All card types
+              {{ t('cardTypes.all') }}
               <ArrowRight class="h-4 w-4" />
             </NuxtLink>
           </div>
@@ -203,14 +209,14 @@ async function onWishlist(id: number | string) {
         <div class="page-shell py-10 sm:py-12">
           <div class="mb-5 flex flex-wrap items-end justify-between gap-3 sm:mb-6">
             <div>
-              <p class="eyebrow">Explore releases</p>
-              <h2 class="mt-1.5 section-title">Albums &amp; releases</h2>
+              <p class="eyebrow">{{ t('releases.eyebrow') }}</p>
+              <h2 class="mt-1.5 section-title">{{ t('releases.title') }}</h2>
             </div>
             <NuxtLink
               to="/releases"
               class="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
-              All releases
+              {{ t('releases.all') }}
               <ArrowRight class="h-4 w-4" />
             </NuxtLink>
           </div>
@@ -236,7 +242,7 @@ async function onWishlist(id: number | string) {
                 {{ release.release_name }}
               </span>
               <span class="mt-0.5 block truncate text-[11px] text-muted-foreground">
-                {{ release.group_name || 'Photocards' }} · {{ release.count.toLocaleString() }} cards
+                {{ release.group_name || 'Photocards' }} · {{ release.count.toLocaleString() }} {{ t('releases.cards') }}
               </span>
               <span
                 v-if="release.release_date"
@@ -254,13 +260,13 @@ async function onWishlist(id: number | string) {
         <div class="mb-5 flex flex-wrap items-end justify-between gap-3 sm:mb-6">
           <div>
             <p class="eyebrow">{{ selectedGroup }}</p>
-            <h2 class="mt-1 text-lg font-semibold tracking-tight text-foreground sm:text-xl">Trending Photocards</h2>
+            <h2 class="mt-1 text-lg font-semibold tracking-tight text-foreground sm:text-xl">{{ t('trending.title') }}</h2>
           </div>
           <NuxtLink
             to="/browse"
             class="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
-            View all
+            {{ t('viewAll') }}
             <ArrowRight class="h-4 w-4" />
           </NuxtLink>
         </div>
@@ -278,10 +284,10 @@ async function onWishlist(id: number | string) {
         </div>
 
         <div v-else-if="cards.length === 0" class="rounded-xl border border-dashed border-zinc-300 py-12 text-center dark:border-zinc-700">
-          <p class="text-sm font-medium text-foreground">No photocards found.</p>
-          <p class="mt-1 text-sm text-muted-foreground">Try another group or check back after the daily sync.</p>
+          <p class="text-sm font-medium text-foreground">{{ t('empty.noCards') }}</p>
+          <p class="mt-1 text-sm text-muted-foreground">{{ t('empty.hint') }}</p>
           <Button variant="outline" class="mt-4 rounded-lg" as-child>
-            <NuxtLink to="/browse">Browse all photocards</NuxtLink>
+            <NuxtLink to="/browse">{{ t('empty.browseAll') }}</NuxtLink>
           </Button>
         </div>
 
@@ -298,12 +304,15 @@ async function onWishlist(id: number | string) {
         </div>
       </section>
 
+      <!-- Price movers -->
+      <PriceMovers :rate="rate" />
+
       <!-- Explore Groups -->
       <section id="groups" class="scroll-mt-20 border-t border-zinc-200 dark:border-zinc-800">
         <div class="page-shell py-10 sm:py-12">
           <div class="mb-5 sm:mb-6">
-            <p class="eyebrow">Explore groups</p>
-            <h2 class="mt-1.5 section-title">Browse by group</h2>
+            <p class="eyebrow">{{ t('groups.eyebrow') }}</p>
+            <h2 class="mt-1.5 section-title">{{ t('groups.title') }}</h2>
           </div>
 
           <div class="grid gap-3 sm:gap-4 md:grid-cols-3">
@@ -318,9 +327,9 @@ async function onWishlist(id: number | string) {
                 <span class="h-2 w-2 rounded-full" :class="group.dot" />
                 <h3 class="text-base font-semibold text-foreground sm:text-lg">{{ group.name }}</h3>
               </div>
-              <p class="mt-2 text-sm leading-relaxed text-muted-foreground">{{ group.description }}</p>
+              <p class="mt-2 text-sm leading-relaxed text-muted-foreground">{{ t(group.descKey) }}</p>
               <span class="mt-4 inline-flex items-center gap-1.5 text-sm font-medium" :class="group.text">
-                Open catalog
+                {{ t('groups.open') }}
                 <ArrowRight class="h-4 w-4 transition-transform duration-150 group-hover:translate-x-0.5" />
               </span>
             </NuxtLink>

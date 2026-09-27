@@ -27,6 +27,16 @@ useHead({
       : 'Release — HIBIKISHOP PC',
   ),
 })
+useSeoMeta({
+  ogTitle: computed(() => (detail.value
+    ? `${detail.value.release_name} — ${detail.value.group_name} photocards`
+    : 'Release — HIBIKISHOP PC')),
+  ogDescription: computed(() => (detail.value
+    ? `${detail.value.count} ${detail.value.group_name} photocards from ${detail.value.release_name} — market reference from Pocamarket.`
+    : 'K-pop release photocards from Pocamarket.')),
+  ogImage: computed(() => detail.value?.artwork || detail.value?.image || undefined),
+  ogUrl: computed(() => `https://kpop-tracker-six.vercel.app/releases/${encodeURIComponent(group)}/${encodeURIComponent(slug)}`),
+})
 
 onMounted(() => {
   fetchCollection()

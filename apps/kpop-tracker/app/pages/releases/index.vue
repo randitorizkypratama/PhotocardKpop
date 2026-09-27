@@ -3,6 +3,11 @@ import { ArrowRight, AlertCircle } from 'lucide-vue-next'
 import { GROUPS, groupDot } from '@/lib/catalog'
 
 useHead({ title: 'Releases — HIBIKISHOP PC' })
+useSeoMeta({
+  ogTitle: 'Releases — HIBIKISHOP PC',
+  ogDescription: 'K-pop comeback timeline — albums, EPs and singles with photocard counts per release.',
+  ogUrl: 'https://kpop-tracker-six.vercel.app/releases',
+})
 
 const releases = ref<any[]>([])
 const loading = ref(true)

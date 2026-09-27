@@ -52,6 +52,14 @@ export default defineNuxtConfig({
       meta: [
         { name: 'description', content: 'Track K-pop photocard prices based on Pocamarket — by HIBIKISHOP' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
+        { property: 'og:site_name', content: 'HIBIKISHOP PC' },
+        { property: 'og:type', content: 'website' },
+        { property: 'og:url', content: 'https://kpop-tracker-six.vercel.app' },
+        { property: 'og:image', content: 'https://kpop-tracker-six.vercel.app/hibikishop-logo.png' },
+        { name: 'twitter:card', content: 'summary' },
+        { name: 'twitter:title', content: 'HIBIKISHOP PC — K-Pop Photocard Tracker' },
+        { name: 'twitter:description', content: 'Track K-pop photocard prices based on Pocamarket — by HIBIKISHOP' },
+        { name: 'twitter:image', content: 'https://kpop-tracker-six.vercel.app/hibikishop-logo.png' },
       ],
       link: [
         { rel: 'icon', type: 'image/png', href: '/hibikishop-logo.png' },

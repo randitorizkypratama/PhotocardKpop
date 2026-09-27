@@ -12,6 +12,16 @@ const cardId = parseInt(route.params.id as string)
 useHead({
   title: computed(() => (card.value ? `${card.value.name} — HIBIKISHOP PC` : 'Photocard — HIBIKISHOP PC')),
 })
+useSeoMeta({
+  ogTitle: computed(() => (card.value
+    ? `${card.value.name} — ${card.value.member_name || ''} ${card.value.group_name || ''}`.trim()
+    : 'Photocard — HIBIKISHOP PC')),
+  ogDescription: computed(() => (card.value
+    ? `Market reference for ${card.value.name} (${card.value.group_name}) — price, discount and sales stats from Pocamarket.`
+    : 'K-pop photocard market reference from Pocamarket.')),
+  ogImage: computed(() => card.value?.image || undefined),
+  ogUrl: computed(() => `https://kpop-tracker-six.vercel.app/card/${cardId}`),
+})
 
 const { history, fetchPriceHistory, getPriceTrend, getPriceChange } = usePriceHistory()
 const {

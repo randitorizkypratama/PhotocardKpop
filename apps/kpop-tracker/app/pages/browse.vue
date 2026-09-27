@@ -9,6 +9,11 @@ import {
 } from '@/lib/catalog'
 
 useHead({ title: 'Browse — HIBIKISHOP PC' })
+useSeoMeta({
+  ogTitle: 'Browse photocards — HIBIKISHOP PC',
+  ogDescription: 'Search thousands of K-pop photocards by group, member, album and card type — prices based on Pocamarket.',
+  ogUrl: 'https://kpop-tracker-six.vercel.app/browse',
+})
 
 const route = useRoute()
 const router = useRouter()

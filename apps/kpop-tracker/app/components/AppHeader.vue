@@ -14,14 +14,24 @@ withDefaults(
 
 const router = useRouter()
 const headerSearch = ref('')
+const paletteOpen = useState('command-palette-open', () => false)
+const { locale, t, toggleLocale } = useLocale()
+
+const { stats, fetchCollection } = useCollection()
+
+onMounted(() => {
+  // One lightweight fetch per session so the heart can show the wishlist count
+  // on pages that don't load the collection themselves.
+  fetchCollection()
+})
 
 const navLinks = [
-  { to: '/browse', label: 'Catalog', key: 'browse' },
-  { to: '/#groups', label: 'Groups', key: 'groups' },
-  { to: '/#card-types', label: 'Card Types', key: 'card-types' },
-  { to: '/releases', label: 'Releases', key: 'releases' },
-  { to: '/collection', label: 'Collection', key: 'collection' },
-  { to: '/shop', label: 'Shop', key: 'shop' },
+  { to: '/browse', label: 'nav.browse', key: 'browse' },
+  { to: '/#groups', label: 'nav.groups', key: 'groups' },
+  { to: '/#card-types', label: 'nav.cardTypes', key: 'card-types' },
+  { to: '/releases', label: 'nav.releases', key: 'releases' },
+  { to: '/collection', label: 'nav.collection', key: 'collection' },
+  { to: '/shop', label: 'nav.shop', key: 'shop' },
 ]
 
 function submitSearch() {
@@ -66,7 +76,7 @@ function submitSearch() {
               : 'text-muted-foreground hover:bg-zinc-50 hover:text-foreground dark:hover:bg-zinc-900'
           "
         >
-          {{ link.label }}
+          {{ t(link.label) }}
         </NuxtLink>
       </nav>
 
@@ -86,9 +96,17 @@ function submitSearch() {
               id="header-search"
               v-model="headerSearch"
               type="search"
-              placeholder="Search member, album, photocard..."
-              class="h-9 w-64 rounded-lg border border-zinc-200 bg-card pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 xl:w-72 dark:border-zinc-800 dark:bg-zinc-900/60 dark:focus:border-zinc-600 dark:focus:ring-zinc-600"
+              :placeholder="t('search.placeholder')"
+              class="h-9 w-64 rounded-lg border border-zinc-200 bg-card pl-9 pr-14 text-sm text-foreground placeholder:text-muted-foreground focus:border-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 xl:w-72 dark:border-zinc-800 dark:bg-zinc-900/60 dark:focus:border-zinc-600 dark:focus:ring-zinc-600"
             />
+            <button
+              type="button"
+              class="absolute right-2 top-1/2 flex -translate-y-1/2 items-center rounded border border-zinc-300 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground transition-colors hover:text-foreground dark:border-zinc-600"
+              aria-label="Open command palette"
+              @click="paletteOpen = true"
+            >
+              ⌘K
+            </button>
           </div>
         </form>
 
@@ -123,9 +141,23 @@ function submitSearch() {
           aria-label="Wishlist"
           as-child
         >
-          <NuxtLink to="/collection?tab=wishlist">
+          <NuxtLink to="/collection?tab=wishlist" class="relative">
             <Heart class="h-4 w-4" />
+            <span
+              v-if="stats.totalWishlist > 0"
+              class="absolute -right-1.5 -top-1.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-semibold leading-none text-white shadow-sm"
+            >{{ stats.totalWishlist > 99 ? '99+' : stats.totalWishlist }}</span>
           </NuxtLink>
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          class="rounded-lg px-2 text-xs font-semibold"
+          :aria-label="t('aria.language')"
+          @click="toggleLocale"
+        >
+          {{ locale === 'en' ? 'EN' : 'ID' }}
         </Button>
 
         <DarkModeToggle />

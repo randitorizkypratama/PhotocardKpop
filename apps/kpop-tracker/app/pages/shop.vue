@@ -9,6 +9,11 @@ declare global {
 }
 
 useHead({ title: 'Shop — HIBIKISHOP PC' })
+useSeoMeta({
+  ogTitle: 'Shop — HIBIKISHOP PC',
+  ogDescription: 'Etalase HIBIKISHOP — beli photocard di Shopee & Tokopedia, tonton video TikTok terbaru.',
+  ogUrl: 'https://kpop-tracker-six.vercel.app/shop',
+})
 
 const route = useRoute()
 

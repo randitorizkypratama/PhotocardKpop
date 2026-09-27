@@ -13,6 +13,10 @@ const exchangeRates = ref<any>(null)
 const { fetchCollection, wishlistIds, toggleWishlist } = useCollection()
 
 useHead({ title: computed(() => (info.value ? `${info.value.group} photocards — HIBIKISHOP PC` : 'Group — HIBIKISHOP PC')) })
+useSeoMeta({
+  ogTitle: computed(() => (info.value ? `${info.value.group} photocards — HIBIKISHOP PC` : 'Group — HIBIKISHOP PC')),
+  ogUrl: computed(() => `https://kpop-tracker-six.vercel.app/groups/${encodeURIComponent(String(route.params.group || ''))}`),
+})
 
 onMounted(() => {
   load()

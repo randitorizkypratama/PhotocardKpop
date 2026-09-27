@@ -4,6 +4,11 @@ import { GROUPS, groupDot, formatUSD } from '@/lib/catalog'
 import { cardTypeLabel } from '@/lib/cardTypes'
 
 useHead({ title: 'My Collection — HIBIKISHOP PC' })
+useSeoMeta({
+  ogTitle: 'My Collection — HIBIKISHOP PC',
+  ogDescription: 'Track your owned photocards and wishlist against current market values.',
+  ogUrl: 'https://kpop-tracker-six.vercel.app/collection',
+})
 
 const route = useRoute()
 const router = useRouter()

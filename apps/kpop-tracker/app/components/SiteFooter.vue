@@ -11,7 +11,7 @@
             </div>
           </div>
           <p class="mt-3 text-sm leading-relaxed text-muted-foreground">
-            K-pop photocard catalog &amp; collection tracker.
+            {{ t('footer.tagline') }}
           </p>
           <div class="mt-4">
             <SocialLinks size="sm" />
@@ -19,10 +19,11 @@
         </div>
 
         <nav class="flex flex-col gap-2.5" aria-label="Footer">
-          <NuxtLink to="/browse" class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">Browse</NuxtLink>
-          <NuxtLink to="/#groups" class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">Groups</NuxtLink>
-          <NuxtLink to="/shop" class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">Shop</NuxtLink>
-          <NuxtLink to="/collection" class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">Collection</NuxtLink>
+          <NuxtLink to="/browse" class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">{{ t('footer.browse') }}</NuxtLink>
+          <NuxtLink to="/#groups" class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">{{ t('nav.groups') }}</NuxtLink>
+          <NuxtLink to="/shop" class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">{{ t('nav.shop') }}</NuxtLink>
+          <NuxtLink to="/collection" class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">{{ t('nav.collection') }}</NuxtLink>
+          <NuxtLink to="/status" class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">{{ t('nav.status') }}</NuxtLink>
         </nav>
       </div>
 
@@ -30,9 +31,9 @@
 
       <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p class="text-xs text-muted-foreground">
-          © {{ year }} Copyright by
+          © {{ year }} {{ t('footer.copyright') }}
           <span class="font-medium text-foreground">HIBIKISHOP</span>
-          · Data based on
+          · {{ t('footer.dataBasedOn') }}
           <a
             href="https://pocamarket.com"
             target="_blank"
@@ -41,6 +42,19 @@
           >POCAMARKET</a>
         </p>
         <div class="flex flex-col items-start gap-1 sm:items-end">
+          <div class="mb-0.5 flex items-center gap-1" role="group" :aria-label="t('aria.language')">
+            <button
+              v-for="option in (['en', 'id'] as const)"
+              :key="option"
+              type="button"
+              class="rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase transition-colors"
+              :class="locale === option
+                ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
+                : 'text-muted-foreground hover:text-foreground'"
+              :aria-pressed="locale === option"
+              @click="setLocale(option)"
+            >{{ option }}</button>
+          </div>
           <p
             v-if="syncIssue"
             class="flex items-center gap-1.5 text-xs tabular-nums"
@@ -58,9 +72,9 @@
           </p>
           <p v-else-if="syncedLabel" class="flex items-center gap-1.5 text-xs tabular-nums text-muted-foreground">
             <span class="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
-            Synced {{ syncedLabel }} · {{ statusTotal.toLocaleString() }} cards
+            {{ t('sync.synced') }} {{ syncedLabel }} · {{ statusTotal.toLocaleString() }} {{ t('sync.cards') }}
           </p>
-          <p class="text-xs text-muted-foreground">K-Pop Photocard Tracker</p>
+          <p class="text-xs text-muted-foreground">{{ t('footer.tracker') }}</p>
         </div>
       </div>
     </div>
@@ -69,6 +83,7 @@
 
 <script setup lang="ts">
 const year = new Date().getFullYear()
+const { locale, t, setLocale } = useLocale()
 
 interface SyncLogRun {
   started_at: string
@@ -123,15 +138,15 @@ const syncIssue = computed<{ level: 'error' | 'warn', text: string, title: strin
   const detail = run.error || `run started ${formatStamp(run.started_at)}`
 
   if (run.status === 'error') {
-    return { level: 'error', text: `Sync failed ${formatStamp(run.started_at)}`, title: detail }
+    return { level: 'error', text: `${t('sync.failed')} ${formatStamp(run.started_at)}`, title: detail }
   }
   if (run.status === 'partial') {
-    return { level: 'warn', text: `Sync partial ${formatStamp(run.finished_at || run.started_at)}`, title: detail }
+    return { level: 'warn', text: `${t('sync.partial')} ${formatStamp(run.finished_at || run.started_at)}`, title: detail }
   }
   if (run.status === 'running') {
     const started = new Date(run.started_at).getTime()
     if (Number.isFinite(started) && Date.now() - started > 15 * 60 * 1000) {
-      return { level: 'error', text: `Sync stuck since ${formatStamp(run.started_at)}`, title: detail }
+      return { level: 'error', text: `${t('sync.stuck')} ${formatStamp(run.started_at)}`, title: detail }
     }
   }
   return null

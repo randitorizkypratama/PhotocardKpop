@@ -2,12 +2,13 @@
 import { Home, LayoutGrid, Users, Heart } from 'lucide-vue-next'
 
 const route = useRoute()
+const { t } = useLocale()
 
 const tabs = [
-  { to: '/', label: 'Home', icon: Home },
-  { to: '/browse', label: 'Catalog', icon: LayoutGrid },
-  { to: '/#groups', label: 'Groups', icon: Users },
-  { to: '/collection', label: 'Collection', icon: Heart },
+  { to: '/', label: 'tab.home', icon: Home },
+  { to: '/browse', label: 'tab.catalog', icon: LayoutGrid },
+  { to: '/#groups', label: 'tab.groups', icon: Users },
+  { to: '/collection', label: 'tab.collection', icon: Heart },
 ]
 
 function isActive(to: string) {
@@ -44,7 +45,7 @@ function isActive(to: string) {
         :aria-current="isActive(tab.to) ? 'page' : undefined"
       >
         <component :is="tab.icon" class="h-5 w-5" :stroke-width="isActive(tab.to) ? 2.25 : 1.75" />
-        <span class="text-[10px] font-medium">{{ tab.label }}</span>
+        <span class="text-[10px] font-medium">{{ t(tab.label) }}</span>
         <span
           v-if="isActive(tab.to)"
           class="absolute top-0 h-0.5 w-8 rounded-full bg-foreground"
