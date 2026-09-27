@@ -122,7 +122,7 @@ await check('POST /api/cron/sync rejects anonymous calls (401)', async () => {
   if (status !== 401) throw new Error(`expected 401, got ${status}`)
 })
 
-for (const page of ['/', '/browse', '/collection', '/releases', '/groups/IVE', '/releases/IVE']) {
+for (const page of ['/', '/browse', '/collection', '/releases', '/releases?group=IVE', '/groups/IVE', '/releases/IVE/secret']) {
   await check(`GET ${page} renders`, () => expectPage(page))
 }
 
