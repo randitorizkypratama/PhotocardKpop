@@ -22,8 +22,10 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 - Install / add deps: `bun install` / `bun add <pkg>` — **bun only**; `npm install` fails (`Cannot read properties of null (matches)`)
 - Dev: `bun run dev` (root or app)
 - Build: `npx nuxt build` — if build lock error, kill the PID from the message or set `NUXT_IGNORE_LOCK=1`
-- Deploy (only when user permits): `npx vercel --prod --yes` from `apps/kpop-tracker`
-- No lint / typecheck / test scripts exist. Root `typecheck` script points at a non-existent app script — ignore it.
+- Test: `bun run test` (vitest, `apps/kpop-tracker/tests/`); watch: `npx vitest`
+- Smoke test: `bun run smoke [base-url]` — verifies prod endpoints/pages, exits non-zero on failure
+- Deploy (only when user permits): **pushing `main` auto-deploys to production** (Vercel↔GitHub, Root Directory = `apps/kpop-tracker`); manual `npx vercel --prod --yes` from `apps/kpop-tracker` is the **rollback** tool when a git build is broken (retry once on "Not authorized", then wait ~10s and verify `/api/releases/timeline`).
+- No lint / typecheck scripts exist. Root `typecheck` script points at a non-existent app script — ignore it.
 
 ## Architecture
 
@@ -39,7 +41,9 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 
 - Pocamarket search: `https://pocamarket.com/apis/card/gb/v2/search?q=GROUP&page=1`; daily Vercel cron `0 17 * * *` UTC (= 00:00 WIB) → `POST /api/cron/sync`; ~16,203 cards in Turso.
 - Releases: `cards.release_name` comes from matching the card name against the group's MusicBrainz discography (`server/utils/releases/discography.ts`, table `discography`, refreshed by the daily cron — 3 MB requests, 1 req/s limit). Version siblings (Japanese/English/track-video) merge into one entry, earliest date wins. The token list in `server/utils/pocamarket.ts` is only a fallback for when MB is unreachable; `getGroupDiscography` falls back to the stale cache first. `cards_release_name_backup` holds pre-migration labels (rollback).
-- `/api/releases/timeline` and `/api/releases/detail` read the discography **first**, so releases with zero photocards still render ("No cards yet"); `app/pages/releases/` is the timeline + album pages.
+- `/api/releases/timeline` and `/api/releases/detail` read the discography **first**, so releases with zero photocards still render ("No cards yet"); `app/pages/releases/` is the timeline + album pages. Timeline rows carry an `artwork` field (Apple Music/iTunes via `release_cache`,600×600) with the card image as fallback — render `release.artwork || release.image`. The timeline supports `?group=` / `?type=` filters.
+- `/api/sync/status` → `{ last_synced, total }` from `MAX(cards.updated_at)` — drives the "Synced …" badge in `SiteFooter.vue`.
+- Manual calls to `init`, `sync/group`, and `cron/sync` need `Authorization: Bearer <CRON_SECRET>` (fail-closed 401 when `CRON_SECRET` is unset).
 - Currency: IDR primary; rates from Frankfurter with fallback 17800; price `0` renders as "Tidak tersedia".
 - Branding: HIBIKISHOP (`public/hibikishop-logo.png`); outbound POCAMARKET links → `https://pocamarket.com`. Social: Tokopedia/Shopee/TikTok URLs live in `SocialLinks` / footer components; assets under `public/social/`.
 

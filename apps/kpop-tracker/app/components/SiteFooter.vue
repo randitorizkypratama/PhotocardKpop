@@ -40,7 +40,13 @@
             class="font-medium text-foreground underline-offset-2 hover:underline"
           >POCAMARKET</a>
         </p>
-        <p class="text-xs text-muted-foreground">K-Pop Photocard Tracker</p>
+        <div class="flex flex-col items-start gap-1 sm:items-end">
+          <p v-if="syncedLabel" class="flex items-center gap-1.5 text-xs tabular-nums text-muted-foreground">
+            <span class="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
+            Synced {{ syncedLabel }} · {{ statusTotal.toLocaleString() }} cards
+          </p>
+          <p class="text-xs text-muted-foreground">K-Pop Photocard Tracker</p>
+        </div>
       </div>
     </div>
   </footer>
@@ -48,4 +54,33 @@
 
 <script setup lang="ts">
 const year = new Date().getFullYear()
+
+const lastSynced = ref<string | null>(null)
+const statusTotal = ref(0)
+
+onMounted(async () => {
+  try {
+    const response = await $fetch<{ success: boolean, data: { last_synced: string | null, total: number } }>(
+      '/api/sync/status',
+    )
+    if (response?.success && response.data?.last_synced) {
+      lastSynced.value = response.data.last_synced
+      statusTotal.value = response.data.total
+    }
+  } catch {
+    // The badge is optional — the footer still renders without it.
+  }
+})
+
+const syncedLabel = computed(() => {
+  if (!lastSynced.value) return ''
+  const date = new Date(lastSynced.value)
+  if (Number.isNaN(date.getTime())) return ''
+  return date.toLocaleString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+})
 </script>

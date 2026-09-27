@@ -224,8 +224,8 @@ async function onWishlist(id: number | string) {
             >
               <span class="block aspect-square overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900">
                 <img
-                  v-if="release.image"
-                  :src="release.image"
+                  v-if="release.artwork || release.image"
+                  :src="release.artwork || release.image"
                   :alt="`${release.release_name} release`"
                   loading="lazy"
                   decoding="async"

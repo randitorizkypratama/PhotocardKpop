@@ -9,6 +9,8 @@
     "build": "bun run --cwd apps/kpop-tracker build",
     "generate": "bun run --cwd apps/kpop-tracker generate",
     "preview": "bun run --cwd apps/kpop-tracker preview",
+    "test": "bun run --cwd apps/kpop-tracker test",
+    "smoke": "bun run --cwd apps/kpop-tracker smoke",
     "typecheck": "bun run --cwd apps/kpop-tracker typecheck"
   },
   "engines": {

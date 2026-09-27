@@ -7,7 +7,13 @@ useHead({ title: 'Releases — HIBIKISHOP PC' })
 const releases = ref<any[]>([])
 const loading = ref(true)
 const loadError = ref(false)
-const selectedGroup = ref<string>('All')
+
+const route = useRoute()
+const router = useRouter()
+
+const queryGroup = String(route.query.group || 'All')
+const selectedGroup = ref<string>(queryGroup === 'All' || GROUPS.includes(queryGroup as any) ? queryGroup : 'All')
+const selectedType = ref<string>(String(route.query.type || 'All'))
 
 onMounted(load)
 
@@ -28,11 +34,50 @@ async function load() {
 
 const filterTabs = ['All', ...GROUPS]
 
-const filtered = computed(() =>
-  selectedGroup.value === 'All'
-    ? releases.value
-    : releases.value.filter(release => release.group_name === selectedGroup.value),
+// Counts follow the group filter so switching group reshuffles the type chips.
+const releasesInGroup = computed(() =>
+  releases.value.filter(release =>
+    selectedGroup.value === 'All' || release.group_name === selectedGroup.value,
+  ),
 )
+
+const typeTabs = computed(() => {
+  const counts = new Map<string, number>()
+  for (const release of releasesInGroup.value) {
+    const type = release.release_type
+    if (type) counts.set(type, (counts.get(type) || 0) + 1)
+  }
+  return [
+    { type: 'All', count: releasesInGroup.value.length },
+    ...[...counts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([type, count]) => ({ type, count })),
+  ]
+})
+
+const filtered = computed(() =>
+  releasesInGroup.value.filter((release) =>
+    selectedType.value === 'All' || release.release_type === selectedType.value,
+  ),
+)
+
+// Reset a type that does not exist for the selected group (or in a shared URL).
+function ensureValidType() {
+  if (selectedType.value === 'All') return
+  const available = releasesInGroup.value.some(release => release.release_type === selectedType.value)
+  if (!available) selectedType.value = 'All'
+}
+
+watch(selectedGroup, ensureValidType)
+watch(releases, ensureValidType)
+
+// Keep the filter state in the URL so a filtered timeline can be shared.
+watch([selectedGroup, selectedType], ([group, type]) => {
+  const query: Record<string, string> = {}
+  if (group !== 'All') query.group = group
+  if (type !== 'All') query.type = type
+  router.replace({ query })
+})
 
 const years = computed(() => {
   const buckets = new Map<string, any[]>()
@@ -77,25 +122,47 @@ function albumPath(release: any) {
             MusicBrainz and Apple&nbsp;Music; open a release to see its photocards.
           </p>
 
-          <div v-if="!loading && !loadError" class="mt-5 flex flex-wrap gap-2">
-            <button
-              v-for="tab in filterTabs"
-              :key="tab"
-              type="button"
-              class="rounded-lg border px-3.5 py-1.5 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              :class="
-                selectedGroup === tab
-                  ? 'border-border bg-muted text-foreground'
-                  : 'border-zinc-200 bg-card text-muted-foreground hover:border-zinc-300 hover:text-foreground dark:border-zinc-800 dark:hover:border-zinc-700'
-              "
-              :aria-pressed="selectedGroup === tab"
-              @click="selectedGroup = tab"
-            >
-              <span class="inline-flex items-center gap-1.5">
-                <span v-if="tab !== 'All'" class="h-1.5 w-1.5 rounded-full" :class="groupDot(tab)" />
-                {{ tab }}
-              </span>
-            </button>
+          <div v-if="!loading && !loadError" class="mt-5 flex flex-col gap-3">
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-for="tab in filterTabs"
+                :key="tab"
+                type="button"
+                class="rounded-lg border px-3.5 py-1.5 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                :class="
+                  selectedGroup === tab
+                    ? 'border-border bg-muted text-foreground'
+                    : 'border-zinc-200 bg-card text-muted-foreground hover:border-zinc-300 hover:text-foreground dark:border-zinc-800 dark:hover:border-zinc-700'
+                "
+                :aria-pressed="selectedGroup === tab"
+                @click="selectedGroup = tab"
+              >
+                <span class="inline-flex items-center gap-1.5">
+                  <span v-if="tab !== 'All'" class="h-1.5 w-1.5 rounded-full" :class="groupDot(tab)" />
+                  {{ tab }}
+                </span>
+              </button>
+            </div>
+
+            <div v-if="typeTabs.length > 1 || selectedType !== 'All'" class="flex flex-wrap items-center gap-2">
+              <span class="mr-0.5 text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground">Type</span>
+              <button
+                v-for="tab in typeTabs"
+                :key="tab.type"
+                type="button"
+                class="rounded-lg border px-3 py-1 text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                :class="
+                  selectedType === tab.type
+                    ? 'border-border bg-muted text-foreground'
+                    : 'border-zinc-200 bg-card text-muted-foreground hover:border-zinc-300 hover:text-foreground dark:border-zinc-800 dark:hover:border-zinc-700'
+                "
+                :aria-pressed="selectedType === tab.type"
+                @click="selectedType = tab.type"
+              >
+                {{ tab.type }}
+                <span class="ml-1 tabular-nums text-muted-foreground">{{ tab.count }}</span>
+              </button>
+            </div>
           </div>
         </div>
       </section>
@@ -154,8 +221,8 @@ function albumPath(release: any) {
 
               <span class="h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-border bg-muted sm:h-14 sm:w-14">
                 <img
-                  v-if="release.image"
-                  :src="release.image"
+                  v-if="release.artwork || release.image"
+                  :src="release.artwork || release.image"
                   :alt="`${release.release_name} cover`"
                   loading="lazy"
                   decoding="async"
@@ -202,8 +269,8 @@ function albumPath(release: any) {
 
               <span class="h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-border bg-muted sm:h-14 sm:w-14">
                 <img
-                  v-if="release.image"
-                  :src="release.image"
+                  v-if="release.artwork || release.image"
+                  :src="release.artwork || release.image"
                   :alt="`${release.release_name} cover`"
                   loading="lazy"
                   decoding="async"

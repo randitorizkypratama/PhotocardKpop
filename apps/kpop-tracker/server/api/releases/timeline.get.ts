@@ -62,6 +62,7 @@ export default defineEventHandler(async (event) => {
     release_type: string | null
     count: number
     image: string | null
+    artwork: string | null
     card_id: number | null
     release_date: string | null
     label: string | null
@@ -83,6 +84,7 @@ export default defineEventHandler(async (event) => {
       release_type: release.release_type,
       count,
       image: cover?.image || null,
+      artwork: null,
       card_id: cover?.card_id ?? null,
       release_date: release.release_date,
       label: null,
@@ -104,6 +106,7 @@ export default defineEventHandler(async (event) => {
       release_type: null,
       count: row.count,
       image: row.image,
+      artwork: null,
       card_id: row.card_id,
       release_date: null,
       label: null,
@@ -121,6 +124,9 @@ export default defineEventHandler(async (event) => {
       const hit = match?.status === 'hit' ? match.match : null
       return {
         ...entry,
+        // Real album artwork from the enrichment cache; the card image stays
+        // in `image` as the fallback for releases without a match.
+        artwork: hit?.artwork || null,
         // Discography dates win: they describe the merged base release, not a
         // single regional edition.
         release_date: entry.release_date || hit?.releaseDate || null,

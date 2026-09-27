@@ -21,6 +21,7 @@ export default defineEventHandler(async (event) => {
     slug: releaseSlug(String(row.release_name)),
     count: Number(row.count) || 0,
     image: row.image ? String(row.image) : null,
+    artwork: null as string | null,
     card_id: row.card_id == null ? null : Number(row.card_id),
     group_name: row.group_name ? String(row.group_name) : null,
     release_date: null as string | null,
@@ -44,6 +45,17 @@ export default defineEventHandler(async (event) => {
     if (!entry) continue
     row.release_date = entry.release_date
     row.release_type = entry.release_type
+  }
+
+  // Album artwork (Apple Music/iTunes via the enrichment cache) beats a random
+  // card screenshot as the cover — the card image stays as the fallback.
+  const cache = await readReleaseCacheMany(
+    data.filter(row => row.group_name).map(row => releaseCacheKey(row.group_name, row.release_name)),
+  )
+  for (const row of data) {
+    if (!row.group_name) continue
+    const hit = cache.get(releaseCacheKey(row.group_name, row.release_name))
+    if (hit?.status === 'hit') row.artwork = hit.match?.artwork || null
   }
 
   return { success: true, data }
