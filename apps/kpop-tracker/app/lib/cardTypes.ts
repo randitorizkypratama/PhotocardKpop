@@ -93,7 +93,11 @@ export function cardTypeLabel(type?: string | null): string {
   return INFO[type]?.label ?? type
 }
 
-export function cardTypeBlurb(type?: string | null): string | null {
+export function cardTypeBlurb(type?: string | null, t?: (key: string) => string): string | null {
   if (!type) return null
+  if (t) {
+    const translated = t(`blurb.${type}`)
+    if (translated) return translated
+  }
   return INFO[type]?.blurb ?? null
 }

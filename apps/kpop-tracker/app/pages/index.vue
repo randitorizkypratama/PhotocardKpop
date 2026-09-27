@@ -191,7 +191,7 @@ async function onWishlist(id: number | string) {
               <span class="min-w-0">
                 <span class="block text-sm font-medium text-foreground">{{ type }}</span>
                 <span class="mt-1.5 block line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-                  {{ cardTypeBlurb(type) }}
+                  {{ cardTypeBlurb(type, t) }}
                 </span>
               </span>
               <ArrowRight class="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-150 group-hover:translate-x-0.5" aria-hidden="true" />

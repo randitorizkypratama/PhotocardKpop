@@ -150,7 +150,7 @@ const effectivePrice = computed(() => {
 })
 
 const typeLabel = computed(() => cardTypeLabel(card.value?.card_type))
-const typeBlurb = computed(() => cardTypeBlurb(card.value?.card_type))
+const typeBlurb = computed(() => cardTypeBlurb(card.value?.card_type, t))
 
 const showPromo = computed(() => {
   if (!card.value) return false
