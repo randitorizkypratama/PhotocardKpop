@@ -17,6 +17,7 @@ useSeoMeta({
 
 const route = useRoute()
 const router = useRouter()
+const { t } = useLocale()
 
 const selectedGroup = ref<string>(String(route.query.group || 'IVE'))
 if (!GROUPS.includes(selectedGroup.value as any)) selectedGroup.value = 'IVE'
@@ -351,12 +352,12 @@ const visiblePages = computed(() => {
 
     <main class="page-shell min-w-0 py-6 sm:py-8">
       <div class="mb-5 min-w-0 sm:mb-6">
-        <p class="eyebrow">Catalog</p>
-        <h1 class="mt-1.5 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Photocard Catalog</h1>
+        <p class="eyebrow">{{ t('browse.eyebrow') }}</p>
+        <h1 class="mt-1.5 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{{ t('browse.title') }}</h1>
         <p class="mt-1.5 max-w-2xl text-sm text-muted-foreground">
-          <template v-if="loading">Loading…</template>
-          <template v-else><span class="font-medium tabular-nums text-foreground">{{ total.toLocaleString() }}</span> cards</template>
-          · Identify album PCs, POBs, lucky draws and more. Market reference data from
+          <template v-if="loading">{{ t('browse.loading') }}</template>
+          <template v-else><span class="font-medium tabular-nums text-foreground">{{ total.toLocaleString() }}</span> {{ t('browse.cardCount') }}</template>
+          · {{ t('browse.dataSource') }}
           <a href="https://pocamarket.com" target="_blank" rel="noopener noreferrer" class="font-medium text-foreground underline-offset-2 hover:underline">POCAMARKET</a>.
         </p>
       </div>
@@ -366,7 +367,7 @@ const visiblePages = computed(() => {
         <aside class="hidden lg:block">
           <div class="sticky top-20 space-y-5 rounded-xl border border-border bg-card p-4">
             <div>
-              <p class="pc-meta-label mb-2">Group</p>
+              <p class="pc-meta-label mb-2">{{ t('browse.groupLabel') }}</p>
               <div class="flex flex-col gap-0.5">
                 <button
                   v-for="group in GROUPS"
@@ -388,7 +389,7 @@ const visiblePages = computed(() => {
             <Separator />
 
             <div>
-              <p class="pc-meta-label mb-2">Store</p>
+              <p class="pc-meta-label mb-2">{{ t('browse.storeLabel') }}</p>
               <div class="flex flex-col gap-0.5">
                 <button
                   type="button"
@@ -397,7 +398,7 @@ const visiblePages = computed(() => {
                   :aria-pressed="!selectedStore"
                   @click="selectedStore = null"
                 >
-                  <span class="truncate">All stores</span>
+                  <span class="truncate">{{ t('browse.allStores') }}</span>
                   <Check v-if="!selectedStore" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                 </button>
                 <button
@@ -415,14 +416,14 @@ const visiblePages = computed(() => {
                     <Check v-if="selectedStore === s.store" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   </span>
                 </button>
-                <p v-if="stores.length === 0" class="mt-1 text-xs text-muted-foreground">No store data yet.</p>
+                <p v-if="stores.length === 0" class="mt-1 text-xs text-muted-foreground">{{ t('browse.stores.empty') }}</p>
               </div>
             </div>
 
             <Separator />
 
             <div>
-              <p class="pc-meta-label mb-2">Card Type</p>
+              <p class="pc-meta-label mb-2">{{ t('browse.typeLabel') }}</p>
               <div class="flex flex-col gap-0.5">
                 <button
                   type="button"
@@ -431,24 +432,24 @@ const visiblePages = computed(() => {
                   :aria-pressed="!selectedCardType"
                   @click="selectedCardType = null"
                 >
-                  <span class="truncate">All types</span>
+                  <span class="truncate">{{ t('browse.allTypes') }}</span>
                   <Check v-if="!selectedCardType" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                 </button>
                 <button
-                  v-for="t in CARD_TYPES"
-                  :key="t"
+                  v-for="cardType in CARD_TYPES"
+                  :key="cardType"
                   type="button"
                   class="filter-link"
-                  :class="selectedCardType === t ? 'filter-link-active' : ''"
-                  :aria-pressed="selectedCardType === t"
-                  @click="selectedCardType = t"
+                  :class="selectedCardType === cardType ? 'filter-link-active' : ''"
+                  :aria-pressed="selectedCardType === cardType"
+                  @click="selectedCardType = cardType"
                 >
-                  <span class="truncate">{{ t }}</span>
+                  <span class="truncate">{{ cardType }}</span>
                   <span class="ml-auto flex shrink-0 items-center gap-1.5">
                     <span v-if="facetsLoaded" class="text-[11px] tabular-nums text-muted-foreground">
-                      {{ (typeCountMap.get(t) ?? 0).toLocaleString() }}
+                      {{ (typeCountMap.get(cardType) ?? 0).toLocaleString() }}
                     </span>
-                    <Check v-if="selectedCardType === t" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    <Check v-if="selectedCardType === cardType" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   </span>
                 </button>
               </div>
@@ -457,7 +458,7 @@ const visiblePages = computed(() => {
             <Separator />
 
             <div>
-              <p class="pc-meta-label mb-2">Member</p>
+              <p class="pc-meta-label mb-2">{{ t('browse.memberLabel') }}</p>
               <div class="flex flex-wrap gap-1.5">
                 <button
                   type="button"
@@ -465,7 +466,7 @@ const visiblePages = computed(() => {
                   :class="!selectedMember ? 'chip-active' : ''"
                   :aria-pressed="!selectedMember"
                   @click="selectedMember = null"
-                >All</button>
+                >{{ t('browse.allMembers') }}</button>
                 <button
                   v-for="m in MEMBERS[selectedGroup] || []"
                   :key="m"
@@ -481,23 +482,23 @@ const visiblePages = computed(() => {
             <Separator />
 
             <div>
-              <p class="pc-meta-label mb-2">Price (IDR)</p>
+              <p class="pc-meta-label mb-2">{{ t('browse.priceLabel') }}</p>
               <div class="flex flex-col gap-2">
                 <Input
                   v-model="minPriceIDR"
                   type="number"
                   inputmode="numeric"
-                  placeholder="Min"
+                  :placeholder="t('browse.priceMin')"
                   class="h-9 rounded-lg"
-                  aria-label="Minimum price in IDR"
+                  :aria-label="t('browse.priceMinAria')"
                 />
                 <Input
                   v-model="maxPriceIDR"
                   type="number"
                   inputmode="numeric"
-                  placeholder="Max"
+                  :placeholder="t('browse.priceMax')"
                   class="h-9 rounded-lg"
-                  aria-label="Maximum price in IDR"
+                  :aria-label="t('browse.priceMaxAria')"
                 />
               </div>
             </div>
@@ -510,7 +511,7 @@ const visiblePages = computed(() => {
               @click="clearFilters"
             >
               <RotateCcw class="h-3.5 w-3.5" />
-              Clear filters
+              {{ t('browse.clear') }}
             </Button>
           </div>
         </aside>
@@ -525,9 +526,9 @@ const visiblePages = computed(() => {
                 <Input
                   v-model="searchQuery"
                   type="search"
-                  placeholder="Search member, group, album, card type, store..."
+                  :placeholder="t('browse.search.placeholder')"
                   class="h-10 rounded-lg pl-9"
-                  aria-label="Search photocards"
+                  :aria-label="t('browse.search.aria')"
                 />
               </div>
 
@@ -539,7 +540,7 @@ const visiblePages = computed(() => {
                   @click="mobileFiltersOpen = true"
                 >
                   <SlidersHorizontal class="h-4 w-4 shrink-0" />
-                  <span class="truncate">Filters</span>
+                  <span class="truncate">{{ t('browse.filters') }}</span>
                   <span
                     v-if="activeFilterCount > 0"
                     class="ml-0.5 flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-foreground px-1.5 text-[10px] font-semibold text-background"
@@ -549,14 +550,14 @@ const visiblePages = computed(() => {
                 <Select v-model="selectedSort">
                   <SelectTrigger
                     class="h-10 w-full min-w-0 flex-1 gap-1.5 rounded-lg sm:w-auto sm:min-w-[8.5rem] sm:flex-none md:min-w-[9.5rem]"
-                    aria-label="Sort"
+                    :aria-label="t('browse.sort.aria')"
                   >
                     <ArrowUpDown class="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                     <SelectValue class="min-w-0 truncate" />
                   </SelectTrigger>
                   <SelectContent class="min-w-[12rem] max-w-[calc(100vw-2rem)]">
                     <SelectItem v-for="opt in SORT_OPTIONS" :key="opt.value" :value="opt.value">
-                      {{ opt.label }}
+                      {{ t(opt.labelKey) }}
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -567,15 +568,15 @@ const visiblePages = computed(() => {
             <div class="-mx-1 min-w-0 overflow-x-auto px-1 pb-0.5">
               <div class="flex w-max min-w-full items-center gap-1.5" role="group" aria-label="Filter by card type">
                 <button
-                  v-for="t in cardTypeChips"
-                  :key="t"
+                  v-for="chipType in cardTypeChips"
+                  :key="chipType"
                   type="button"
                   class="chip"
-                  :class="(t === 'All' ? !selectedCardType : selectedCardType === t) ? 'chip-active' : ''"
-                  :aria-pressed="t === 'All' ? !selectedCardType : selectedCardType === t"
-                  @click="selectedCardType = t === 'All' ? null : t"
+                  :class="(chipType === 'All' ? !selectedCardType : selectedCardType === chipType) ? 'chip-active' : ''"
+                  :aria-pressed="chipType === 'All' ? !selectedCardType : selectedCardType === chipType"
+                  @click="selectedCardType = chipType === 'All' ? null : chipType"
                 >
-                  {{ t === 'All' ? 'All types' : t }}
+                  {{ chipType === 'All' ? t('browse.allTypes') : chipType }}
                 </button>
               </div>
             </div>
@@ -600,7 +601,7 @@ const visiblePages = computed(() => {
                 class="chip max-w-full"
               >
                 <span class="truncate">{{ selectedMember }}</span>
-                <button type="button" class="shrink-0 text-muted-foreground hover:text-foreground" :aria-label="`Clear member ${selectedMember}`" @click="selectedMember = null">
+                <button type="button" class="shrink-0 text-muted-foreground hover:text-foreground" :aria-label="t('browse.member.aria', { name: selectedMember })" @click="selectedMember = null">
                   <X class="h-3 w-3" />
                 </button>
               </span>
@@ -609,7 +610,7 @@ const visiblePages = computed(() => {
                 class="chip max-w-full"
               >
                 <span class="truncate">{{ selectedCardType }}</span>
-                <button type="button" class="shrink-0 text-muted-foreground hover:text-foreground" :aria-label="`Clear card type ${selectedCardType}`" @click="selectedCardType = null">
+                <button type="button" class="shrink-0 text-muted-foreground hover:text-foreground" :aria-label="t('browse.cardType.aria', { name: selectedCardType })" @click="selectedCardType = null">
                   <X class="h-3 w-3" />
                 </button>
               </span>
@@ -618,7 +619,7 @@ const visiblePages = computed(() => {
                 class="chip max-w-full"
               >
                 <span class="truncate">{{ selectedRelease }}</span>
-                <button type="button" class="shrink-0 text-muted-foreground hover:text-foreground" aria-label="Clear release filter" @click="selectedRelease = null">
+                <button type="button" class="shrink-0 text-muted-foreground hover:text-foreground" :aria-label="t('browse.release.aria')" @click="selectedRelease = null">
                   <X class="h-3 w-3" />
                 </button>
               </span>
@@ -627,7 +628,7 @@ const visiblePages = computed(() => {
                 class="chip max-w-full"
               >
                 <span class="truncate">{{ selectedStore }}</span>
-                <button type="button" class="shrink-0 text-muted-foreground hover:text-foreground" :aria-label="`Clear store ${selectedStore}`" @click="selectedStore = null">
+                <button type="button" class="shrink-0 text-muted-foreground hover:text-foreground" :aria-label="t('browse.store.aria', { name: selectedStore })" @click="selectedStore = null">
                   <X class="h-3 w-3" />
                 </button>
               </span>
@@ -636,7 +637,7 @@ const visiblePages = computed(() => {
                 class="chip max-w-full min-w-0"
               >
                 <span class="truncate">Rp {{ Number(minPriceIDR || 0).toLocaleString('id-ID') }} – Rp {{ Number(maxPriceIDR || 0).toLocaleString('id-ID') }}</span>
-                <button type="button" class="shrink-0 text-muted-foreground hover:text-foreground" aria-label="Clear price filter" @click="minPriceIDR = ''; maxPriceIDR = ''">
+                <button type="button" class="shrink-0 text-muted-foreground hover:text-foreground" :aria-label="t('browse.price.aria')" @click="minPriceIDR = ''; maxPriceIDR = ''">
                   <X class="h-3 w-3" />
                 </button>
               </span>
@@ -647,7 +648,7 @@ const visiblePages = computed(() => {
                 class="shrink-0 text-xs font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
                 @click="clearFilters"
               >
-                Clear all
+                {{ t('browse.clearAll') }}
               </button>
             </div>
           </div>
@@ -661,12 +662,12 @@ const visiblePages = computed(() => {
             <div class="flex items-start gap-2.5">
               <AlertCircle class="mt-0.5 h-4 w-4 shrink-0 text-red-600 dark:text-red-400" />
               <div>
-                <p class="text-sm font-medium text-red-900 dark:text-red-200">Unable to load photocards.</p>
-                <p class="text-sm text-red-700/90 dark:text-red-300/90">Please try again.</p>
+                <p class="text-sm font-medium text-red-900 dark:text-red-200">{{ t('browse.error.title') }}</p>
+                <p class="text-sm text-red-700/90 dark:text-red-300/90">{{ t('browse.error.hint') }}</p>
               </div>
             </div>
             <Button variant="outline" size="sm" class="rounded-lg border-red-300 bg-white dark:border-red-800 dark:bg-zinc-900" @click="loadCards">
-              Retry
+              {{ t('browse.error.retry') }}
             </Button>
           </div>
 
@@ -688,10 +689,10 @@ const visiblePages = computed(() => {
             v-else-if="cards.length === 0 && !loadError"
             class="rounded-xl border border-dashed border-zinc-300 px-6 py-14 text-center dark:border-zinc-700"
           >
-            <p class="eyebrow">No results</p>
-            <p class="mt-3 text-sm font-medium text-foreground">No photocards match these filters.</p>
-            <p class="mt-1 text-sm text-muted-foreground">Try another group, member, or card type.</p>
-            <Button variant="outline" class="mt-4 rounded-lg" @click="clearFilters">Clear filters</Button>
+            <p class="eyebrow">{{ t('empty.noCards') }}</p>
+            <p class="mt-3 text-sm font-medium text-foreground">{{ t('browse.empty.title') }}</p>
+            <p class="mt-1 text-sm text-muted-foreground">{{ t('browse.empty.hint') }}</p>
+            <Button variant="outline" class="mt-4 rounded-lg" @click="clearFilters">{{ t('browse.clear') }}</Button>
           </div>
 
           <!-- Cards -->
@@ -714,9 +715,7 @@ const visiblePages = computed(() => {
           <!-- Pagination -->
           <div v-if="!loading && totalPages > 1 && cards.length > 0" class="mt-8 min-w-0 sm:mt-10">
             <p class="mb-3 text-center text-xs text-muted-foreground">
-              Page <span class="font-medium tabular-nums text-foreground">{{ currentPage.toLocaleString() }}</span>
-              of <span class="font-medium tabular-nums text-foreground">{{ totalPages.toLocaleString() }}</span>
-              <span class="hidden sm:inline"> · {{ total.toLocaleString() }} cards</span>
+              {{ t('browse.pageOfCards', { current: currentPage.toLocaleString(), total: totalPages.toLocaleString(), count: total.toLocaleString() }) }}
             </p>
 
             <!-- Mobile: Prev / page indicator / Next only -->
@@ -728,7 +727,7 @@ const visiblePages = computed(() => {
                 @click="prevPage"
               >
                 <ChevronLeft class="h-4 w-4 shrink-0" />
-                <span class="truncate">Prev</span>
+                <span class="truncate">{{ t('browse.prev') }}</span>
               </Button>
               <span class="shrink-0 whitespace-nowrap px-1 text-xs font-medium tabular-nums text-muted-foreground">
                 {{ currentPage }} / {{ totalPages }}
@@ -739,7 +738,7 @@ const visiblePages = computed(() => {
                 :disabled="currentPage === totalPages"
                 @click="nextPage"
               >
-                <span class="truncate">Next</span>
+                <span class="truncate">{{ t('browse.next') }}</span>
                 <ChevronRight class="h-4 w-4 shrink-0" />
               </Button>
             </div>
@@ -775,15 +774,15 @@ const visiblePages = computed(() => {
         class="max-h-[85vh] overflow-y-auto overscroll-contain rounded-t-2xl border-zinc-200 p-0 dark:border-zinc-800 sm:inset-x-auto sm:right-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:w-full sm:max-w-md sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:border"
       >
         <SheetHeader class="relative border-b border-zinc-200 px-4 py-4 pr-12 text-left dark:border-zinc-800">
-          <SheetTitle class="text-base font-semibold">Filters</SheetTitle>
+          <SheetTitle class="text-base font-semibold">{{ t('browse.filters') }}</SheetTitle>
           <SheetDescription class="text-sm text-muted-foreground">
-            Narrow results by member, card type, and price.
+            {{ t('browse.filtersDesc') }}
           </SheetDescription>
         </SheetHeader>
 
         <div class="space-y-5 px-4 py-4">
           <div>
-            <p class="mb-2 pc-meta-label">Group</p>
+            <p class="mb-2 pc-meta-label">{{ t('browse.groupLabel') }}</p>
             <div class="flex flex-wrap gap-1.5">
               <button
                 v-for="group in GROUPS"
@@ -797,14 +796,14 @@ const visiblePages = computed(() => {
           </div>
 
           <div>
-            <p class="mb-2 pc-meta-label">Store</p>
+            <p class="mb-2 pc-meta-label">{{ t('browse.storeLabel') }}</p>
             <div class="flex flex-wrap gap-1.5">
               <button
                 type="button"
                 class="chip"
                 :class="!selectedStore ? 'chip-active' : ''"
                 @click="selectedStore = null"
-              >All stores</button>
+              >{{ t('browse.allStores') }}</button>
               <button
                 v-for="s in stores"
                 :key="s.store"
@@ -814,38 +813,38 @@ const visiblePages = computed(() => {
                 @click="selectedStore = s.store"
               >{{ s.store }}</button>
             </div>
-            <p v-if="stores.length === 0" class="mt-1 text-xs text-muted-foreground">No store data yet.</p>
+            <p v-if="stores.length === 0" class="mt-1 text-xs text-muted-foreground">{{ t('browse.stores.empty') }}</p>
           </div>
 
           <div>
-            <p class="mb-2 pc-meta-label">Card Type</p>
+            <p class="mb-2 pc-meta-label">{{ t('browse.typeLabel') }}</p>
             <div class="flex flex-wrap gap-1.5">
               <button
                 type="button"
                 class="chip"
                 :class="!selectedCardType ? 'chip-active' : ''"
                 @click="selectedCardType = null"
-              >All types</button>
+              >{{ t('browse.allTypes') }}</button>
               <button
-                v-for="t in CARD_TYPES"
-                :key="t"
+                v-for="cardType in CARD_TYPES"
+                :key="cardType"
                 type="button"
                 class="chip"
-                :class="selectedCardType === t ? 'chip-active' : ''"
-                @click="selectedCardType = t"
-              >{{ t }}</button>
+                :class="selectedCardType === cardType ? 'chip-active' : ''"
+                @click="selectedCardType = cardType"
+              >{{ cardType }}</button>
             </div>
           </div>
 
           <div>
-            <p class="mb-2 pc-meta-label">Member</p>
+            <p class="mb-2 pc-meta-label">{{ t('browse.memberLabel') }}</p>
             <div class="flex flex-wrap gap-1.5">
               <button
                 type="button"
                 class="chip"
                 :class="!selectedMember ? 'chip-active' : ''"
                 @click="selectedMember = null"
-              >All</button>
+              >{{ t('browse.allMembers') }}</button>
               <button
                 v-for="m in MEMBERS[selectedGroup] || []"
                 :key="m"
@@ -858,17 +857,17 @@ const visiblePages = computed(() => {
           </div>
 
           <div>
-            <p class="mb-2 pc-meta-label">Price (IDR)</p>
+            <p class="mb-2 pc-meta-label">{{ t('browse.priceLabel') }}</p>
             <div class="flex gap-2">
-              <Input v-model="minPriceIDR" type="number" inputmode="numeric" placeholder="Min" class="h-10 rounded-lg" aria-label="Minimum price" />
-              <Input v-model="maxPriceIDR" type="number" inputmode="numeric" placeholder="Max" class="h-10 rounded-lg" aria-label="Maximum price" />
+              <Input v-model="minPriceIDR" type="number" inputmode="numeric" :placeholder="t('browse.priceMin')" class="h-10 rounded-lg" :aria-label="t('browse.priceMinAria')" />
+              <Input v-model="maxPriceIDR" type="number" inputmode="numeric" :placeholder="t('browse.priceMax')" class="h-10 rounded-lg" :aria-label="t('browse.priceMaxAria')" />
             </div>
           </div>
         </div>
 
         <SheetFooter class="gap-2 border-t border-zinc-200 px-4 py-4 dark:border-zinc-800 sm:flex-row">
-          <Button variant="outline" class="flex-1 rounded-lg" @click="clearFilters">Clear</Button>
-          <Button class="flex-1 rounded-lg" @click="mobileFiltersOpen = false">Show results</Button>
+          <Button variant="outline" class="flex-1 rounded-lg" @click="clearFilters">{{ t('browse.clearMobile') }}</Button>
+          <Button class="flex-1 rounded-lg" @click="mobileFiltersOpen = false">{{ t('browse.showResults') }}</Button>
         </SheetFooter>
       </SheetContent>
     </Sheet>

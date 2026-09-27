@@ -8,20 +8,7 @@ import { cardTypeBlurb, cardTypeLabel } from '@/lib/cardTypes'
 
 const route = useRoute()
 const cardId = parseInt(route.params.id as string)
-
-useHead({
-  title: computed(() => (card.value ? `${card.value.name} — HIBIKISHOP PC` : 'Photocard — HIBIKISHOP PC')),
-})
-useSeoMeta({
-  ogTitle: computed(() => (card.value
-    ? `${card.value.name} — ${card.value.member_name || ''} ${card.value.group_name || ''}`.trim()
-    : 'Photocard — HIBIKISHOP PC')),
-  ogDescription: computed(() => (card.value
-    ? `Market reference for ${card.value.name} (${card.value.group_name}) — price, discount and sales stats from Pocamarket.`
-    : 'K-pop photocard market reference from Pocamarket.')),
-  ogImage: computed(() => card.value?.image || undefined),
-  ogUrl: computed(() => `https://kpop-tracker-six.vercel.app/card/${cardId}`),
-})
+const { t } = useLocale()
 
 const { history, fetchPriceHistory, getPriceTrend, getPriceChange } = usePriceHistory()
 const {
@@ -38,6 +25,22 @@ const adding = ref(false)
 const release = ref<any>(null)
 const releaseLoading = ref(false)
 
+// Head/meta computeds must run after `card` is declared — they evaluate eagerly
+// during SSR, which would otherwise hit a TDZ on `card.value`.
+useHead({
+  title: computed(() => (card.value ? `${card.value.name} — HIBIKISHOP PC` : 'Photocard — HIBIKISHOP PC')),
+})
+useSeoMeta({
+  ogTitle: computed(() => (card.value
+    ? `${card.value.name} — ${card.value.member_name || ''} ${card.value.group_name || ''}`.trim()
+    : 'Photocard — HIBIKISHOP PC')),
+  ogDescription: computed(() => (card.value
+    ? `Market reference for ${card.value.name} (${card.value.group_name}) — price, discount and sales stats from Pocamarket.`
+    : 'K-pop photocard market reference from Pocamarket.')),
+  ogImage: computed(() => card.value?.image || undefined),
+  ogUrl: computed(() => `https://kpop-tracker-six.vercel.app/card/${cardId}`),
+})
+
 onMounted(async () => {
   fetchCollection()
   try {
@@ -50,13 +53,13 @@ onMounted(async () => {
       await fetchPriceHistory(cardId)
       loadRelease()
     } else {
-      error.value = 'Photocard not found.'
+      error.value = t('card.notFound')
     }
     if (ratesRes.success) {
       exchangeRates.value = ratesRes.data
     }
   } catch (e) {
-    error.value = 'Unable to load this photocard.'
+    error.value = t('card.unableLoad')
   } finally {
     loading.value = false
   }
@@ -228,10 +231,10 @@ const chartData = computed(() => {
         role="alert"
       >
         <AlertCircle class="mx-auto h-8 w-8 text-red-600 dark:text-red-400" aria-hidden="true" />
-        <p class="mt-3 text-sm font-medium text-red-900 dark:text-red-200">Unable to load this photocard.</p>
+        <p class="mt-3 text-sm font-medium text-red-900 dark:text-red-200">{{ t('card.error.title') }}</p>
         <p class="mt-1 text-sm text-red-700/90 dark:text-red-300/90">{{ error }}</p>
         <Button variant="outline" class="mt-4 rounded-lg border-red-300 bg-white dark:border-red-800 dark:bg-zinc-900" as-child>
-          <NuxtLink to="/browse">Back to browse</NuxtLink>
+          <NuxtLink to="/browse">{{ t('card.error.back') }}</NuxtLink>
         </Button>
       </div>
 
@@ -280,34 +283,34 @@ const chartData = computed(() => {
 
           <!-- Card information -->
           <div class="rounded-xl border border-border bg-card p-4 sm:p-5">
-            <p class="pc-meta-label">Card information</p>
+            <p class="pc-meta-label">{{ t('card.info.title') }}</p>
             <dl class="mt-3 divide-y divide-border text-sm">
               <div class="flex items-start justify-between gap-4 py-2.5">
-                <dt class="shrink-0 text-muted-foreground">Type</dt>
-                <dd class="text-right font-medium text-foreground">{{ typeLabel || 'Album' }}</dd>
+                <dt class="shrink-0 text-muted-foreground">{{ t('card.type') }}</dt>
+                <dd class="text-right font-medium text-foreground">{{ typeLabel || t('card.noType') }}</dd>
               </div>
               <div class="flex items-start justify-between gap-4 py-2.5">
-                <dt class="shrink-0 text-muted-foreground">Group</dt>
+                <dt class="shrink-0 text-muted-foreground">{{ t('card.group') }}</dt>
                 <dd class="text-right font-medium text-foreground">{{ card.group_name }}</dd>
               </div>
               <div class="flex items-start justify-between gap-4 py-2.5">
-                <dt class="shrink-0 text-muted-foreground">Member</dt>
+                <dt class="shrink-0 text-muted-foreground">{{ t('card.member') }}</dt>
                 <dd class="text-right font-medium text-foreground">{{ card.member_name }}</dd>
               </div>
               <div class="flex items-start justify-between gap-4 py-2.5">
-                <dt class="shrink-0 text-muted-foreground">Album / release</dt>
+                <dt class="shrink-0 text-muted-foreground">{{ t('card.albumRelease') }}</dt>
                 <dd class="text-right font-medium text-foreground">{{ card.release_name || '—' }}</dd>
               </div>
               <div v-if="card.store" class="flex items-start justify-between gap-4 py-2.5">
-                <dt class="shrink-0 text-muted-foreground">Store</dt>
+                <dt class="shrink-0 text-muted-foreground">{{ t('card.store') }}</dt>
                 <dd class="text-right font-medium text-foreground">{{ card.store }}</dd>
               </div>
               <div v-if="card.event" class="flex items-start justify-between gap-4 py-2.5">
-                <dt class="shrink-0 text-muted-foreground">Event</dt>
+                <dt class="shrink-0 text-muted-foreground">{{ t('card.event') }}</dt>
                 <dd class="text-right font-medium text-foreground">{{ card.event }}</dd>
               </div>
               <div v-if="showRawType" class="flex items-start justify-between gap-4 py-2.5">
-                <dt class="shrink-0 text-muted-foreground">Listed as</dt>
+                <dt class="shrink-0 text-muted-foreground">{{ t('card.listedAs') }}</dt>
                 <dd class="text-right font-medium text-foreground">{{ card.card_type_raw }}</dd>
               </div>
             </dl>
@@ -316,8 +319,8 @@ const chartData = computed(() => {
           <!-- Release information (enrichment layer, optional) -->
           <div v-if="release" class="rounded-xl border border-border bg-card p-4 sm:p-5">
             <div class="flex items-center justify-between gap-3">
-              <p class="pc-meta-label">Release information</p>
-              <p class="text-[11px] text-muted-foreground">Source · {{ releaseSourceLabel }}</p>
+              <p class="pc-meta-label">{{ t('card.release.title') }}</p>
+              <p class="text-[11px] text-muted-foreground">{{ t('card.release.source', { source: releaseSourceLabel }) }}</p>
             </div>
 
             <div class="mt-3 flex gap-4">
@@ -333,13 +336,13 @@ const chartData = computed(() => {
                 <h2 class="truncate text-base font-semibold tracking-tight text-foreground">{{ release.title }}</h2>
                 <p class="mt-0.5 truncate text-sm text-muted-foreground">{{ release.artist }}</p>
                 <p v-if="release.releaseDate" class="mt-1 text-sm text-muted-foreground">
-                  Released {{ formatReleaseDate(release.releaseDate) }}
+                  {{ t('card.release.released', { date: formatReleaseDate(release.releaseDate) }) }}
                 </p>
               </div>
             </div>
 
             <template v-if="visibleTracks.length">
-              <p class="pc-meta-label mt-4">Tracks</p>
+              <p class="pc-meta-label mt-4">{{ t('card.release.tracks') }}</p>
               <ol class="mt-2 grid gap-x-4 gap-y-1 sm:grid-cols-2">
                 <li
                   v-for="(track, index) in visibleTracks"
@@ -353,7 +356,7 @@ const chartData = computed(() => {
                 </li>
               </ol>
               <p v-if="hiddenTrackCount > 0" class="mt-2 text-xs text-muted-foreground">
-                + {{ hiddenTrackCount }} more tracks
+                {{ t('card.release.moreTracks', { count: hiddenTrackCount }) }}
               </p>
             </template>
           </div>
@@ -361,8 +364,8 @@ const chartData = computed(() => {
           <!-- Market reference -->
           <div class="rounded-xl border border-border bg-card p-4 sm:p-5">
             <div class="flex items-center justify-between gap-3">
-              <p class="pc-meta-label">Market reference</p>
-              <p class="text-[11px] text-muted-foreground">Data source · Pocamarket</p>
+              <p class="pc-meta-label">{{ t('card.marketReference') }}</p>
+              <p class="text-[11px] text-muted-foreground">{{ t('card.dataSource') }}</p>
             </div>
 
             <template v-if="effectivePrice > 0">
@@ -379,7 +382,7 @@ const chartData = computed(() => {
                 </span>
               </p>
             </template>
-            <p v-else class="mt-2 text-base font-medium text-muted-foreground">Not available</p>
+            <p v-else class="mt-2 text-base font-medium text-muted-foreground">{{ t('card.notAvailable') }}</p>
 
             <div v-if="history.length >= 2" class="mt-4 flex items-center gap-2.5 border-t border-border pt-4">
               <TrendingUp v-if="getPriceTrend() === 'up'" class="h-4 w-4 text-red-500" aria-hidden="true" />
@@ -391,13 +394,13 @@ const chartData = computed(() => {
               >
                 {{ getPriceChange() > 0 ? '+' : '' }}${{ getPriceChange().toFixed(2) }}
               </span>
-              <span class="text-xs text-muted-foreground">since last snapshot</span>
+              <span class="text-xs text-muted-foreground">{{ t('card.priceChangeSince') }}</span>
             </div>
 
             <div class="mt-4 grid grid-cols-1 gap-2 sm:flex sm:flex-row">
               <Button variant="outline" class="h-11 w-full gap-2 rounded-lg sm:h-10 sm:flex-1" as-child>
                 <a href="https://pocamarket.com" target="_blank" rel="noopener noreferrer">
-                  View on Pocamarket
+                  {{ t('card.viewOnPocamarket') }}
                   <ExternalLink class="h-4 w-4" />
                 </a>
               </Button>
@@ -409,7 +412,7 @@ const chartData = computed(() => {
                 @click="handleWishlistToggle"
               >
                 <Heart class="h-4 w-4" :fill="isWishlisted ? 'currentColor' : 'none'" />
-                {{ isWishlisted ? 'Wishlisted' : 'Wishlist' }}
+                {{ isWishlisted ? t('card.wishlisted') : t('card.wishlist') }}
               </Button>
             </div>
 
@@ -419,15 +422,15 @@ const chartData = computed(() => {
               @click="showAddDialog = true"
             >
               <Tag class="h-4 w-4" />
-              {{ isInCollection ? 'In Collection' : 'Add to Collection' }}
+              {{ isInCollection ? t('card.inCollection') : t('card.addToCollection') }}
             </Button>
           </div>
 
           <!-- What is this card type -->
           <div v-if="typeBlurb" class="rounded-xl border border-border bg-card p-4 sm:p-5">
-            <p class="pc-meta-label">What is this?</p>
+            <p class="pc-meta-label">{{ t('card.whatIsThis') }}</p>
             <h2 class="mt-2 text-base font-semibold tracking-tight text-foreground">
-              What is {{ typeLabel }}?
+              {{ t('card.whatIsType', { type: typeLabel }) }}
             </h2>
             <p class="mt-2 text-sm leading-relaxed text-muted-foreground">{{ typeBlurb }}</p>
             <NuxtLink
@@ -435,18 +438,18 @@ const chartData = computed(() => {
               :to="{ path: '/browse', query: { card_type: card.card_type, group: card.group_name } }"
               class="mt-3 inline-block text-sm font-medium text-foreground underline decoration-zinc-300 underline-offset-4 hover:decoration-foreground dark:decoration-zinc-700"
             >
-              Browse more {{ typeLabel }}
+              {{ t('card.browseMore', { type: typeLabel }) }}
             </NuxtLink>
           </div>
 
           <!-- Price history -->
           <div class="rounded-xl border border-zinc-200 bg-card p-4 dark:border-zinc-800 sm:p-5">
-            <h2 class="text-sm font-semibold text-foreground">Price History</h2>
+            <h2 class="text-sm font-semibold text-foreground">{{ t('card.priceHistory') }}</h2>
 
             <div v-if="history.length === 0" class="mt-3 rounded-lg border border-dashed border-zinc-300 px-4 py-8 text-center dark:border-zinc-700">
               <Clock class="mx-auto h-6 w-6 text-zinc-400" aria-hidden="true" />
               <p class="mt-2 text-sm text-muted-foreground">
-                Price history isn't available for this card yet.
+                {{ t('card.priceHistoryEmpty') }}
               </p>
             </div>
 
@@ -455,8 +458,8 @@ const chartData = computed(() => {
                 <div class="mb-2 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
                   <span>{{ chartData.labels.first }}</span>
                   <span class="flex items-center gap-3">
-                    <span class="text-emerald-600 dark:text-emerald-400">Low: ${{ chartData.min.toFixed(2) }}</span>
-                    <span class="text-red-600 dark:text-red-400">High: ${{ chartData.max.toFixed(2) }}</span>
+                    <span class="text-emerald-600 dark:text-emerald-400">{{ t('card.priceHistoryLow', { price: chartData.min.toFixed(2) }) }}</span>
+                    <span class="text-red-600 dark:text-red-400">{{ t('card.priceHistoryHigh', { price: chartData.max.toFixed(2) }) }}</span>
                   </span>
                   <span>{{ chartData.labels.last }}</span>
                 </div>
@@ -515,31 +518,31 @@ const chartData = computed(() => {
       <Dialog v-model:open="showAddDialog">
         <DialogContent class="max-w-md rounded-xl p-5 sm:p-6">
           <DialogHeader class="mb-1">
-            <DialogTitle class="text-left text-lg">Add to Collection</DialogTitle>
+            <DialogTitle class="text-left text-lg">{{ t('card.addDialog.title') }}</DialogTitle>
             <DialogDescription class="text-left text-sm text-muted-foreground">
-              Save this photocard to your owned collection. Use the heart button for wishlist.
+              {{ t('card.addDialog.desc') }}
             </DialogDescription>
           </DialogHeader>
 
           <div class="space-y-5">
             <div>
-              <Label for="bought-price" class="mb-2 block text-sm font-medium text-foreground">Bought Price (USD)</Label>
+              <Label for="bought-price" class="mb-2 block text-sm font-medium text-foreground">{{ t('card.addDialog.priceLabel') }}</Label>
               <Input
                 id="bought-price"
                 v-model="boughtPrice"
                 type="number"
                 step="0.01"
-                placeholder="Optional"
+                :placeholder="t('card.addDialog.pricePlaceholder')"
                 class="rounded-lg"
               />
             </div>
 
             <DialogFooter class="gap-2.5 sm:justify-end">
               <Button type="button" variant="outline" class="flex-1 rounded-lg sm:flex-none" @click="showAddDialog = false">
-                Cancel
+                {{ t('card.addDialog.cancel') }}
               </Button>
               <Button type="button" class="flex-1 gap-2 rounded-lg sm:flex-none" :disabled="adding" @click="handleAddToCollection">
-                <Check class="h-4 w-4" /> {{ adding ? 'Adding...' : 'Add' }}
+                <Check class="h-4 w-4" /> {{ adding ? t('card.addDialog.adding') : t('card.addDialog.add') }}
               </Button>
             </DialogFooter>
           </div>

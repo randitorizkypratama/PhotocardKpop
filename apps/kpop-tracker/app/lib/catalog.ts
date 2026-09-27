@@ -22,12 +22,12 @@ export const CARD_TYPES = [
 ]
 
 export const SORT_OPTIONS = [
-  { value: 'newest', label: 'Newest' },
-  { value: 'popular', label: 'Popular' },
-  { value: 'price_asc', label: 'Price: Low to High' },
-  { value: 'price_desc', label: 'Price: High to Low' },
-  { value: 'stock', label: 'Most Stock' },
-  { value: 'name', label: 'Name A-Z' },
+  { value: 'newest', labelKey: 'browse.sort.recent' },
+  { value: 'popular', labelKey: 'browse.sort.popular' },
+  { value: 'price_asc', labelKey: 'browse.sort.priceAsc' },
+  { value: 'price_desc', labelKey: 'browse.sort.priceDesc' },
+  { value: 'stock', labelKey: 'browse.sort.stock' },
+  { value: 'name', labelKey: 'browse.sort.name' },
 ]
 
 const GROUP_ACCENTS: Record<string, string> = {
