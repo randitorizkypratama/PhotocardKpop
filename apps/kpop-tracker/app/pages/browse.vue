@@ -48,22 +48,16 @@ const total = ref(0)
 const totalPages = ref(0)
 const exchangeRates = ref<any>(null)
 const storeCounts = ref<{ store: string, count: number, by_group: Record<string, number> }[]>([])
-const typeCounts = ref<{ card_type: string, count: number, by_group: Record<string, number> }[]>([])
+const facetStores = ref<{ store: string, count: number }[]>([])
+const facetTypes = ref<{ card_type: string, count: number }[]>([])
+const facetsLoaded = ref(false)
 
-/** Stores are counted for the selected group so the number matches the results. */
-const stores = computed(() => {
-  const group = selectedGroup.value
-  return storeCounts.value
-    .map(entry => ({ store: entry.store, count: entry.by_group?.[group] || 0 }))
-    .filter(entry => entry.count > 0)
-    .sort((a, b) => b.count - a.count)
-})
+/** Store + type counts for the current filter set — each facet ignores its own selection. */
+const stores = computed(() => facetStores.value)
 
-/** Card-type counts follow the selected group, same as the store filter. */
 const typeCountMap = computed(() => {
-  const group = selectedGroup.value
   const map = new Map<string, number>()
-  for (const entry of typeCounts.value) map.set(entry.card_type, entry.by_group?.[group] ?? 0)
+  for (const entry of facetTypes.value) map.set(entry.card_type, entry.count)
   return map
 })
 
@@ -86,10 +80,10 @@ onMounted(() => {
   loadCards()
   loadExchangeRates()
   loadStores()
-  loadCardTypes()
   fetchCollection()
 })
 
+/** Static per-group store map for the "store has no cards here" cleanup on group change. */
 async function loadStores() {
   try {
     const response = await $fetch<any>('/api/stores')
@@ -99,12 +93,30 @@ async function loadStores() {
   }
 }
 
-async function loadCardTypes() {
+let facetRequestId = 0
+
+/** Facet counts follow every active filter except their own selection. */
+async function loadFacets() {
+  const requestId = ++facetRequestId
   try {
-    const response = await $fetch<any>('/api/cardtypes')
-    if (response?.success) typeCounts.value = response.data || []
+    const params = new URLSearchParams()
+    if (selectedGroup.value) params.set('group', selectedGroup.value)
+    if (selectedMember.value) params.set('member', selectedMember.value)
+    if (selectedCardType.value) params.set('card_type', selectedCardType.value)
+    if (selectedRelease.value) params.set('release', selectedRelease.value)
+    if (selectedStore.value) params.set('store', selectedStore.value)
+    if (searchQuery.value.trim()) params.set('search', searchQuery.value.trim())
+    if (minPriceIDR.value) params.set('min_price', idrToUSD(Number(minPriceIDR.value)).toFixed(4))
+    if (maxPriceIDR.value) params.set('max_price', idrToUSD(Number(maxPriceIDR.value)).toFixed(4))
+    const response = await $fetch<any>(`/api/facets?${params}`)
+    if (requestId !== facetRequestId) return
+    if (response?.success) {
+      facetStores.value = response.data?.stores || []
+      facetTypes.value = response.data?.card_types || []
+      facetsLoaded.value = true
+    }
   } catch (e) {
-    console.error('Failed to load card types:', e)
+    if (requestId === facetRequestId) console.error('Failed to load facets:', e)
   }
 }
 
@@ -248,6 +260,7 @@ function idrToUSD(idr: number): number {
 async function loadCards() {
   loading.value = true
   loadError.value = false
+  loadFacets()
   try {
     const params = new URLSearchParams({
       group: selectedGroup.value,
@@ -398,7 +411,7 @@ const visiblePages = computed(() => {
                 >
                   <span class="truncate">{{ t }}</span>
                   <span class="ml-auto flex shrink-0 items-center gap-1.5">
-                    <span v-if="typeCountMap.has(t)" class="text-[11px] tabular-nums text-muted-foreground">
+                    <span v-if="facetsLoaded" class="text-[11px] tabular-nums text-muted-foreground">
                       {{ (typeCountMap.get(t) ?? 0).toLocaleString() }}
                     </span>
                     <Check v-if="selectedCardType === t" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />

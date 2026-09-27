@@ -15,64 +15,16 @@ export default defineEventHandler(async (event) => {
 
   const db = getTursoClient()
 
-  let conditions: string[] = []
-  let args: (string | number)[] = []
-
-  if (group) {
-    conditions.push('group_name = ?')
-    args.push(group)
-  }
-  if (member) {
-    conditions.push('UPPER(member_name) = ?')
-    args.push(member.toUpperCase())
-  }
-
-  // Structured search: card type / store phrases are pulled out first, the rest
-  // is matched across name, member, group and release.
-  const parsed = parseStructuredSearch(search)
-  if (parsed.cardType) {
-    const values = cardTypeSqlValues(parsed.cardType)
-    conditions.push(`UPPER(card_type) IN (${values.map(() => '?').join(', ')})`)
-    args.push(...values)
-  }
-  if (parsed.store) {
-    const patterns = storeLikePatterns(parsed.store)
-    conditions.push(`(UPPER(name) LIKE ?${patterns.length > 1 ? ' OR UPPER(name) LIKE ?' : ''})`)
-    args.push(...patterns)
-  }
-  if (parsed.text) {
-    const q = `%${parsed.text.toUpperCase()}%`
-    conditions.push(
-      '(UPPER(name) LIKE ? OR UPPER(member_name) LIKE ? OR UPPER(group_name) LIKE ? OR UPPER(COALESCE(release_name, \'\')) LIKE ?)',
-    )
-    args.push(q, q, q, q)
-  }
-
-  if (store) {
-    const patterns = storeLikePatterns(store)
-    conditions.push(`(UPPER(name) LIKE ?${patterns.length > 1 ? ' OR UPPER(name) LIKE ?' : ''})`)
-    args.push(...patterns)
-  }
-  if (cardType) {
-    const values = cardTypeSqlValues(cardType)
-    conditions.push(`UPPER(card_type) IN (${values.map(() => '?').join(', ')})`)
-    args.push(...values)
-  }
-  if (release) {
-    conditions.push('release_name = ?')
-    args.push(release)
-  }
-  const priceExpr = 'COALESCE(last_discounted_price, last_price)'
-  if (minPrice !== undefined && !isNaN(minPrice)) {
-    conditions.push(`${priceExpr} >= ?`)
-    args.push(minPrice)
-  }
-  if (maxPrice !== undefined && !isNaN(maxPrice)) {
-    conditions.push(`${priceExpr} <= ?`)
-    args.push(maxPrice)
-  }
-
-  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
+  const { where: whereClause, args } = buildCardFilter({
+    group,
+    member,
+    search,
+    cardType,
+    release,
+    store,
+    minPrice,
+    maxPrice,
+  })
 
   let orderClause = 'ORDER BY last_wish_count DESC'
   if (sort === 'price_asc') orderClause = 'ORDER BY last_discounted_price ASC'
