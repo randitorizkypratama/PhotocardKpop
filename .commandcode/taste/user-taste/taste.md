@@ -1,0 +1,8 @@
+# User taste
+- Communicates in Bahasa Indonesia with casual/abbreviated phrasing (e.g. "belum ke ikut switch", "dll", "ketika di tampilan", "anjir"). Mixes in English technical terms naturally and occasionally uses mild expletives when frustrated that a fix didn't land. Confidence: 0.85
+- Reports bugs by pasting the affected URL and the verbatim browser console error/stack trace, then describes observed UI behavior. Confidence: 0.9
+- Does not want `git push` or production deployments (`npx vercel --prod`) performed unless explicitly asked — only fix/verify locally. Confidence: 0.95
+- Follows up after a claimed push/deploy to confirm the work actually landed (e.g. "udah di push ke github sama deploy ke vercel?") — wants verification, not just an assertion. Confidence: 0.8
+- Treats the codebase as English-UI-by-default with an EN↔ID toggle; when fixing localization, expects every user-visible string (filter chips, sort labels, sidebar headings, dialogs, error states, descriptive blurbs/explanations for card types like POB/Album/Lucky Draw) to flip with the toggle. Only the canonical data keys themselves (e.g. "Album", "POB") stay untranslated. Confidence: 0.9
+- Project conventions for this Nuxt kpop-tracker: run `bun run test` and `bun run smoke` after changes, use the `agent-browser` skill for live browser verification, and rebuild (`npx nuxt build`) before final sign-off on fixes. Confidence: 0.85
+- Prefers fixes that reorder/regroup existing declarations rather than rewriting working logic — wants minimal-diff bug fixes (e.g. moving `ref()` declarations above `useHead`/`useSeoMeta` to fix a TDZ rather than refactoring the whole component). Confidence: 0.7
