@@ -1,4 +1,5 @@
 export default defineEventHandler(async (event) => {
+  requireSameOrigin(event)
   const idParam = getRouterParam(event, 'id') as string
   const id = parseInt(idParam)
 

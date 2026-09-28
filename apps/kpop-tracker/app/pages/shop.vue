@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ExternalLink, Play, Link2, RefreshCw, Video, PackageOpen } from 'lucide-vue-next'
 import { SHOP_URLS, shopProducts } from '@/lib/shop'
+import { safeExternalUrl } from '@/lib/url'
 
 declare global {
   interface Window {
@@ -239,7 +240,7 @@ function loadEmbedScript() {
                 {{ p.currency || '' }} {{ p.price }}
               </p>
               <Button class="mt-3 h-9 w-full gap-2 rounded-lg" as-child>
-                <a :href="p.url || SHOP_URLS.tiktok" target="_blank" rel="noopener noreferrer">
+                <a :href="safeExternalUrl(p.url, SHOP_URLS.tiktok)" target="_blank" rel="noopener noreferrer">
                   Beli
                   <ExternalLink class="h-4 w-4" />
                 </a>
@@ -382,7 +383,7 @@ function loadEmbedScript() {
             <a
               v-for="video in videos"
               :key="video.id"
-              :href="video.share_url || video.embed_link || SHOP_URLS.tiktok"
+              :href="safeExternalUrl(video.share_url || video.embed_link, SHOP_URLS.tiktok)"
               target="_blank"
               rel="noopener noreferrer"
               class="group overflow-hidden rounded-xl border border-zinc-200 bg-card shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-zinc-800"

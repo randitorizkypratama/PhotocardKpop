@@ -1,4 +1,5 @@
 export default defineEventHandler(async (event) => {
+  requireSameOrigin(event)
   const body = await readBody(event)
   
   const { card_id, status = 'wishlist', bought_price } = body
