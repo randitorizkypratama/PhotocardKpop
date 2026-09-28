@@ -8,7 +8,8 @@ interface ShopProduct {
   url?: string
 }
 
-export default defineEventHandler(async () => {
+export default defineEventHandler(async (event) => {
+  requireSameOriginRead(event)
   const config = useRuntimeConfig()
   const token = config.tiktokShopAccessToken as string
   const baseUrl = (config.tiktokShopBaseUrl as string) || 'https://open-api.tiktokglobalshop.com'

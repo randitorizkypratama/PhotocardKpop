@@ -141,6 +141,23 @@ Daily sync at 00:00 WIB (17:00 UTC) via Vercel Cron Jobs. Free on Vercel Hobby p
 Each run re-labels cards against the (cached) discography, upserts prices, and writes a
 `sync_log` row so `/status` and the footer badge can flag failed or stuck runs.
 
+## Security
+
+- **No user accounts** — collection writes (`POST` / `DELETE /api/collection`) only accept
+  requests whose `Origin` is the site itself or `localhost` (403 otherwise). This blocks
+  cross-site/drive-by abuse; non-browser clients can spoof `Origin`, which is an accepted
+  limitation of running a shared collection without login.
+- **Rate limiting** — all `/api/**` requests: 300 reads + 60 writes per minute per IP
+  (in-memory, best-effort per serverless instance; 429 past the budget).
+- **Third-party proxies** — `/api/tiktok/products` and `/api/tiktok/videos` require a
+  same-origin `Origin` or `Referer` so nobody can burn TikTok API quota via curl.
+- **Response headers** (Nitro `routeRules`): `X-Frame-Options`, `X-Content-Type-Options`,
+  `Referrer-Policy`, `Permissions-Policy`, HSTS, and a partial
+  `Content-Security-Policy` (`frame-ancestors`, `base-uri`, `object-src`, `form-action`).
+- **Cron/init/sync**: `Authorization: Bearer $CRON_SECRET`, fail-closed 401.
+- **Dependency audit**: `bun audit` plus a monthly GitHub Actions workflow
+  (`.github/workflows/security-audit.yml`).
+
 ## Deploy
 
 1. Push to GitHub

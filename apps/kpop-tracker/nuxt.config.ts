@@ -83,6 +83,10 @@ export default defineNuxtConfig({
           'Referrer-Policy': 'strict-origin-when-cross-origin',
           'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
           'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+          // Partial policy on purpose: frame/base/object/form rules only.
+          // Constraining script-src needs per-page nonces for the Nuxt payload
+          // script + the inline theme script — revisit before tightening.
+          'Content-Security-Policy': "frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self'; upgrade-insecure-requests",
         },
       },
     },

@@ -27,3 +27,27 @@ export function requireSameOrigin(event: H3Event) {
     throw createError({ statusCode: 403, statusMessage: 'Cross-origin writes are not allowed' })
   }
 }
+
+/**
+ * Read guard for endpoints that proxy a third-party API (TikTok quota burners).
+ * Browsers send neither `Origin` on same-origin GETs nor a `Referer` strip, so
+ * this accepts either header matching our origins — plain `curl` with no headers
+ * is rejected. Like `requireSameOrigin`, spoofable by a determined client; it
+ * stops drive-by abuse, not targeted scripts.
+ */
+export function requireSameOriginRead(event: H3Event) {
+  const origin = (getHeader(event, 'origin') || '').replace(/\/$/, '')
+  if (origin) {
+    if (ALLOWED_WRITE_ORIGINS.has(origin)) return
+    throw createError({ statusCode: 403, statusMessage: 'Cross-origin requests are not allowed' })
+  }
+  const referer = getHeader(event, 'referer') || ''
+  if (referer) {
+    try {
+      if (ALLOWED_WRITE_ORIGINS.has(new URL(referer).origin)) return
+    } catch {
+      // fall through
+    }
+  }
+  throw createError({ statusCode: 403, statusMessage: 'Cross-origin requests are not allowed' })
+}

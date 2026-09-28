@@ -1,6 +1,7 @@
 const CACHE_TTL_MS = 10 * 60 * 1000
 
 export default defineEventHandler(async (event) => {
+  requireSameOriginRead(event)
   const force = getQuery(event).refresh === '1'
   const db = getTursoClient()
 
