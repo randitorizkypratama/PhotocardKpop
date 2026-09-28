@@ -24,12 +24,17 @@ export default defineEventHandler(async (event) => {
   }
 
   let userId: number
+  let role: string
   try {
+    // Atomic: the very first row gets admin, everyone after gets user.
     const inserted = await db.execute({
-      sql: 'INSERT INTO users (username, password_hash, created_at) VALUES (?, ?, ?)',
+      sql: `INSERT INTO users (username, password_hash, created_at, role)
+            SELECT ?, ?, ?, CASE WHEN COUNT(*) = 0 THEN 'admin' ELSE 'user' END FROM users`,
       args: [username, hashPassword(password), new Date().toISOString()],
     })
     userId = Number(inserted.lastInsertRowid)
+    const roleRow = await db.execute({ sql: 'SELECT role FROM users WHERE id = ?', args: [userId] })
+    role = String(roleRow.rows[0]?.role || 'user')
   } catch {
     throw createError({ statusCode: 409, statusMessage: 'Username already taken' })
   }
@@ -39,7 +44,7 @@ export default defineEventHandler(async (event) => {
     await db.execute({ sql: 'UPDATE collections SET user_id = ? WHERE user_id IS NULL', args: [userId] })
   } catch {}
 
-  const user = { id: userId, username }
+  const user = { id: userId, username, role }
   await createSession(event, user)
   return { success: true, user }
 })

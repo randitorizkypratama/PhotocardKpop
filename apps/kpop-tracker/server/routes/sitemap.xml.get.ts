@@ -31,7 +31,6 @@ export default cachedEventHandler(async (event) => {
     ['/releases', '0.8'],
     ['/collection', '0.5'],
     ['/shop', '0.5'],
-    ['/status', '0.3'],
   ]
   for (const [path, priority] of staticPages) entries.push(urlEntry(`${SITE}${path}`, null, priority))
 

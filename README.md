@@ -20,7 +20,7 @@ Track K-pop photocard prices from Pocamarket for IVE, aespa, and Hearts2Hearts.
 - **Album pages** (`/releases/:group/:release`) — artwork, release date, tracklist, cheapest card,
   card-type and member breakdown, full card grid
 - Release enrichment from MusicBrainz + Apple Music (dates, artwork, labels, tracklists)
-- **Sync status page** (`/status`) — summary plus per-run history from the `sync_log` table
+- **Sync status page** (`/status`) — summary plus per-run history from the `sync_log` table; admin only (first registered account)
 - **Command palette** (`Ctrl/⌘ K`) — jump to pages or search cards from anywhere
 - **ID/EN language toggle** across navigation, filters, forms and all key pages
 - SEO: sitemap (`/sitemap.xml`), robots.txt, Open Graph / Twitter cards
@@ -119,7 +119,7 @@ bun run dev
 | GET | `/api/releases/lookup` | On-demand MusicBrainz/Apple enrichment (`?artist=&title=`) |
 | GET | `/api/exchangerate` | USD/IDR rates |
 | GET | `/api/sync/status` | Sync badge data + last cron run (reads `sync_log`) |
-| GET | `/api/sync/history` | Last 30 cron runs for the `/status` page |
+| GET | `/api/sync/history` | Last 30 cron runs for the `/status` page (admin only) |
 | GET | `/api/collection` | Get collection |
 | POST | `/api/collection` | Add to collection |
 | DELETE | `/api/collection/:id` | Remove from collection |
@@ -133,7 +133,7 @@ bun run dev
 - **price_history** — price tracking
 - **collections** — per-user collection (wishlist/owned, `user_id`-scoped)
 - **users** / **sessions** — accounts (scrypt password hashes) and DB-backed login sessions
-- **error_log** — server + client errors (last 500), surfaced on `/status` when logged in
+- **error_log** — server + client errors (last 500), surfaced on `/status` for the admin
 - **discography** — MusicBrainz release list per group (source of truth for releases)
 - **release_cache** — cached release enrichment (dates, artwork, tracks, labels)
 - **sync_log** — one row per cron run (`running` → `ok` / `partial` / `error`), powers `/status` and the footer badge
@@ -164,7 +164,7 @@ Each run re-labels cards against the (cached) discography, upserts prices, and w
   `Content-Security-Policy` (`frame-ancestors`, `base-uri`, `object-src`, `form-action`).
 - **Cron/init/sync**: `Authorization: Bearer $CRON_SECRET`, fail-closed 401.
 - **Error monitoring** — server and client errors land in the `error_log` table (500-row
-  cap) and are viewable on `/status` when logged in; input validation caps pagination,
+  cap) and are viewable by the admin on `/status`; input validation caps pagination,
   search length and prices; query strings are fully parameterized.
 - **Dependency audit**: `bun audit` plus a monthly GitHub Actions workflow
   (`.github/workflows/security-audit.yml`).

@@ -82,9 +82,9 @@ const benefits = [
     <AppHeader />
 
     <main class="page-shell flex items-center justify-center py-8 sm:py-12">
-      <div class="grid w-full max-w-4xl items-center gap-6 lg:grid-cols-2 lg:gap-12">
+      <div class="grid w-full max-w-4xl items-stretch gap-6 lg:grid-cols-2 lg:gap-12">
         <!-- Brand panel (desktop) -->
-        <div class="hidden flex-col justify-between rounded-2xl bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-950 p-8 text-zinc-100 shadow-lg lg:flex lg:min-h-[30rem]">
+        <div class="hidden flex-col justify-between rounded-2xl bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-950 p-8 text-zinc-100 shadow-lg lg:flex">
           <div class="flex items-center gap-2.5">
             <img src="/hibikishop-logo.png" alt="HIBIKISHOP" class="h-10 w-10 rounded-full bg-white/95 object-contain p-0.5" />
             <div class="leading-tight">
@@ -113,7 +113,7 @@ const benefits = [
         </div>
 
         <!-- Form card -->
-        <div class="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-8 lg:max-w-none">
+        <div class="flex min-h-[37rem] w-full max-w-md flex-col justify-center rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-8 lg:max-w-none">
           <!-- Compact brand (mobile) -->
           <div class="mb-5 flex flex-col items-center text-center lg:hidden">
             <img src="/hibikishop-logo.png" alt="HIBIKISHOP" class="h-12 w-12 rounded-full object-contain" />
@@ -179,7 +179,7 @@ const benefits = [
                   <Eye v-else class="h-4 w-4" />
                 </button>
               </div>
-              <p v-if="mode === 'register'" class="text-xs text-muted-foreground">{{ t('auth.passwordHint') }}</p>
+              <p class="text-xs text-muted-foreground">{{ t('auth.passwordHint') }}</p>
             </div>
 
             <div v-if="mode === 'register'" class="space-y-1.5">
@@ -194,6 +194,12 @@ const benefits = [
                 required
                 class="h-10"
               />
+            </div>
+            <div
+              v-else
+              class="flex min-h-[66px] items-center rounded-lg border border-dashed border-border bg-muted/40 px-3.5 py-3"
+            >
+              <p class="text-xs leading-relaxed text-muted-foreground">{{ t('auth.loginNote') }}</p>
             </div>
 
             <p

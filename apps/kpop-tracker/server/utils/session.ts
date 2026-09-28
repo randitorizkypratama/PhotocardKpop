@@ -8,6 +8,7 @@ const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000
 export interface SessionUser {
   id: number
   username: string
+  role: string
 }
 
 export async function createSession(event: H3Event, user: SessionUser) {
@@ -37,7 +38,7 @@ export async function getSessionUser(event: H3Event): Promise<SessionUser | null
   const db = getTursoClient()
 
   const result = await db.execute({
-    sql: `SELECT u.id, u.username, s.expires_at
+    sql: `SELECT u.id, u.username, u.role, s.expires_at
           FROM sessions s JOIN users u ON u.id = s.user_id
           WHERE s.token = ?`,
     args: [token],
@@ -49,7 +50,7 @@ export async function getSessionUser(event: H3Event): Promise<SessionUser | null
     await db.execute({ sql: 'DELETE FROM sessions WHERE token = ?', args: [token] }).catch(() => {})
     return null
   }
-  return { id: Number(row.id), username: String(row.username) }
+  return { id: Number(row.id), username: String(row.username), role: String(row.role || 'user') }
 }
 
 export async function destroySession(event: H3Event) {
@@ -65,6 +66,14 @@ export async function requireUser(event: H3Event): Promise<SessionUser> {
   const user = await getSessionUser(event)
   if (!user) {
     throw createError({ statusCode: 401, statusMessage: 'Login required' })
+  }
+  return user
+}
+
+export async function requireAdmin(event: H3Event): Promise<SessionUser> {
+  const user = await requireUser(event)
+  if (user.role !== 'admin') {
+    throw createError({ statusCode: 403, statusMessage: 'Admin only' })
   }
   return user
 }

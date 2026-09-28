@@ -23,7 +23,7 @@
           <NuxtLink to="/#groups" class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">{{ t('nav.groups') }}</NuxtLink>
           <NuxtLink to="/shop" class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">{{ t('nav.shop') }}</NuxtLink>
           <NuxtLink to="/collection" class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">{{ t('nav.collection') }}</NuxtLink>
-          <NuxtLink to="/status" class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">{{ t('nav.status') }}</NuxtLink>
+          <NuxtLink v-if="isAdmin" to="/status" class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">{{ t('nav.status') }}</NuxtLink>
         </nav>
       </div>
 
@@ -84,6 +84,8 @@
 <script setup lang="ts">
 const year = new Date().getFullYear()
 const { locale, t, setLocale } = useLocale()
+const { user } = useAuth()
+const isAdmin = computed(() => user.value?.role === 'admin')
 
 interface SyncLogRun {
   started_at: string

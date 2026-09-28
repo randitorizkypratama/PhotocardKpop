@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { RefreshCw } from 'lucide-vue-next'
+import { Lock, RefreshCw } from 'lucide-vue-next'
 
 useHead({ title: 'Sync status — HIBIKISHOP PC' })
 useSeoMeta({
@@ -47,7 +47,21 @@ interface ErrorRow {
 const errors = ref<ErrorRow[]>([])
 const errorsChecked = ref(false)
 
+const gate = ref<'checking' | 'guest' | 'forbidden' | 'admin'>('checking')
+
 onMounted(async () => {
+  if (!authChecked.value) await refreshAuth()
+  if (!user.value) {
+    gate.value = 'guest'
+    navigateTo('/login?next=/status')
+    return
+  }
+  if (user.value.role !== 'admin') {
+    gate.value = 'forbidden'
+    return
+  }
+  gate.value = 'admin'
+
   try {
     const [statusRes, historyRes] = await Promise.all([
       $fetch<{ success: boolean, data: SyncSummary }>('/api/sync/status'),
@@ -62,11 +76,8 @@ onMounted(async () => {
   }
 
   try {
-    if (!authChecked.value) await refreshAuth()
-    if (user.value) {
-      const errorRes = await $fetch<{ success: boolean, data: ErrorRow[] }>('/api/errors')
-      if (errorRes?.success) errors.value = errorRes.data || []
-    }
+    const errorRes = await $fetch<{ success: boolean, data: ErrorRow[] }>('/api/errors')
+    if (errorRes?.success) errors.value = errorRes.data || []
   } catch {
     // Error log is best-effort.
   } finally {
@@ -136,6 +147,7 @@ function duration(run: { started_at: string, finished_at: string | null }) {
     <AppHeader />
 
     <main>
+      <template v-if="gate === 'admin'">
       <section class="border-b border-zinc-200 dark:border-zinc-800">
         <div class="page-shell py-8 sm:py-10">
           <p class="eyebrow">{{ t('status.systemEyebrow') }}</p>
@@ -300,6 +312,31 @@ function duration(run: { started_at: string, finished_at: string | null }) {
             </details>
           </li>
         </ul>
+      </section>
+      </template>
+
+      <section
+        v-else-if="gate === 'forbidden'"
+        class="page-shell flex min-h-[50vh] flex-col items-center justify-center py-12 text-center"
+      >
+        <span class="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+          <Lock class="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+        </span>
+        <h1 class="mt-4 text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+          {{ t('status.forbiddenTitle') }}
+        </h1>
+        <p class="mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
+          {{ t('status.forbiddenDesc') }}
+        </p>
+        <Button as-child class="mt-5 rounded-lg">
+          <NuxtLink to="/">{{ t('status.backHome') }}</NuxtLink>
+        </Button>
+      </section>
+
+      <section v-else class="page-shell py-12">
+        <div class="space-y-3">
+          <div v-for="i in 3" :key="i" class="skeleton-block h-20 rounded-xl" />
+        </div>
       </section>
     </main>
 

@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
   const db = getTursoClient()
 
   const result = await db.execute({
-    sql: 'SELECT id, username, password_hash FROM users WHERE username = ?',
+    sql: 'SELECT id, username, role, password_hash FROM users WHERE username = ?',
     args: [username],
   })
   const row = result.rows[0]
@@ -25,7 +25,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, statusMessage: 'Invalid username or password' })
   }
 
-  const user = { id: Number(row.id), username: String(row.username) }
+  const user = { id: Number(row.id), username: String(row.username), role: String(row.role || 'user') }
   await createSession(event, user)
   return { success: true, user }
 })

@@ -25,8 +25,21 @@ export async function ensureAuthTables() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT NOT NULL COLLATE NOCASE UNIQUE,
       password_hash TEXT NOT NULL,
-      created_at TEXT NOT NULL
+      created_at TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'user'
     )
+  `)
+
+  try {
+    await db.execute(`ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'`)
+  } catch {}
+
+  // The first registered account becomes the admin (idempotent backfill for
+  // databases created before the role column existed).
+  await db.execute(`
+    UPDATE users SET role = 'admin'
+    WHERE rowid = (SELECT MIN(rowid) FROM users)
+      AND NOT EXISTS (SELECT 1 FROM users WHERE role = 'admin')
   `)
 
   await db.execute(`

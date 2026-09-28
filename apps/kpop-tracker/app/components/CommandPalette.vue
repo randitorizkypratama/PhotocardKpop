@@ -7,16 +7,22 @@ const results = ref<any[]>([])
 const loading = ref(false)
 const router = useRouter()
 const { t } = useLocale()
+const { user } = useAuth()
 
-const navItems = [
-  { to: '/', label: 'palette.nav.home', icon: Home },
-  { to: '/browse', label: 'palette.nav.browse', icon: LayoutGrid },
-  { to: '/releases', label: 'palette.nav.releases', icon: CalendarDays },
-  { to: '/collection', label: 'palette.nav.collection', icon: Heart },
-  { to: '/collection?tab=wishlist', label: 'palette.nav.wishlist', icon: Heart },
-  { to: '/shop', label: 'palette.nav.shop', icon: ShoppingBag },
-  { to: '/status', label: 'palette.nav.status', icon: Activity },
-]
+const navItems = computed(() => {
+  const items: Array<{ to: string, label: string, icon: typeof Home }> = [
+    { to: '/', label: 'palette.nav.home', icon: Home },
+    { to: '/browse', label: 'palette.nav.browse', icon: LayoutGrid },
+    { to: '/releases', label: 'palette.nav.releases', icon: CalendarDays },
+    { to: '/collection', label: 'palette.nav.collection', icon: Heart },
+    { to: '/collection?tab=wishlist', label: 'palette.nav.wishlist', icon: Heart },
+    { to: '/shop', label: 'palette.nav.shop', icon: ShoppingBag },
+  ]
+  if (user.value?.role === 'admin') {
+    items.push({ to: '/status', label: 'palette.nav.status', icon: Activity })
+  }
+  return items
+})
 
 onMounted(() => window.addEventListener('keydown', onKeydown))
 onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
