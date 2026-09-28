@@ -9,8 +9,8 @@ export default defineEventHandler(async (event) => {
   const sort = (query.sort as string) || 'popular'
   const minPrice = query.min_price !== undefined ? parseFloat(query.min_price as string) : undefined
   const maxPrice = query.max_price !== undefined ? parseFloat(query.max_price as string) : undefined
-  const page = parseInt(query.page as string) || 1
-  const limit = parseInt(query.limit as string) || 20
+  const page = Math.max(1, parseInt(query.page as string) || 1)
+  const limit = Math.min(100, Math.max(1, parseInt(query.limit as string) || 20))
   const offset = (page - 1) * limit
 
   const db = getTursoClient()

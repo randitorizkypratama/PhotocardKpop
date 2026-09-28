@@ -18,6 +18,9 @@ export interface ReleaseLookupResult {
 const inFlight = new Map<string, Promise<ReleaseLookupResult>>()
 
 export async function resolveRelease(artist: string, title: string): Promise<ReleaseLookupResult> {
+  // Outbound enrichment inputs are user-influenced — keep them short.
+  artist = String(artist || '').trim().slice(0, 200)
+  title = String(title || '').trim().slice(0, 200)
   const key = releaseCacheKey(artist, title)
   const cached = await readReleaseCache(key)
   if (cached.status === 'hit') return { match: cached.match, cached: true }

@@ -226,7 +226,7 @@ const SEARCH_TYPE_PHRASES: { phrase: string; canonical: string }[] = [
 export function parseStructuredSearch(raw?: string | null): StructuredSearch {
   const result: StructuredSearch = { text: '', cardType: null, store: null }
   if (!raw) return result
-  let text = String(raw).trim()
+  let text = String(raw).trim().slice(0, 200)
   if (!text) return result
 
   for (const { phrase, canonical } of SEARCH_TYPE_PHRASES) {
