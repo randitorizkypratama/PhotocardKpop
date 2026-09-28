@@ -38,6 +38,23 @@ export function useCollection() {
   const error = useState<string | null>('collection-error', () => null)
   const loaded = useState<boolean>('collection-loaded', () => false)
   const pendingCardIds = useState<Set<number>>('collection-pending', () => new Set())
+  const { user, ensureChecked } = useAuth()
+
+  async function requireLogin(): Promise<boolean> {
+    const current = await ensureChecked()
+    if (!current) {
+      const route = useRoute()
+      navigateTo({ path: '/login', query: route.path === '/login' ? undefined : { next: route.fullPath } })
+      return false
+    }
+    return true
+  }
+
+  function isUnauthorized(e: unknown): boolean {
+    if (!e || typeof e !== 'object') return false
+    const err = e as { statusCode?: number; status?: number; response?: { status?: number } }
+    return err.statusCode === 401 || err.status === 401 || err.response?.status === 401
+  }
 
   const wishlistIds = computed(() => {
     const set = new Set<number>()
@@ -71,13 +88,21 @@ export function useCollection() {
         loaded.value = true
       }
     } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Failed to fetch collection'
+      if (isUnauthorized(e)) {
+        items.value = []
+        stats.value = { totalOwned: 0, totalWishlist: 0, totalOwnedValue: 0, totalWishlistValue: 0 }
+        loaded.value = false
+        error.value = null
+      } else {
+        error.value = e instanceof Error ? e.message : 'Failed to fetch collection'
+      }
     } finally {
       loading.value = false
     }
   }
 
   async function addToCollection(cardId: number, status: 'owned' | 'wishlist' = 'wishlist', boughtPrice?: number) {
+    if (!(await requireLogin())) return false
     if (pendingCardIds.value.has(cardId)) return false
     pendingCardIds.value.add(cardId)
     try {
@@ -100,6 +125,7 @@ export function useCollection() {
   }
 
   async function removeFromCollection(collectionId: number, status?: 'owned' | 'wishlist') {
+    if (!(await requireLogin())) return false
     try {
       const query = status ? `?status=${status}` : ''
       await $fetch(`/api/collection/${collectionId}${query}`, {

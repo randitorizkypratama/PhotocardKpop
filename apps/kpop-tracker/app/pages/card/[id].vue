@@ -200,12 +200,12 @@ const chartData = computed(() => {
     min,
     max,
     path: points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' '),
-    areaPath: `M ${points[0].x.toFixed(1)} ${(h - padY).toFixed(1)} ` +
+    areaPath: `M ${(points[0]?.x ?? 0).toFixed(1)} ${(h - padY).toFixed(1)} ` +
       points.map(p => `L ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ') +
-      ` L ${points[points.length - 1].x.toFixed(1)} ${(h - padY).toFixed(1)} Z`,
+      ` L ${(points[points.length - 1]?.x ?? 0).toFixed(1)} ${(h - padY).toFixed(1)} Z`,
     labels: {
-      first: formatDate(chronological[0].recorded_at),
-      last: formatDate(chronological[chronological.length - 1].recorded_at),
+      first: formatDate(chronological[0]?.recorded_at ?? ''),
+      last: formatDate(chronological[chronological.length - 1]?.recorded_at ?? ''),
     },
   }
 })

@@ -10,7 +10,8 @@ export default defineEventHandler(async (event) => {
   for (const store of stores) {
     const patterns = storeLikePatterns(store.display)
     // The CASE expression always binds two placeholders (spaced + unspaced).
-    args.push(patterns[0], patterns[1] ?? patterns[0])
+    const spaced = patterns[0] ?? ''
+    args.push(spaced, patterns[1] ?? spaced)
   }
 
   const result = await db.execute({

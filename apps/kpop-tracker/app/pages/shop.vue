@@ -17,6 +17,7 @@ useSeoMeta({
 })
 
 const route = useRoute()
+const { t } = useLocale()
 
 const embedRoot = ref<HTMLElement | null>(null)
 const embedReady = ref(false)
@@ -61,7 +62,7 @@ async function loadVideos(force = false) {
     const res = await $fetch<any>(`/api/tiktok/videos${force ? '?refresh=1' : ''}`)
     videos.value = res.videos || []
   } catch (e: any) {
-    videosError.value = e?.data?.statusMessage || e?.message || 'Belum terhubung ke TikTok'
+    videosError.value = e?.data?.statusMessage || e?.message || t('shop.videosError')
     videos.value = []
   } finally {
     videosLoading.value = false
@@ -75,13 +76,13 @@ async function loadProducts() {
     const res = await $fetch<any>('/api/tiktok/products')
     products.value = res.products || []
     if (!res.configured) {
-      productsNote.value = 'Produk TikTok Shop aktif setelah TIKTOK_SHOP_ACCESS_TOKEN diisi (Partner Center).'
+      productsNote.value = t('shop.productsNoteConfig')
     } else if (products.value.length === 0) {
-      productsNote.value = 'Tidak ada produk aktif.'
+      productsNote.value = t('shop.productsNoteNone')
     }
   } catch (e: any) {
     products.value = []
-    productsNote.value = e?.data?.statusMessage || 'Gagal memuat produk TikTok Shop.'
+    productsNote.value = e?.data?.statusMessage || t('shop.productsNoteError')
   } finally {
     productsLoading.value = false
   }
@@ -104,8 +105,8 @@ function formatDate(ts?: number) {
 }
 
 const connectedNotice = computed(() => {
-  if (route.query.tiktok_connected) return 'Akun TikTok berhasil terhubung. Video sedang dimuat…'
-  if (route.query.tiktok_error) return `Gagal konek TikTok: ${String(route.query.tiktok_error)}`
+  if (route.query.tiktok_connected) return t('shop.connected')
+  if (route.query.tiktok_error) return t('shop.connectError', { error: String(route.query.tiktok_error) })
   return ''
 })
 
@@ -134,12 +135,12 @@ function loadEmbedScript() {
     <main>
       <section class="border-b border-zinc-200 dark:border-zinc-800">
         <div class="page-shell py-8 sm:py-10">
-          <p class="eyebrow">HIBIKISHOP Store</p>
+          <p class="eyebrow">{{ t('shop.eyebrow') }}</p>
           <h1 class="mt-2 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-            Etalase &amp; TikTok
+            {{ t('shop.title') }}
           </h1>
           <p class="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-            Belanja photocard HIBIKISHOP lewat Shopee, Tokopedia, atau TikTok — plus video terbaru dari kami.
+            {{ t('shop.desc') }}
           </p>
 
           <div class="mt-5 flex flex-wrap gap-2">
@@ -181,7 +182,7 @@ function loadEmbedScript() {
           <div>
             <p class="eyebrow">TikTok Shop</p>
             <h2 class="mt-1 text-lg font-semibold tracking-tight text-foreground sm:text-xl">
-              Produk etalase
+              {{ t('shop.productsTitle') }}
             </h2>
           </div>
           <Button
@@ -193,7 +194,7 @@ function loadEmbedScript() {
             @click="loadProducts()"
           >
             <RefreshCw class="h-3.5 w-3.5" :class="productsLoading ? 'animate-spin' : ''" />
-            Refresh
+            {{ t('shop.refresh') }}
           </Button>
         </div>
 
@@ -212,8 +213,8 @@ function loadEmbedScript() {
           class="rounded-xl border border-dashed border-zinc-300 px-6 py-10 text-center dark:border-zinc-700"
         >
           <PackageOpen class="mx-auto h-7 w-7 text-zinc-400" aria-hidden="true" />
-          <p class="mt-3 text-sm font-medium text-foreground">Belum ada produk dari TikTok Shop API</p>
-          <p class="mt-1 text-sm text-muted-foreground">{{ productsNote || 'Sambungkan Seller/Partner API untuk menampilkan etalase otomatis.' }}</p>
+          <p class="mt-3 text-sm font-medium text-foreground">{{ t('shop.productsEmpty') }}</p>
+          <p class="mt-1 text-sm text-muted-foreground">{{ productsNote || t('shop.productsEmptyHint') }}</p>
         </div>
 
         <div v-else class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -241,7 +242,7 @@ function loadEmbedScript() {
               </p>
               <Button class="mt-3 h-9 w-full gap-2 rounded-lg" as-child>
                 <a :href="safeExternalUrl(p.url, SHOP_URLS.tiktok)" target="_blank" rel="noopener noreferrer">
-                  Beli
+                  {{ t('shop.buy') }}
                   <ExternalLink class="h-4 w-4" />
                 </a>
               </Button>
@@ -254,9 +255,9 @@ function loadEmbedScript() {
       <section class="border-t border-zinc-200 dark:border-zinc-800">
         <div class="page-shell py-10 sm:py-12">
           <div class="mb-5 sm:mb-6">
-            <p class="eyebrow">Etalase</p>
+            <p class="eyebrow">{{ t('shop.featuredEyebrow') }}</p>
             <h2 class="mt-1 text-lg font-semibold tracking-tight text-foreground sm:text-xl">
-              Featured collections
+              {{ t('shop.featuredTitle') }}
             </h2>
           </div>
 
@@ -302,7 +303,7 @@ function loadEmbedScript() {
             <div>
               <p class="eyebrow">TikTok</p>
               <h2 class="mt-1 text-lg font-semibold tracking-tight text-foreground sm:text-xl">
-                Videos from @hibikis13
+                {{ t('shop.videosTitle') }}
               </h2>
             </div>
             <div class="flex flex-wrap items-center gap-2">
@@ -315,7 +316,7 @@ function loadEmbedScript() {
                 @click="loadVideos(true)"
               >
                 <RefreshCw class="h-3.5 w-3.5" :class="videosLoading ? 'animate-spin' : ''" />
-                Refresh
+                {{ t('shop.refresh') }}
               </Button>
               <a
                 :href="SHOP_URLS.tiktok"
@@ -323,7 +324,7 @@ function loadEmbedScript() {
                 rel="noopener noreferrer"
                 class="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
               >
-                Open TikTok
+                {{ t('shop.openTikTok') }}
                 <ExternalLink class="h-4 w-4" />
               </a>
             </div>
@@ -338,16 +339,16 @@ function loadEmbedScript() {
               <div class="min-w-0">
                 <div class="flex items-center gap-2">
                   <Link2 class="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                  <p class="text-sm font-semibold text-foreground">Hubungkan akun TikTok @hibikis13</p>
+                  <p class="text-sm font-semibold text-foreground">{{ t('shop.connectTitle') }}</p>
                 </div>
                 <p class="mt-1 text-sm text-muted-foreground">
-                  OAuth resmi TikTok (scope <code class="text-xs">video.list</code>) — ambil semua video public ke halaman ini.
+                  {{ t('shop.connectDescA') }}<code class="text-xs">video.list</code>{{ t('shop.connectDescB') }}
                 </p>
               </div>
               <Button class="h-10 shrink-0 gap-2 rounded-lg" as-child>
                 <a href="/api/tiktok/auth">
                   <Video class="h-4 w-4" />
-                  Connect TikTok
+                  {{ t('shop.connect') }}
                 </a>
               </Button>
             </div>
@@ -369,12 +370,12 @@ function loadEmbedScript() {
             class="rounded-xl border border-dashed border-zinc-300 px-6 py-10 text-center dark:border-zinc-700"
           >
             <Video class="mx-auto h-7 w-7 text-zinc-400" aria-hidden="true" />
-            <p class="mt-3 text-sm font-medium text-foreground">Belum ada video tersinkron</p>
-            <p class="mt-1 text-sm text-muted-foreground">{{ videosError || 'Hubungkan akun TikTok untuk mengambil semua video.' }}</p>
+            <p class="mt-3 text-sm font-medium text-foreground">{{ t('shop.videosEmpty') }}</p>
+            <p class="mt-1 text-sm text-muted-foreground">{{ videosError || t('shop.videosEmptyHint') }}</p>
             <Button v-if="tiktokStatus.configured" class="mt-4 h-10 gap-2 rounded-lg" as-child>
               <a href="/api/tiktok/auth">
                 <Link2 class="h-4 w-4" />
-                Connect TikTok
+                {{ t('shop.connect') }}
               </a>
             </Button>
           </div>
@@ -392,7 +393,7 @@ function loadEmbedScript() {
                 <img
                   v-if="video.cover_image_url"
                   :src="video.cover_image_url"
-                  :alt="video.title || video.video_description || 'TikTok video'"
+                  :alt="video.title || video.video_description || t('shop.videoAlt')"
                   class="h-full w-full object-cover"
                   loading="lazy"
                 />
@@ -408,11 +409,11 @@ function loadEmbedScript() {
               </div>
               <div class="p-3">
                 <p class="line-clamp-2 text-sm font-medium text-foreground">
-                  {{ video.title || video.video_description || 'Untitled' }}
+                  {{ video.title || video.video_description || t('shop.untitled') }}
                 </p>
                 <p class="mt-1 text-xs text-muted-foreground">
                   {{ formatDate(video.create_time) }}
-                  <span v-if="video.view_count != null" class="ml-2 tabular-nums">{{ video.view_count }} views</span>
+                  <span v-if="video.view_count != null" class="ml-2 tabular-nums">{{ video.view_count }} {{ t('shop.views') }}</span>
                 </p>
               </div>
             </a>
@@ -421,7 +422,7 @@ function loadEmbedScript() {
           <!-- Official profile embed fallback -->
           <div class="mt-6 rounded-xl border border-zinc-200 bg-card p-4 shadow-sm dark:border-zinc-800 sm:p-6">
             <p class="mb-3 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
-              Live profile embed
+              {{ t('shop.liveEmbed') }}
             </p>
             <ClientOnly>
               <div ref="embedRoot" class="tiktok-embed-root min-h-[280px]">
@@ -440,7 +441,7 @@ function loadEmbedScript() {
               </div>
               <template #fallback>
                 <div class="flex min-h-[280px] items-center justify-center rounded-lg border border-dashed border-zinc-300 text-sm text-muted-foreground dark:border-zinc-700">
-                  Loading TikTok…
+                  {{ t('shop.loading') }}
                 </div>
               </template>
             </ClientOnly>

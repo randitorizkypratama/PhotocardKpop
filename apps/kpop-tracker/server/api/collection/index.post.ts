@@ -1,5 +1,6 @@
 export default defineEventHandler(async (event) => {
   requireSameOrigin(event)
+  const user = await requireUser(event)
   const body = await readBody(event)
 
   const { card_id, status = 'wishlist', bought_price } = body
@@ -35,14 +36,14 @@ export default defineEventHandler(async (event) => {
 
   try {
     await db.execute({
-      sql: `INSERT INTO collections (card_id, status, bought_price, added_at) VALUES (?, ?, ?, ?)
-            ON CONFLICT(card_id, status) DO UPDATE SET bought_price = excluded.bought_price, added_at = excluded.added_at`,
-      args: [cardId, status, price, now],
+      sql: `INSERT INTO collections (card_id, status, bought_price, added_at, user_id) VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(user_id, card_id, status) DO UPDATE SET bought_price = excluded.bought_price, added_at = excluded.added_at`,
+      args: [cardId, status, price, now, user.id],
     })
   } catch {
     await db.execute({
-      sql: 'UPDATE collections SET bought_price = ? WHERE card_id = ? AND status = ?',
-      args: [price, cardId, status],
+      sql: 'UPDATE collections SET bought_price = ? WHERE user_id = ? AND card_id = ? AND status = ?',
+      args: [price, user.id, cardId, status],
     })
   }
 

@@ -11,6 +11,7 @@ const detail = ref<any>(null)
 const loading = ref(true)
 const loadError = ref(false)
 const notFound = ref(false)
+const { t } = useLocale()
 
 const cards = ref<any[]>([])
 const page = ref(1)
@@ -149,14 +150,14 @@ async function onWishlist(id: number | string) {
       <!-- Not found -->
       <div v-else-if="notFound" class="page-shell py-12">
         <div class="rounded-xl border border-dashed border-zinc-300 py-12 text-center dark:border-zinc-700">
-          <p class="text-sm font-medium text-foreground">Release not found.</p>
-          <p class="mt-1 text-sm text-muted-foreground">It may have been renamed by the latest sync.</p>
+          <p class="text-sm font-medium text-foreground">{{ t('releaseDetail.notFound') }}</p>
+          <p class="mt-1 text-sm text-muted-foreground">{{ t('releaseDetail.notFoundHint') }}</p>
           <div class="mt-4 flex flex-wrap justify-center gap-2">
             <Button variant="outline" class="rounded-lg" as-child>
-              <NuxtLink to="/releases">All releases</NuxtLink>
+              <NuxtLink to="/releases">{{ t('releases.all') }}</NuxtLink>
             </Button>
             <Button class="rounded-lg" as-child>
-              <NuxtLink to="/browse">Browse catalog</NuxtLink>
+              <NuxtLink to="/browse">{{ t('releaseDetail.browseCatalog') }}</NuxtLink>
             </Button>
           </div>
         </div>
@@ -167,9 +168,9 @@ async function onWishlist(id: number | string) {
         <div class="flex flex-col items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-900/50 dark:bg-red-950/40" role="alert">
           <div class="flex items-start gap-2.5">
             <AlertCircle class="mt-0.5 h-4 w-4 shrink-0 text-red-600 dark:text-red-400" />
-            <p class="text-sm font-medium text-red-900 dark:text-red-200">Unable to load this release.</p>
+            <p class="text-sm font-medium text-red-900 dark:text-red-200">{{ t('releaseDetail.error') }}</p>
           </div>
-          <Button variant="outline" size="sm" class="rounded-lg" @click="load">Retry</Button>
+          <Button variant="outline" size="sm" class="rounded-lg" @click="load">{{ t('browse.error.retry') }}</Button>
         </div>
       </div>
 
@@ -177,7 +178,7 @@ async function onWishlist(id: number | string) {
         <!-- Release header -->
         <section class="border-b border-zinc-200 dark:border-zinc-800">
           <div class="page-shell py-8 sm:py-10">
-            <p class="eyebrow">Release · Photocards</p>
+            <p class="eyebrow">{{ t('releaseDetail.eyebrow') }}</p>
 
             <div class="mt-3 flex flex-col gap-5 sm:flex-row sm:gap-6">
               <div class="w-full max-w-[220px] shrink-0 self-start">
@@ -214,31 +215,31 @@ async function onWishlist(id: number | string) {
                   <span v-if="detail.release_type">{{ detail.release_type }}</span>
                   <span v-if="detail.count > 0">
                     <span class="font-medium tabular-nums text-foreground">{{ detail.count.toLocaleString() }}</span>
-                    cards
+                    {{ t('releases.cards') }}
                   </span>
-                  <span v-else>No cards yet</span>
+                  <span v-else>{{ t('releases.noCardsYet') }}</span>
                   <span v-if="detail.members > 0">
                     <span class="font-medium tabular-nums text-foreground">{{ detail.members }}</span>
-                    members
+                    {{ t('releaseDetail.members') }}
                   </span>
                   <span v-if="detail.label" class="truncate">{{ detail.label }}</span>
                 </div>
 
                 <div v-if="detail.cheapest" class="mt-4">
-                  <p class="pc-meta-label">Cheapest card</p>
+                  <p class="pc-meta-label">{{ t('releaseDetail.cheapest') }}</p>
                   <div class="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                     <span class="text-sm font-medium tabular-nums text-foreground">
                       Rp {{ formatIDR(detail.cheapest, rate) }}
                     </span>
                     <span class="text-xs tabular-nums text-muted-foreground">{{ formatUSD(detail.cheapest) }}</span>
-                    <span class="text-xs text-muted-foreground">market reference</span>
+                    <span class="text-xs text-muted-foreground">{{ t('releaseDetail.marketRef') }}</span>
                   </div>
                 </div>
 
                 <div class="mt-4 flex flex-wrap items-center gap-2">
                   <Button v-if="detail.count > 0" class="h-9 gap-1.5 rounded-lg" as-child>
                     <NuxtLink :to="{ path: '/browse', query: { group: detail.group_name, release: detail.release_name } }">
-                      See in catalog
+                      {{ t('releaseDetail.seeInCatalog') }}
                       <ArrowRight class="h-4 w-4" />
                     </NuxtLink>
                   </Button>
@@ -259,13 +260,13 @@ async function onWishlist(id: number | string) {
         <section class="border-b border-zinc-200 dark:border-zinc-800">
           <div class="page-shell grid gap-6 py-7 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3">
             <div v-if="typeRows.length > 0">
-              <p class="pc-meta-label mb-2.5">Card types</p>
+              <p class="pc-meta-label mb-2.5">{{ t('releaseDetail.cardTypes') }}</p>
               <div class="overflow-hidden rounded-xl border border-border bg-card">
                 <NuxtLink
                   v-for="(row, i) in typeRows"
                   :key="row.type || 'none'"
                   class="relative flex items-center justify-between gap-3 px-3.5 py-2.5 transition-colors hover:bg-muted"
-                  :class="i > 0 ? 'border-t border-border' : ''"
+                  :class="Number(i) > 0 ? 'border-t border-border' : ''"
                   :to="{ path: '/browse', query: { group: detail.group_name, release: detail.release_name, card_type: row.type } }"
                 >
                   <span
@@ -280,7 +281,7 @@ async function onWishlist(id: number | string) {
             </div>
 
             <div v-if="detail.byMember.length > 0">
-              <p class="pc-meta-label mb-2.5">Members</p>
+              <p class="pc-meta-label mb-2.5">{{ t('releaseDetail.membersTitle') }}</p>
               <div class="flex flex-wrap gap-1.5">
                 <NuxtLink
                   v-for="member in detail.byMember"
@@ -295,7 +296,7 @@ async function onWishlist(id: number | string) {
             </div>
 
             <div v-if="detail.tracks.length > 0">
-              <p class="pc-meta-label mb-2.5">Tracklist</p>
+              <p class="pc-meta-label mb-2.5">{{ t('releaseDetail.tracklist') }}</p>
               <ol class="overflow-hidden rounded-xl border border-border bg-card">
                 <li
                   v-for="track in detail.tracks"
@@ -315,12 +316,12 @@ async function onWishlist(id: number | string) {
         <section class="page-shell py-8 sm:py-10">
           <div class="mb-5 flex flex-wrap items-end justify-between gap-3">
             <div>
-              <p class="eyebrow">Photocards</p>
+              <p class="eyebrow">{{ t('palette.cards') }}</p>
               <h2 class="mt-1.5 section-title">
                 <template v-if="detail.count > 0">
-                  {{ detail.count.toLocaleString() }} card{{ detail.count === 1 ? '' : 's' }}
+                  {{ detail.count.toLocaleString() }} {{ detail.count === 1 ? t('releaseDetail.cardOne') : t('releaseDetail.cardMany') }}
                 </template>
-                <template v-else>No photocards yet</template>
+                <template v-else>{{ t('releaseDetail.noPhotocardsYet') }}</template>
               </h2>
             </div>
             <NuxtLink
@@ -328,7 +329,7 @@ async function onWishlist(id: number | string) {
               :to="{ path: '/browse', query: { group: detail.group_name, release: detail.release_name } }"
               class="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
-              Open catalog
+              {{ t('groups.open') }}
               <ArrowRight class="h-4 w-4" />
             </NuxtLink>
           </div>
@@ -345,8 +346,8 @@ async function onWishlist(id: number | string) {
           </div>
 
           <div v-else-if="cards.length === 0" class="rounded-xl border border-dashed border-zinc-300 py-12 text-center dark:border-zinc-700">
-            <p class="text-sm font-medium text-foreground">No photocards listed.</p>
-            <p class="mt-1 text-sm text-muted-foreground">Check back after the daily Pocamarket sync.</p>
+            <p class="text-sm font-medium text-foreground">{{ t('releaseDetail.empty') }}</p>
+            <p class="mt-1 text-sm text-muted-foreground">{{ t('releaseDetail.emptyHint') }}</p>
           </div>
 
           <div v-else class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
@@ -363,7 +364,7 @@ async function onWishlist(id: number | string) {
 
           <div v-if="page < totalPages" class="mt-8 flex justify-center">
             <Button variant="outline" class="rounded-lg" :disabled="cardsLoading" @click="loadCards(page + 1)">
-              {{ cardsLoading ? 'Loading…' : 'Load more' }}
+              {{ cardsLoading ? t('browse.loading') : t('releaseDetail.loadMore') }}
             </Button>
           </div>
         </section>

@@ -37,22 +37,20 @@ export function usePriceHistory() {
   }
 
   function getPriceTrend() {
-    if (history.value.length < 2) return 'stable'
-    
-    const latest = history.value[0].price
-    const previous = history.value[1].price
-    
+    const latest = history.value[0]?.price
+    const previous = history.value[1]?.price
+    if (latest === undefined || previous === undefined) return 'stable'
+
     if (latest > previous) return 'up'
     if (latest < previous) return 'down'
     return 'stable'
   }
 
   function getPriceChange() {
-    if (history.value.length < 2) return 0
-    
-    const latest = history.value[0].price
-    const previous = history.value[1].price
-    
+    const latest = history.value[0]?.price
+    const previous = history.value[1]?.price
+    if (latest === undefined || previous === undefined) return 0
+
     return latest - previous
   }
 

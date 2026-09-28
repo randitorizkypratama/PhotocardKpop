@@ -28,6 +28,11 @@ export function requireSameOrigin(event: H3Event) {
   }
 }
 
+/** Same as requireSameOrigin, but also OK for endpoints without a body check on session. */
+export function isAllowedOrigin(origin: string | undefined): boolean {
+  return ALLOWED_WRITE_ORIGINS.has((origin || '').replace(/\/$/, ''))
+}
+
 /**
  * Read guard for endpoints that proxy a third-party API (TikTok quota burners).
  * Browsers send neither `Origin` on same-origin GETs nor a `Referer` strip, so

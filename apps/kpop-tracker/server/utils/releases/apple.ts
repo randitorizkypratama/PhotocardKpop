@@ -109,7 +109,7 @@ async function lookupAppleMusic(artist: string, title: string): Promise<ReleaseM
         position: Number(song.attributes?.trackNumber) || index + 1,
         title: String(song.attributes?.name || ''),
       }))
-    if (tracks.length === 0) tracks = undefined
+    if ((tracks?.length ?? 0) === 0) tracks = undefined
   } catch {
     tracks = undefined
   }

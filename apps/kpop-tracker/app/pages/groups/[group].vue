@@ -9,6 +9,7 @@ const group = String(route.params.group || '')
 const info = ref<any>(null)
 const loading = ref(true)
 const loadError = ref(false)
+const { t } = useLocale()
 const exchangeRates = ref<any>(null)
 const { fetchCollection, wishlistIds, toggleWishlist } = useCollection()
 
@@ -68,7 +69,7 @@ async function onWishlist(id: number | string) {
       <!-- Group header -->
       <section class="border-b border-zinc-200 dark:border-zinc-800">
         <div class="page-shell py-8 sm:py-10">
-          <p class="eyebrow">Group · Photocard catalog</p>
+          <p class="eyebrow">{{ t('groupDetail.eyebrow') }}</p>
           <div class="mt-2 flex items-center gap-2.5">
             <span class="h-2.5 w-2.5 rounded-full" :class="groupDot(group)" aria-hidden="true" />
             <h1 class="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{{ group }}</h1>
@@ -78,10 +79,10 @@ async function onWishlist(id: number | string) {
             <div class="skeleton-block h-3 w-48" />
           </div>
           <div v-else-if="info" class="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm text-muted-foreground">
-            <span><span class="font-medium tabular-nums text-foreground">{{ info.total.toLocaleString() }}</span> cards</span>
-            <span><span class="font-medium tabular-nums text-foreground">{{ info.members }}</span> members</span>
-            <span><span class="font-medium tabular-nums text-foreground">{{ info.releaseCount }}</span> releases</span>
-            <span class="text-xs">Market reference · Pocamarket</span>
+            <span><span class="font-medium tabular-nums text-foreground">{{ info.total.toLocaleString() }}</span> {{ t('browse.cardCount') }}</span>
+            <span><span class="font-medium tabular-nums text-foreground">{{ info.members }}</span> {{ t('groupDetail.members') }}</span>
+            <span><span class="font-medium tabular-nums text-foreground">{{ info.releaseCount }}</span> {{ t('groupDetail.releases') }}</span>
+            <span class="text-xs">{{ t('groupDetail.marketRef') }}</span>
           </div>
         </div>
       </section>
@@ -91,9 +92,9 @@ async function onWishlist(id: number | string) {
         <div class="flex flex-col items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-900/50 dark:bg-red-950/40" role="alert">
           <div class="flex items-start gap-2.5">
             <AlertCircle class="mt-0.5 h-4 w-4 shrink-0 text-red-600 dark:text-red-400" />
-            <p class="text-sm font-medium text-red-900 dark:text-red-200">Unable to load this group.</p>
+            <p class="text-sm font-medium text-red-900 dark:text-red-200">{{ t('groupDetail.error') }}</p>
           </div>
-          <Button variant="outline" size="sm" class="rounded-lg" @click="load">Retry</Button>
+          <Button variant="outline" size="sm" class="rounded-lg" @click="load">{{ t('browse.error.retry') }}</Button>
         </div>
       </div>
 
@@ -102,7 +103,7 @@ async function onWishlist(id: number | string) {
           <!-- Sidebar: members + card types -->
           <aside class="space-y-6">
             <div>
-              <p class="pc-meta-label mb-2.5">Members</p>
+              <p class="pc-meta-label mb-2.5">{{ t('groupDetail.membersTitle') }}</p>
               <div class="flex flex-wrap gap-1.5">
                 <NuxtLink
                   v-for="m in info.byMember"
@@ -117,13 +118,13 @@ async function onWishlist(id: number | string) {
             </div>
 
             <div>
-              <p class="pc-meta-label mb-2.5">Card types</p>
+              <p class="pc-meta-label mb-2.5">{{ t('groupDetail.cardTypes') }}</p>
               <div class="overflow-hidden rounded-xl border border-border bg-card">
                 <NuxtLink
                   v-for="(row, i) in typeRows"
                   :key="row.type"
                   class="relative flex items-center justify-between gap-3 px-3.5 py-2.5 transition-colors hover:bg-muted"
-                  :class="i > 0 ? 'border-t border-border' : ''"
+                  :class="Number(i) > 0 ? 'border-t border-border' : ''"
                   :to="{ path: '/browse', query: { group, card_type: row.type } }"
                 >
                   <span
@@ -135,7 +136,7 @@ async function onWishlist(id: number | string) {
                   <span class="relative shrink-0 text-xs tabular-nums text-muted-foreground">{{ row.count.toLocaleString() }}</span>
                 </NuxtLink>
               </div>
-              <p class="mt-2 text-[11px] text-muted-foreground">Counts from the full catalog.</p>
+              <p class="mt-2 text-[11px] text-muted-foreground">{{ t('groupDetail.countsNote') }}</p>
             </div>
           </aside>
 
@@ -145,14 +146,14 @@ async function onWishlist(id: number | string) {
             <section>
               <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
                 <div>
-                  <p class="eyebrow">Latest</p>
-                  <h2 class="mt-1 section-title">Newest {{ group }} cards</h2>
+                  <p class="eyebrow">{{ t('groupDetail.latestEyebrow') }}</p>
+                  <h2 class="mt-1 section-title">{{ t('groupDetail.latestTitle', { group }) }}</h2>
                 </div>
                 <NuxtLink
                   :to="{ path: '/browse', query: { group } }"
                   class="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
                 >
-                  Open catalog
+                  {{ t('groups.open') }}
                   <ArrowRight class="h-4 w-4" />
                 </NuxtLink>
               </div>
@@ -169,7 +170,7 @@ async function onWishlist(id: number | string) {
               </div>
 
               <div v-else-if="info.latest.length === 0" class="rounded-xl border border-dashed border-zinc-300 px-6 py-12 text-center dark:border-zinc-700">
-                <p class="text-sm text-muted-foreground">No cards indexed for this group yet.</p>
+                <p class="text-sm text-muted-foreground">{{ t('groupDetail.latestEmpty') }}</p>
               </div>
 
               <div v-else class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-4">
@@ -187,8 +188,8 @@ async function onWishlist(id: number | string) {
 
             <!-- Releases -->
             <section v-if="info.releases.length > 0">
-              <p class="eyebrow">Albums / releases</p>
-              <h2 class="mt-1 mb-4 section-title">Where these cards come from</h2>
+              <p class="eyebrow">{{ t('groupDetail.releasesEyebrow') }}</p>
+              <h2 class="mt-1 mb-4 section-title">{{ t('groupDetail.releasesTitle') }}</h2>
 
               <div class="grid gap-px overflow-hidden rounded-xl border border-zinc-200 bg-zinc-200 sm:grid-cols-2 lg:grid-cols-3 dark:border-zinc-800 dark:bg-zinc-800">
                 <NuxtLink

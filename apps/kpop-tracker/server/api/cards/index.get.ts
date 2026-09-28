@@ -27,8 +27,8 @@ export default defineEventHandler(async (event) => {
   })
 
   let orderClause = 'ORDER BY last_wish_count DESC'
-  if (sort === 'price_asc') orderClause = 'ORDER BY last_discounted_price ASC'
-  else if (sort === 'price_desc') orderClause = 'ORDER BY last_discounted_price DESC'
+  if (sort === 'price_asc') orderClause = 'ORDER BY COALESCE(last_discounted_price, last_price) ASC'
+  else if (sort === 'price_desc') orderClause = 'ORDER BY COALESCE(last_discounted_price, last_price) DESC'
   else if (sort === 'name') orderClause = 'ORDER BY name ASC'
   else if (sort === 'stock') orderClause = 'ORDER BY last_stocked_count DESC'
   else if (sort === 'newest') orderClause = 'ORDER BY updated_at DESC'

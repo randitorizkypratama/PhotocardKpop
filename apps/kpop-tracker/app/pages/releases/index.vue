@@ -12,6 +12,7 @@ useSeoMeta({
 const releases = ref<any[]>([])
 const loading = ref(true)
 const loadError = ref(false)
+const { t } = useLocale()
 
 const route = useRoute()
 const router = useRouter()
@@ -120,11 +121,10 @@ function albumPath(release: any) {
       <!-- Header -->
       <section class="border-b border-zinc-200 dark:border-zinc-800">
         <div class="page-shell py-8 sm:py-10">
-          <p class="eyebrow">Comeback timeline</p>
-          <h1 class="mt-2 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Releases</h1>
+          <p class="eyebrow">{{ t('releases.timeline.eyebrow') }}</p>
+          <h1 class="mt-2 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{{ t('nav.releases') }}</h1>
           <p class="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            Every album, single and special release in the catalog, newest first. Release dates come from
-            MusicBrainz and Apple&nbsp;Music; open a release to see its photocards.
+            {{ t('releases.timeline.desc') }}
           </p>
 
           <div v-if="!loading && !loadError" class="mt-5 flex flex-col gap-3">
@@ -144,13 +144,13 @@ function albumPath(release: any) {
               >
                 <span class="inline-flex items-center gap-1.5">
                   <span v-if="tab !== 'All'" class="h-1.5 w-1.5 rounded-full" :class="groupDot(tab)" />
-                  {{ tab }}
+                  {{ tab === 'All' ? t('browse.memberChipAll') : tab }}
                 </span>
               </button>
             </div>
 
             <div v-if="typeTabs.length > 1 || selectedType !== 'All'" class="flex flex-wrap items-center gap-2">
-              <span class="mr-0.5 text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground">Type</span>
+              <span class="mr-0.5 text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground">{{ t('card.type') }}</span>
               <button
                 v-for="tab in typeTabs"
                 :key="tab.type"
@@ -164,7 +164,7 @@ function albumPath(release: any) {
                 :aria-pressed="selectedType === tab.type"
                 @click="selectedType = tab.type"
               >
-                {{ tab.type }}
+                {{ tab.type === 'All' ? t('browse.memberChipAll') : tab.type }}
                 <span class="ml-1 tabular-nums text-muted-foreground">{{ tab.count }}</span>
               </button>
             </div>
@@ -177,9 +177,9 @@ function albumPath(release: any) {
         <div class="flex flex-col items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-900/50 dark:bg-red-950/40" role="alert">
           <div class="flex items-start gap-2.5">
             <AlertCircle class="mt-0.5 h-4 w-4 shrink-0 text-red-600 dark:text-red-400" />
-            <p class="text-sm font-medium text-red-900 dark:text-red-200">Unable to load releases.</p>
+            <p class="text-sm font-medium text-red-900 dark:text-red-200">{{ t('releases.timeline.error') }}</p>
           </div>
-          <Button variant="outline" size="sm" class="rounded-lg" @click="load">Retry</Button>
+          <Button variant="outline" size="sm" class="rounded-lg" @click="load">{{ t('browse.error.retry') }}</Button>
         </div>
       </div>
 
@@ -200,15 +200,15 @@ function albumPath(release: any) {
       <!-- Timeline -->
       <div v-else-if="filtered.length > 0" class="page-shell py-8 sm:py-10">
         <p class="mb-6 text-xs text-muted-foreground">
-          {{ datedCount }} release{{ datedCount === 1 ? '' : 's' }} with a date
-          <span v-if="undated.length"> · {{ undated.length }} without one</span>
+          {{ datedCount }} {{ datedCount === 1 ? t('releases.timeline.datedOne') : t('releases.timeline.datedMany') }}
+          <span v-if="undated.length"> · {{ undated.length }} {{ t('releases.timeline.undatedSuffix') }}</span>
         </p>
 
         <section v-for="group in years" :key="group.year" class="mb-9">
           <div class="mb-1 flex items-baseline gap-3">
             <h2 class="text-lg font-semibold tracking-tight text-foreground sm:text-xl">{{ group.year }}</h2>
             <span class="text-xs text-muted-foreground tabular-nums">
-              {{ group.items.length }} release{{ group.items.length === 1 ? '' : 's' }}
+              {{ group.items.length }} {{ group.items.length === 1 ? t('releases.timeline.yearOne') : t('releases.timeline.yearMany') }}
             </span>
           </div>
 
@@ -228,7 +228,7 @@ function albumPath(release: any) {
                 <img
                   v-if="release.artwork || release.image"
                   :src="release.artwork || release.image"
-                  :alt="`${release.release_name} cover`"
+                  :alt="t('releases.timeline.coverAlt', { name: release.release_name })"
                   loading="lazy"
                   decoding="async"
                   class="h-full w-full object-cover object-top"
@@ -242,8 +242,8 @@ function albumPath(release: any) {
                 </span>
                 <span class="mt-1 block truncate text-xs text-muted-foreground">
                   {{ release.group_name }}<template v-if="release.release_type"> · {{ release.release_type }}</template>
-                  <template v-if="release.count > 0"> · {{ release.count.toLocaleString() }} cards</template>
-                  <template v-else> · No cards yet</template>
+                  <template v-if="release.count > 0"> · {{ release.count.toLocaleString() }} {{ t('releases.cards') }}</template>
+                  <template v-else> · {{ t('releases.noCardsYet') }}</template>
                   <template v-if="release.label"> · {{ release.label }}</template>
                 </span>
               </span>
@@ -256,9 +256,9 @@ function albumPath(release: any) {
         <!-- No date yet -->
         <section v-if="undated.length > 0">
           <div class="mb-1 flex items-baseline gap-3">
-            <h2 class="text-lg font-semibold tracking-tight text-foreground sm:text-xl">Date pending</h2>
+            <h2 class="text-lg font-semibold tracking-tight text-foreground sm:text-xl">{{ t('releases.timeline.datePending') }}</h2>
             <span class="text-xs text-muted-foreground tabular-nums">
-              {{ undated.length }} release{{ undated.length === 1 ? '' : 's' }}
+              {{ undated.length }} {{ undated.length === 1 ? t('releases.timeline.yearOne') : t('releases.timeline.yearMany') }}
             </span>
           </div>
 
@@ -276,7 +276,7 @@ function albumPath(release: any) {
                 <img
                   v-if="release.artwork || release.image"
                   :src="release.artwork || release.image"
-                  :alt="`${release.release_name} cover`"
+                  :alt="t('releases.timeline.coverAlt', { name: release.release_name })"
                   loading="lazy"
                   decoding="async"
                   class="h-full w-full object-cover object-top"
@@ -290,8 +290,8 @@ function albumPath(release: any) {
                 </span>
                 <span class="mt-1 block truncate text-xs text-muted-foreground">
                   {{ release.group_name }}<template v-if="release.release_type"> · {{ release.release_type }}</template>
-                  <template v-if="release.count > 0"> · {{ release.count.toLocaleString() }} cards</template>
-                  <template v-else> · No cards yet</template>
+                  <template v-if="release.count > 0"> · {{ release.count.toLocaleString() }} {{ t('releases.cards') }}</template>
+                  <template v-else> · {{ t('releases.noCardsYet') }}</template>
                 </span>
               </span>
 
@@ -304,8 +304,8 @@ function albumPath(release: any) {
       <!-- Empty -->
       <div v-else class="page-shell py-10">
         <div class="rounded-xl border border-dashed border-zinc-300 py-12 text-center dark:border-zinc-700">
-          <p class="text-sm font-medium text-foreground">No releases found.</p>
-          <p class="mt-1 text-sm text-muted-foreground">Try another group or check back after the daily sync.</p>
+          <p class="text-sm font-medium text-foreground">{{ t('releases.timeline.empty') }}</p>
+          <p class="mt-1 text-sm text-muted-foreground">{{ t('empty.hint') }}</p>
         </div>
       </div>
     </main>

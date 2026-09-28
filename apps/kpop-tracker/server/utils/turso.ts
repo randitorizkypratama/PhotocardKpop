@@ -1,6 +1,7 @@
 import { createClient, type Client } from '@libsql/client'
 
 let client: Client | null = null
+let authTablesReady = false
 
 export function getTursoClient(): Client {
   if (!client) {
@@ -11,6 +12,57 @@ export function getTursoClient(): Client {
     })
   }
   return client
+}
+
+// Auth tables (users/sessions) + per-user collections migration. Runs once
+// per process so auth works even before /api/init (cron) has run.
+export async function ensureAuthTables() {
+  if (authTablesReady) return
+  const db = getTursoClient()
+
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT NOT NULL COLLATE NOCASE UNIQUE,
+      password_hash TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    )
+  `)
+
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS sessions (
+      token TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `)
+
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS error_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      scope TEXT NOT NULL,
+      message TEXT NOT NULL,
+      stack TEXT,
+      path TEXT,
+      created_at TEXT NOT NULL
+    )
+  `)
+
+  try {
+    await db.execute(`ALTER TABLE collections ADD COLUMN user_id INTEGER`)
+  } catch {}
+
+  try {
+    await db.execute(`DROP INDEX IF EXISTS idx_collections_card_status`)
+  } catch {}
+
+  try {
+    await db.execute(`CREATE UNIQUE INDEX IF NOT EXISTS idx_collections_user_card_status ON collections(user_id, card_id, status)`)
+  } catch {}
+
+  authTablesReady = true
 }
 
 export async function initializeDatabase() {
@@ -56,9 +108,16 @@ export async function initializeDatabase() {
       status TEXT NOT NULL DEFAULT 'wishlist',
       bought_price REAL,
       added_at TEXT NOT NULL,
+      user_id INTEGER,
       FOREIGN KEY (card_id) REFERENCES cards(id)
     )
   `)
+
+  try {
+    await db.execute(`ALTER TABLE collections ADD COLUMN user_id INTEGER`)
+  } catch {}
+
+  await ensureAuthTables()
 
   try {
     await db.execute(`ALTER TABLE cards ADD COLUMN release_name TEXT`)
@@ -72,19 +131,6 @@ export async function initializeDatabase() {
 
   try {
     await db.execute(`DROP INDEX IF EXISTS idx_collections_card`)
-  } catch {}
-
-  try {
-    await db.execute(`
-      DELETE FROM collections
-      WHERE id NOT IN (
-        SELECT MIN(id) FROM collections GROUP BY card_id, status
-      )
-    `)
-  } catch {}
-
-  try {
-    await db.execute(`CREATE UNIQUE INDEX IF NOT EXISTS idx_collections_card_status ON collections(card_id, status)`)
   } catch {}
 
   await db.execute(`

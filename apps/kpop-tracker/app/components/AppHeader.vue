@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowLeft, Heart, Search, ShoppingBag } from 'lucide-vue-next'
+import { ArrowLeft, Heart, LogIn, LogOut, Search, ShoppingBag, User } from 'lucide-vue-next'
 
 withDefaults(
   defineProps<{
@@ -18,11 +18,12 @@ const paletteOpen = useState('command-palette-open', () => false)
 const { locale, t, toggleLocale } = useLocale()
 
 const { stats, fetchCollection } = useCollection()
+const { user, refresh, logout } = useAuth()
 
 onMounted(() => {
   // One lightweight fetch per session so the heart can show the wishlist count
   // on pages that don't load the collection themselves.
-  fetchCollection()
+  refresh().then(() => fetchCollection())
 })
 
 const navLinks = [
@@ -49,7 +50,7 @@ function submitSearch() {
       <div v-if="back" class="flex min-w-0 items-center gap-1 sm:gap-3">
         <Button variant="ghost" size="sm" class="gap-1.5 rounded-lg" @click="router.back()">
           <ArrowLeft class="h-4 w-4" />
-          <span class="hidden sm:inline">Back</span>
+          <span class="hidden sm:inline">{{ t('nav.back') }}</span>
         </Button>
         <NuxtLink to="/" class="flex shrink-0 items-center gap-2 md:hidden">
           <img src="/hibikishop-logo.png" alt="HIBIKISHOP" class="h-8 w-8 rounded-full object-contain" />
@@ -147,6 +148,32 @@ function submitSearch() {
               v-if="stats.totalWishlist > 0"
               class="absolute -right-1.5 -top-1.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-semibold leading-none text-white shadow-sm"
             >{{ stats.totalWishlist > 99 ? '99+' : stats.totalWishlist }}</span>
+          </NuxtLink>
+        </Button>
+
+        <template v-if="user">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            class="rounded-lg"
+            :aria-label="t('auth.logout')"
+            :title="user.username"
+            @click="logout()"
+          >
+            <LogOut class="h-4 w-4" />
+          </Button>
+          <span class="hidden max-w-28 truncate text-xs font-medium text-muted-foreground lg:inline">{{ user.username }}</span>
+        </template>
+        <Button
+          v-else
+          variant="ghost"
+          size="sm"
+          class="rounded-lg gap-1.5"
+          as-child
+        >
+          <NuxtLink to="/login">
+            <LogIn class="h-4 w-4" />
+            <span class="hidden sm:inline">{{ t('auth.login') }}</span>
           </NuxtLink>
         </Button>
 

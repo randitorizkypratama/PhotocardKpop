@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const group = (query.group as string) || undefined
 
-  if (!group || !GROUPS.includes(group)) {
+  if (!group || !(GROUPS as readonly string[]).includes(group)) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid group' })
   }
 

@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
   })
 
   if (existing.rows.length > 0) {
-    const row = existing.rows[0]
+    const row = existing.rows[0]!
     const price = Number(row.last_price) || 0
     const discounted = row.last_discounted_price == null ? null : Number(row.last_discounted_price)
     const hasDiscount = discounted != null && price > 0 && discounted < price

@@ -21,7 +21,8 @@ export default defineEventHandler(async (event) => {
   for (const storeEntry of stores) {
     const patterns = storeLikePatterns(storeEntry.display)
     // The CASE expression always binds two placeholders (spaced + unspaced).
-    storeArgs.push(patterns[0], patterns[1] ?? patterns[0])
+    const spaced = patterns[0] ?? ''
+    storeArgs.push(spaced, patterns[1] ?? spaced)
   }
   const storeResult = await db.execute({
     sql: `SELECT ${cases.join(', ')} FROM cards ${storeFilter.where}`,

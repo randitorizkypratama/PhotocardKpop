@@ -33,7 +33,7 @@ export default defineEventHandler((event) => {
   const forwarded = getHeader(event, 'x-forwarded-for') || ''
   const ip = (getRequestIP(event, { xForwardedFor: true })
     || getHeader(event, 'x-real-ip')
-    || forwarded.split(',')[0].trim()
+    || (forwarded.split(',')[0] ?? '').trim()
     || 'local') as string
 
   const isWrite = event.method !== 'GET' && event.method !== 'HEAD'

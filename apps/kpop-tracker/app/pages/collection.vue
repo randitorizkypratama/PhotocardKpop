@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Trash2, BookOpen } from 'lucide-vue-next'
+import { Trash2, BookOpen, LockKeyhole } from 'lucide-vue-next'
 import { GROUPS, groupDot, formatUSD } from '@/lib/catalog'
 import { cardTypeLabel } from '@/lib/cardTypes'
 
@@ -12,6 +12,8 @@ useSeoMeta({
 
 const route = useRoute()
 const router = useRouter()
+const { t } = useLocale()
+const { user, checked: authChecked, refresh: refreshAuth } = useAuth()
 
 const {
   items, stats, loading, error, fetchCollection, removeFromCollection,
@@ -29,8 +31,9 @@ const removing = ref(false)
 const exchangeRates = ref<any>(null)
 const groupTotals = ref<Record<string, number>>({})
 
-onMounted(() => {
-  fetchCollection(true)
+onMounted(async () => {
+  await refreshAuth()
+  if (user.value) fetchCollection(true)
   loadExchangeRates()
   loadGroupTotals()
 })
@@ -91,7 +94,7 @@ const typeTabs = computed(() => {
     const key = item.card_type || 'Other'
     counts.set(key, (counts.get(key) || 0) + 1)
   }
-  const rows = [{ key: '', label: 'All', count: tabItems.value.length }]
+  const rows = [{ key: '', label: t('collection.all'), count: tabItems.value.length }]
   const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1])
   for (const [key, count] of sorted) rows.push({ key, label: cardTypeLabel(key), count })
   return rows
@@ -169,9 +172,9 @@ function cancelRemove() {
 }
 
 const tabDefs = computed(() => [
-  { key: 'all' as const, label: 'All', count: items.value.length },
-  { key: 'owned' as const, label: 'Owned', count: stats.value.totalOwned },
-  { key: 'wishlist' as const, label: 'Wishlist', count: stats.value.totalWishlist },
+  { key: 'all' as const, label: t('collection.all'), count: items.value.length },
+  { key: 'owned' as const, label: t('collection.tabOwned'), count: stats.value.totalOwned },
+  { key: 'wishlist' as const, label: t('collection.tabWishlist'), count: stats.value.totalWishlist },
 ])
 </script>
 
@@ -181,26 +184,61 @@ const tabDefs = computed(() => [
 
     <main class="page-shell py-6 sm:py-8">
       <div class="mb-5 sm:mb-6">
-        <p class="eyebrow">Binder</p>
-        <h1 class="mt-1.5 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">My Collection</h1>
-        <p class="mt-1.5 text-sm text-muted-foreground">Your digital photocard binder — cards you own and want.</p>
+        <p class="eyebrow">{{ t('collection.eyebrow') }}</p>
+        <h1 class="mt-1.5 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{{ t('collection.title') }}</h1>
+        <p class="mt-1.5 text-sm text-muted-foreground">{{ t('collection.desc') }}</p>
       </div>
 
+      <!-- Checking login state -->
+      <div v-if="!authChecked" class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
+        <div v-for="i in 8" :key="i" class="pc-skeleton">
+          <div class="skeleton-block aspect-square rounded-none" />
+          <div class="space-y-2.5 p-3">
+            <div class="skeleton-block h-3 w-1/3" />
+            <div class="skeleton-block h-3.5 w-full" />
+            <div class="skeleton-block h-4 w-1/2" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Not logged in -->
+      <div
+        v-else-if="!user"
+        class="rounded-xl border border-dashed border-zinc-300 px-6 py-14 text-center dark:border-zinc-700"
+      >
+        <LockKeyhole class="mx-auto h-7 w-7 text-zinc-400 dark:text-zinc-500" aria-hidden="true" />
+        <p class="eyebrow mt-4">{{ t('auth.collectionLocked') }}</p>
+        <p class="mt-3 text-sm text-muted-foreground">{{ t('auth.collectionLockedDesc') }}</p>
+        <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
+          <Button class="rounded-lg" as-child>
+            <NuxtLink :to="{ path: '/login', query: route.fullPath !== '/' ? { next: route.fullPath } : {} }">
+              {{ t('auth.login') }}
+            </NuxtLink>
+          </Button>
+          <Button variant="outline" class="rounded-lg" as-child>
+            <NuxtLink :to="{ path: '/login', query: { mode: 'register', ...(route.fullPath !== '/' ? { next: route.fullPath } : {}) } }">
+              {{ t('auth.register') }}
+            </NuxtLink>
+          </Button>
+        </div>
+      </div>
+
+      <template v-else>
       <!-- Compact summary -->
       <div class="mb-5 grid grid-cols-3 gap-2 rounded-xl border border-border bg-card px-3 py-3 text-sm sm:mb-8 sm:flex sm:flex-wrap sm:items-center sm:gap-x-6 sm:gap-y-2 sm:px-4 sm:py-3.5">
         <div class="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-2">
           <span class="text-lg font-semibold tabular-nums text-foreground">{{ items.length }}</span>
-          <span class="truncate text-xs text-muted-foreground sm:text-sm">cards</span>
+          <span class="truncate text-xs text-muted-foreground sm:text-sm">{{ t('browse.cardCount') }}</span>
         </div>
         <div class="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-2">
           <span class="truncate font-medium tabular-nums text-foreground">
             {{ formatUSD(stats.totalOwnedValue) }}
           </span>
-          <span class="truncate text-xs text-muted-foreground sm:text-sm">owned value</span>
+          <span class="truncate text-xs text-muted-foreground sm:text-sm">{{ t('collection.ownedValue') }}</span>
         </div>
         <div class="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-2">
           <span class="font-medium tabular-nums text-foreground">{{ stats.totalWishlist }}</span>
-          <span class="truncate text-xs text-muted-foreground sm:text-sm">wishlist</span>
+          <span class="truncate text-xs text-muted-foreground sm:text-sm">{{ t('collection.wishlist') }}</span>
         </div>
       </div>
 
@@ -221,7 +259,7 @@ const tabDefs = computed(() => [
 
       <!-- Card type filter -->
       <div v-if="!loading && typeTabs.length > 1" class="-mx-1 mb-6 overflow-x-auto px-1 pb-0.5">
-        <div class="flex w-max min-w-full items-center gap-1.5" role="group" aria-label="Filter collection by card type">
+        <div class="flex w-max min-w-full items-center gap-1.5" role="group" :aria-label="t('collection.filterAria')">
           <button
             v-for="row in typeTabs"
             :key="row.key || 'all'"
@@ -243,8 +281,8 @@ const tabDefs = computed(() => [
         class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200"
         role="alert"
       >
-        Unable to load your collection. Please try again.
-        <button type="button" class="ml-2 font-medium underline underline-offset-2" @click="fetchCollection(true)">Retry</button>
+        {{ t('collection.error') }}
+        <button type="button" class="ml-2 font-medium underline underline-offset-2" @click="fetchCollection(true)">{{ t('browse.error.retry') }}</button>
       </div>
 
       <!-- Loading -->
@@ -266,19 +304,19 @@ const tabDefs = computed(() => [
       >
         <BookOpen class="mx-auto h-7 w-7 text-zinc-400 dark:text-zinc-500" aria-hidden="true" />
         <p class="eyebrow mt-4">
-          <template v-if="selectedType">No {{ selectedType }} cards</template>
-          <template v-else-if="activeTab === 'wishlist'">Your wishlist is empty</template>
-          <template v-else-if="activeTab === 'owned'">Nothing owned yet</template>
-          <template v-else>Your binder is empty</template>
+          <template v-if="selectedType">{{ t('collection.emptyType', { type: selectedType }) }}</template>
+          <template v-else-if="activeTab === 'wishlist'">{{ t('collection.emptyWishlist') }}</template>
+          <template v-else-if="activeTab === 'owned'">{{ t('collection.emptyOwned') }}</template>
+          <template v-else>{{ t('collection.emptyBinder') }}</template>
         </p>
         <p class="mt-3 text-sm text-muted-foreground">
-          <template v-if="selectedType">Try another card type, or add more cards to this binder.</template>
-          <template v-else>Start adding photocards to build your collection.</template>
+          <template v-if="selectedType">{{ t('collection.emptyTypeHint') }}</template>
+          <template v-else>{{ t('collection.emptyHint') }}</template>
         </p>
         <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
-          <Button v-if="selectedType" variant="outline" class="rounded-lg" @click="selectedType = null">Show all types</Button>
+          <Button v-if="selectedType" variant="outline" class="rounded-lg" @click="selectedType = null">{{ t('collection.showAllTypes') }}</Button>
           <Button variant="outline" class="rounded-lg" as-child>
-            <NuxtLink to="/browse">Browse Photocards</NuxtLink>
+            <NuxtLink to="/browse">{{ t('collection.browsePhotocards') }}</NuxtLink>
           </Button>
         </div>
       </div>
@@ -296,9 +334,9 @@ const tabDefs = computed(() => [
             </div>
             <div class="flex min-w-0 flex-1 items-center justify-end gap-2 text-xs text-muted-foreground sm:gap-3">
               <span v-if="section.hasProgress" class="shrink-0 tabular-nums">
-                {{ section.ownedCount }} / {{ section.total.toLocaleString() }} collected
+                {{ section.ownedCount }} / {{ section.total.toLocaleString() }} {{ t('collection.progressLabel') }}
               </span>
-              <span v-else class="shrink-0 tabular-nums">{{ section.ownedCount }} owned</span>
+              <span v-else class="shrink-0 tabular-nums">{{ section.ownedCount }} {{ t('collection.ownedLabel') }}</span>
               <div
                 v-if="section.hasProgress"
                 class="h-1.5 w-16 shrink-0 overflow-hidden rounded-full bg-zinc-100 sm:w-24 dark:bg-zinc-800"
@@ -306,7 +344,7 @@ const tabDefs = computed(() => [
                 :aria-valuenow="section.ownedCount"
                 :aria-valuemin="0"
                 :aria-valuemax="section.total"
-                :aria-label="`${section.group} collection progress`"
+                :aria-label="t('collection.progressAria', { group: section.group })"
               >
                 <div
                   class="h-full rounded-full bg-foreground transition-all duration-300"
@@ -322,7 +360,7 @@ const tabDefs = computed(() => [
             <div v-for="row in section.members" :key="row.member">
               <div class="mb-2.5 flex items-baseline justify-between gap-3 border-b border-border pb-2">
                 <p class="truncate text-xs font-semibold uppercase tracking-[0.1em] text-foreground">{{ row.member }}</p>
-                <span class="shrink-0 text-[11px] tabular-nums text-muted-foreground">{{ row.items.length }} cards</span>
+                <span class="shrink-0 text-[11px] tabular-nums text-muted-foreground">{{ row.items.length }} {{ t('browse.cardCount') }}</span>
               </div>
 
               <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
@@ -330,12 +368,12 @@ const tabDefs = computed(() => [
                   <PhotocardCard
                     :card="mapForCard(item)"
                     :rate="rate"
-                    :badge="item.status === 'owned' ? 'Owned' : 'Wishlist'"
+                    :badge="item.status === 'owned' ? t('collection.badgeOwned') : t('collection.badgeWishlist')"
                   />
                   <button
                     type="button"
                     class="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white/95 text-zinc-500 shadow-sm backdrop-blur-sm transition duration-150 hover:border-red-200 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 dark:border-zinc-700 dark:bg-zinc-950/90 dark:text-zinc-400"
-                    :aria-label="`Remove ${item.name} from ${item.status === 'owned' ? 'collection' : 'wishlist'}`"
+                    :aria-label="item.status === 'owned' ? t('collection.removeAria', { name: item.name }) : t('collection.removeAriaWishlist', { name: item.name })"
                     @click.stop="removeById(item)"
                   >
                     <Trash2 class="h-4 w-4" />
@@ -349,7 +387,7 @@ const tabDefs = computed(() => [
         <!-- Non-standard group names -->
         <section v-if="orphans.length > 0">
           <div class="mb-4 flex items-center gap-2">
-            <h2 class="text-base font-semibold text-foreground sm:text-lg">Other</h2>
+            <h2 class="text-base font-semibold text-foreground sm:text-lg">{{ t('collection.other') }}</h2>
             <span class="text-xs text-muted-foreground tabular-nums">{{ orphans.length }}</span>
           </div>
           <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
@@ -357,12 +395,12 @@ const tabDefs = computed(() => [
               <PhotocardCard
                 :card="mapForCard(item)"
                 :rate="rate"
-                :badge="item.status === 'owned' ? 'Owned' : 'Wishlist'"
+                :badge="item.status === 'owned' ? t('collection.badgeOwned') : t('collection.badgeWishlist')"
               />
               <button
                 type="button"
                 class="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white/95 text-zinc-500 shadow-sm backdrop-blur-sm transition duration-150 hover:border-red-200 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 dark:border-zinc-700 dark:bg-zinc-950/90 dark:text-zinc-400"
-                :aria-label="`Remove ${item.name} from ${item.status === 'owned' ? 'collection' : 'wishlist'}`"
+                :aria-label="item.status === 'owned' ? t('collection.removeAria', { name: item.name }) : t('collection.removeAriaWishlist', { name: item.name })"
                 @click.stop="removeById(item)"
               >
                 <Trash2 class="h-4 w-4" />
@@ -371,6 +409,7 @@ const tabDefs = computed(() => [
           </div>
         </section>
       </div>
+      </template>
     </main>
 
     <!-- Remove Dialog: use plain Button (not AlertDialogAction) so confirm click is not raced by reka-ui auto-close -->
@@ -378,26 +417,26 @@ const tabDefs = computed(() => [
       <AlertDialogContent class="max-w-sm rounded-xl">
         <AlertDialogHeader>
           <AlertDialogTitle class="text-base">
-            Remove from {{ removeTargetStatus === 'owned' ? 'collection' : removeTargetStatus === 'wishlist' ? 'wishlist' : 'collection' }}?
+            {{ removeTargetStatus === 'wishlist' ? t('collection.removeTitleWishlist') : t('collection.removeTitleCollection') }}
           </AlertDialogTitle>
           <AlertDialogDescription class="text-muted-foreground">
             <template v-if="removeTargetName">
-              “{{ removeTargetName }}” will be removed. You can add it again later.
+              {{ t('collection.removeDescNamed', { name: removeTargetName }) }}
             </template>
             <template v-else>
-              This card will be removed. You can add it again later.
+              {{ t('collection.removeDesc') }}
             </template>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter class="gap-2 sm:justify-end">
-          <AlertDialogCancel class="rounded-lg" @click="cancelRemove">Cancel</AlertDialogCancel>
+          <AlertDialogCancel class="rounded-lg" @click="cancelRemove">{{ t('card.addDialog.cancel') }}</AlertDialogCancel>
           <Button
             type="button"
             class="rounded-lg"
             :disabled="removing"
             @click="confirmRemove"
           >
-            {{ removing ? 'Removing…' : 'Remove' }}
+            {{ removing ? t('collection.removing') : t('collection.remove') }}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

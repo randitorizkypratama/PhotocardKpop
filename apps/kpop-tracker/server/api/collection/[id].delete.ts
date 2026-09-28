@@ -1,5 +1,6 @@
 export default defineEventHandler(async (event) => {
   requireSameOrigin(event)
+  const user = await requireUser(event)
   const idParam = getRouterParam(event, 'id') as string
   const id = parseInt(idParam)
 
@@ -16,19 +17,19 @@ export default defineEventHandler(async (event) => {
   if (id > 100000) {
     if (status === 'wishlist' || status === 'owned') {
       await db.execute({
-        sql: 'DELETE FROM collections WHERE card_id = ? AND status = ?',
-        args: [id, status],
+        sql: 'DELETE FROM collections WHERE user_id = ? AND card_id = ? AND status = ?',
+        args: [user.id, id, status],
       })
     } else {
       await db.execute({
-        sql: 'DELETE FROM collections WHERE card_id = ?',
-        args: [id],
+        sql: 'DELETE FROM collections WHERE user_id = ? AND card_id = ?',
+        args: [user.id, id],
       })
     }
   } else {
     await db.execute({
-      sql: 'DELETE FROM collections WHERE id = ?',
-      args: [id],
+      sql: 'DELETE FROM collections WHERE user_id = ? AND id = ?',
+      args: [user.id, id],
     })
   }
 

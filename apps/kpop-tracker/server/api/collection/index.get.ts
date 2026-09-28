@@ -1,13 +1,16 @@
 export default defineEventHandler(async (event) => {
+  const user = await requireUser(event)
   const db = getTursoClient()
 
-  const result = await db.execute(`
-    SELECT c.*, cards.name, cards.image, cards.group_name, cards.member_name,
+  const result = await db.execute({
+    sql: `SELECT c.*, cards.name, cards.image, cards.group_name, cards.member_name,
            cards.card_type, cards.last_price, cards.last_discounted_price
     FROM collections c
     JOIN cards ON c.card_id = cards.id
-    ORDER BY c.added_at DESC
-  `)
+    WHERE c.user_id = ?
+    ORDER BY c.added_at DESC`,
+    args: [user.id],
+  })
 
   const seen = new Set<string>()
   const rows = result.rows.filter((row) => {

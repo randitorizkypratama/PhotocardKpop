@@ -33,6 +33,19 @@ interface SyncSummary {
 const summary = ref<SyncSummary | null>(null)
 const runs = ref<SyncRun[]>([])
 const loading = ref(true)
+const { t } = useLocale()
+const { user, checked: authChecked, refresh: refreshAuth } = useAuth()
+
+interface ErrorRow {
+  id: number
+  scope: string
+  message: string
+  stack: string | null
+  path: string | null
+  created_at: string
+}
+const errors = ref<ErrorRow[]>([])
+const errorsChecked = ref(false)
 
 onMounted(async () => {
   try {
@@ -46,6 +59,18 @@ onMounted(async () => {
     // Render whatever we got; the empty state covers the rest.
   } finally {
     loading.value = false
+  }
+
+  try {
+    if (!authChecked.value) await refreshAuth()
+    if (user.value) {
+      const errorRes = await $fetch<{ success: boolean, data: ErrorRow[] }>('/api/errors')
+      if (errorRes?.success) errors.value = errorRes.data || []
+    }
+  } catch {
+    // Error log is best-effort.
+  } finally {
+    errorsChecked.value = true
   }
 })
 
@@ -113,29 +138,29 @@ function duration(run: { started_at: string, finished_at: string | null }) {
     <main>
       <section class="border-b border-zinc-200 dark:border-zinc-800">
         <div class="page-shell py-8 sm:py-10">
-          <p class="eyebrow">System status</p>
-          <h1 class="mt-1.5 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Sync status</h1>
+          <p class="eyebrow">{{ t('status.systemEyebrow') }}</p>
+          <h1 class="mt-1.5 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{{ t('palette.nav.status') }}</h1>
           <p class="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            Daily Pocamarket sync (00:00 WIB) and its run history — what ran, how long it took, and whether anything failed.
+            {{ t('status.desc') }}
           </p>
 
           <div class="mt-6 grid gap-3 sm:grid-cols-3">
             <div class="rounded-xl border border-zinc-200 bg-card p-4 shadow-sm dark:border-zinc-800">
-              <p class="text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground">Catalog</p>
+              <p class="text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground">{{ t('nav.browse') }}</p>
               <p class="mt-1.5 text-lg font-semibold tabular-nums text-foreground">
                 {{ summary ? summary.total.toLocaleString() : '—' }}
               </p>
-              <p class="text-xs text-muted-foreground">photocards tracked</p>
+              <p class="text-xs text-muted-foreground">{{ t('status.tracked') }}</p>
             </div>
             <div class="rounded-xl border border-zinc-200 bg-card p-4 shadow-sm dark:border-zinc-800">
-              <p class="text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground">Last data update</p>
+              <p class="text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground">{{ t('status.lastDataUpdate') }}</p>
               <p class="mt-1.5 text-lg font-semibold tabular-nums text-foreground">
                 {{ fmtShort(summary?.last_synced || null) }}
               </p>
-              <p class="text-xs text-muted-foreground">latest card refresh</p>
+              <p class="text-xs text-muted-foreground">{{ t('status.latestRefresh') }}</p>
             </div>
             <div class="rounded-xl border border-zinc-200 bg-card p-4 shadow-sm dark:border-zinc-800">
-              <p class="text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground">Last run</p>
+              <p class="text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground">{{ t('status.lastRun') }}</p>
               <div class="mt-1.5 flex items-center gap-2">
                 <span
                   v-if="summary?.last_run"
@@ -159,10 +184,10 @@ function duration(run: { started_at: string, finished_at: string | null }) {
       <section class="page-shell py-8 sm:py-10">
         <div class="mb-4 flex items-end justify-between gap-3">
           <div>
-            <p class="eyebrow">History</p>
-            <h2 class="mt-1.5 text-lg font-semibold tracking-tight text-foreground sm:text-xl">Recent runs</h2>
+            <p class="eyebrow">{{ t('status.history') }}</p>
+            <h2 class="mt-1.5 text-lg font-semibold tracking-tight text-foreground sm:text-xl">{{ t('status.recentRuns') }}</h2>
           </div>
-          <span class="text-xs text-muted-foreground">last {{ runs.length || 0 }} of 30</span>
+          <span class="text-xs text-muted-foreground">{{ t('status.lastOf', { count: runs.length || 0 }) }}</span>
         </div>
 
         <div v-if="loading" class="space-y-3">
@@ -171,8 +196,8 @@ function duration(run: { started_at: string, finished_at: string | null }) {
 
         <div v-else-if="runs.length === 0" class="rounded-xl border border-dashed border-zinc-300 py-12 text-center dark:border-zinc-700">
           <RefreshCw class="mx-auto h-5 w-5 text-muted-foreground" aria-hidden="true" />
-          <p class="mt-3 text-sm font-medium text-foreground">No sync runs recorded yet.</p>
-          <p class="mt-1 text-sm text-muted-foreground">History appears after the first scheduled run at 00:00 WIB.</p>
+          <p class="mt-3 text-sm font-medium text-foreground">{{ t('status.emptyTitle') }}</p>
+          <p class="mt-1 text-sm text-muted-foreground">{{ t('status.emptyHint') }}</p>
         </div>
 
         <ul v-else class="space-y-3">
@@ -197,7 +222,7 @@ function duration(run: { started_at: string, finished_at: string | null }) {
                 <span v-if="duration(run)" :title="`${fmt(run.started_at)} → ${fmt(run.finished_at)}`">
                   {{ duration(run) }}
                 </span>
-                <span v-if="run.total_synced != null">{{ run.total_synced.toLocaleString() }} cards</span>
+                <span v-if="run.total_synced != null">{{ run.total_synced.toLocaleString() }} {{ t('sync.cards') }}</span>
               </div>
             </div>
 
@@ -210,8 +235,8 @@ function duration(run: { started_at: string, finished_at: string | null }) {
                   ? 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300'
                   : 'bg-red-500/10 text-red-700 dark:text-red-400'"
                 :title="group.success
-                  ? `${group.group}: ${Number(group.totalSynced || 0).toLocaleString()} cards`
-                  : `${group.group}: ${group.error || 'failed'}`"
+                  ? t('status.groupChipCards', { group: group.group, count: Number(group.totalSynced || 0).toLocaleString() })
+                  : `${group.group}: ${group.error || t('status.failed')}`"
               >
                 <span
                   class="h-1.5 w-1.5 rounded-full"
@@ -223,6 +248,56 @@ function duration(run: { started_at: string, finished_at: string | null }) {
             </div>
 
             <p v-if="run.error" class="mt-2 break-words text-xs text-red-600 dark:text-red-400">{{ run.error }}</p>
+          </li>
+        </ul>
+      </section>
+
+      <section class="page-shell pb-10">
+        <div class="mb-4">
+          <p class="eyebrow">{{ t('status.monitoring') }}</p>
+          <h2 class="mt-1.5 text-lg font-semibold tracking-tight text-foreground sm:text-xl">{{ t('status.errors') }}</h2>
+        </div>
+
+        <div v-if="!errorsChecked" class="space-y-3">
+          <div v-for="i in 2" :key="i" class="skeleton-block h-16 rounded-xl" />
+        </div>
+
+        <div v-else-if="!user" class="rounded-xl border border-dashed border-zinc-300 py-8 text-center dark:border-zinc-700">
+          <p class="text-sm text-muted-foreground">{{ t('status.loginForErrors') }}</p>
+          <Button variant="outline" class="mt-3 rounded-lg" as-child>
+            <NuxtLink to="/login">{{ t('auth.login') }}</NuxtLink>
+          </Button>
+        </div>
+
+        <div v-else-if="errors.length === 0" class="rounded-xl border border-dashed border-zinc-300 py-8 text-center dark:border-zinc-700">
+          <p class="text-sm text-muted-foreground">{{ t('status.errorsEmpty') }}</p>
+        </div>
+
+        <ul v-else class="space-y-3">
+          <li
+            v-for="row in errors"
+            :key="row.id"
+            class="rounded-xl border border-zinc-200 bg-card p-4 shadow-sm dark:border-zinc-800"
+          >
+            <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+              <div class="flex min-w-0 items-center gap-2">
+                <span
+                  class="inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium ring-1 ring-inset"
+                  :class="row.scope === 'server'
+                    ? 'bg-red-500/10 text-red-700 ring-red-500/30 dark:text-red-400'
+                    : 'bg-amber-500/10 text-amber-700 ring-amber-500/30 dark:text-amber-400'"
+                >
+                  {{ row.scope === 'server' ? t('status.scopeServer') : t('status.scopeClient') }}
+                </span>
+                <span class="truncate text-sm font-medium text-foreground">{{ row.message }}</span>
+              </div>
+              <span class="shrink-0 text-xs tabular-nums text-muted-foreground">{{ fmtShort(row.created_at) }}</span>
+            </div>
+            <p v-if="row.path" class="mt-1 truncate text-xs text-muted-foreground">{{ row.path }}</p>
+            <details v-if="row.stack" class="mt-2">
+              <summary class="cursor-pointer text-xs text-muted-foreground">{{ t('status.stack') }}</summary>
+              <pre class="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-all rounded-lg bg-zinc-50 p-3 text-[11px] leading-relaxed text-zinc-600 dark:bg-zinc-900/60 dark:text-zinc-400">{{ row.stack }}</pre>
+            </details>
           </li>
         </ul>
       </section>

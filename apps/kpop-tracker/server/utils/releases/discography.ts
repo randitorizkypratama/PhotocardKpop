@@ -216,7 +216,7 @@ export async function writeGroupDiscography(releases: DiscographyRelease[], db?:
   await ensureTable(client)
 
   const now = Date.now()
-  const group = releases[0].group_name
+  const group = releases[0]!.group_name
   // Delete + insert run in one transaction (a group has <100 releases, so a
   // single batch is plenty): readers never see the table half-empty if this
   // process dies midway.

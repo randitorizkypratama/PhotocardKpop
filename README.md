@@ -13,6 +13,8 @@ Track K-pop photocard prices from Pocamarket for IVE, aespa, and Hearts2Hearts.
 - Price history and trends (IDR primary, USD via Frankfurter with fallback rate)
 - **Top price movers** on the homepage — biggest drops and risers over the last 36 hours
 - Collection binder: wishlist / owned per card, wishlist count badge in the header
+- **User accounts** — register/login (`/login`); each account has its own wishlist and
+  binder, sessions in an httpOnly cookie (scrypt-hashed passwords, no plain text)
 - **Release timeline** (`/releases`) — every Album, EP and Single from MusicBrainz, newest first,
   including releases that have no photocards in the catalog yet
 - **Album pages** (`/releases/:group/:release`) — artwork, release date, tracklist, cheapest card,
@@ -20,7 +22,7 @@ Track K-pop photocard prices from Pocamarket for IVE, aespa, and Hearts2Hearts.
 - Release enrichment from MusicBrainz + Apple Music (dates, artwork, labels, tracklists)
 - **Sync status page** (`/status`) — summary plus per-run history from the `sync_log` table
 - **Command palette** (`Ctrl/⌘ K`) — jump to pages or search cards from anywhere
-- **ID/EN language toggle** for navigation and key labels
+- **ID/EN language toggle** across navigation, filters, forms and all key pages
 - SEO: sitemap (`/sitemap.xml`), robots.txt, Open Graph / Twitter cards
 - Daily auto-sync from Pocamarket at 00:00 WIB, dark mode UI
 
@@ -129,7 +131,9 @@ bun run dev
 
 - **cards** — 16,200+ photocards, including the derived `release_name`
 - **price_history** — price tracking
-- **collections** — user collection (wishlist/owned)
+- **collections** — per-user collection (wishlist/owned, `user_id`-scoped)
+- **users** / **sessions** — accounts (scrypt password hashes) and DB-backed login sessions
+- **error_log** — server + client errors (last 500), surfaced on `/status` when logged in
 - **discography** — MusicBrainz release list per group (source of truth for releases)
 - **release_cache** — cached release enrichment (dates, artwork, tracks, labels)
 - **sync_log** — one row per cron run (`running` → `ok` / `partial` / `error`), powers `/status` and the footer badge
@@ -143,10 +147,14 @@ Each run re-labels cards against the (cached) discography, upserts prices, and w
 
 ## Security
 
-- **No user accounts** — collection writes (`POST` / `DELETE /api/collection`) only accept
-  requests whose `Origin` is the site itself or `localhost` (403 otherwise). This blocks
-  cross-site/drive-by abuse; non-browser clients can spoof `Origin`, which is an accepted
-  limitation of running a shared collection without login.
+- **User accounts** — wishlist/collection endpoints require a login session
+  (`/api/auth/register|login|logout|me`; scrypt password hashes, DB-backed sessions in an
+  httpOnly cookie). Data is scoped per `user_id`, so each account only sees its own binder.
+  The first account registered inherits the pre-login rows.
+- **Same-origin writes** — collection writes (`POST` / `DELETE /api/collection`) still only
+  accept an `Origin` of the site itself or localhost (403 otherwise), as a second layer
+  against cross-site/drive-by abuse. Login/register attempts are additionally capped at
+  15 per 10 minutes per IP.
 - **Rate limiting** — all `/api/**` requests: 300 reads + 60 writes per minute per IP
   (in-memory, best-effort per serverless instance; 429 past the budget).
 - **Third-party proxies** — `/api/tiktok/products` and `/api/tiktok/videos` require a
@@ -155,6 +163,9 @@ Each run re-labels cards against the (cached) discography, upserts prices, and w
   `Referrer-Policy`, `Permissions-Policy`, HSTS, and a partial
   `Content-Security-Policy` (`frame-ancestors`, `base-uri`, `object-src`, `form-action`).
 - **Cron/init/sync**: `Authorization: Bearer $CRON_SECRET`, fail-closed 401.
+- **Error monitoring** — server and client errors land in the `error_log` table (500-row
+  cap) and are viewable on `/status` when logged in; input validation caps pagination,
+  search length and prices; query strings are fully parameterized.
 - **Dependency audit**: `bun audit` plus a monthly GitHub Actions workflow
   (`.github/workflows/security-audit.yml`).
 

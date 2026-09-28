@@ -125,10 +125,10 @@ const RELEASE_PATTERNS: Record<string, [RegExp, string][]> = {
 export function extractReleaseName(name: string, groupName: string): string | null {
   const n = name.toUpperCase()
   const g = groupName.toUpperCase()
-  const patterns =
-    g.includes('HEARTS') ? RELEASE_PATTERNS.HEARTS2HEARTS
-    : g.includes('AESPA') ? RELEASE_PATTERNS.AESPA
-    : RELEASE_PATTERNS.IVE
+  const patterns: [RegExp, string][] =
+    g.includes('HEARTS') ? RELEASE_PATTERNS.HEARTS2HEARTS ?? []
+    : g.includes('AESPA') ? RELEASE_PATTERNS.AESPA ?? []
+    : RELEASE_PATTERNS.IVE ?? []
 
   for (const [pattern, label] of patterns) {
     if (pattern.test(n)) return label
