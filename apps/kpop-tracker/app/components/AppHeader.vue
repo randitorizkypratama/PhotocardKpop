@@ -27,12 +27,12 @@ onMounted(() => {
 })
 
 const navLinks = [
-  { to: '/browse', label: 'nav.browse', key: 'browse' },
-  { to: '/#groups', label: 'nav.groups', key: 'groups' },
-  { to: '/#card-types', label: 'nav.cardTypes', key: 'card-types' },
-  { to: '/releases', label: 'nav.releases', key: 'releases' },
-  { to: '/collection', label: 'nav.collection', key: 'collection' },
-  { to: '/shop', label: 'nav.shop', key: 'shop' },
+  { to: '/browse', label: 'nav.browse', key: 'browse', cls: '' },
+  { to: '/#groups', label: 'nav.groups', key: 'groups', cls: 'hidden lg:block' },
+  { to: '/#card-types', label: 'nav.cardTypes', key: 'card-types', cls: 'hidden lg:block' },
+  { to: '/releases', label: 'nav.releases', key: 'releases', cls: '' },
+  { to: '/collection', label: 'nav.collection', key: 'collection', cls: '' },
+  { to: '/shop', label: 'nav.shop', key: 'shop', cls: '' },
 ]
 
 function submitSearch() {
@@ -47,12 +47,12 @@ function submitSearch() {
     style="padding-top: env(safe-area-inset-top, 0px)"
   >
     <div class="page-shell flex h-14 items-center gap-2 sm:h-16 sm:gap-3">
-      <div v-if="back" class="flex min-w-0 items-center gap-1 sm:gap-3">
+      <div v-if="back" class="flex shrink-0 items-center gap-1 sm:gap-3">
         <Button variant="ghost" size="sm" class="gap-1.5 rounded-lg" @click="router.back()">
           <ArrowLeft class="h-4 w-4" />
           <span class="hidden sm:inline">{{ t('nav.back') }}</span>
         </Button>
-        <NuxtLink to="/" class="flex shrink-0 items-center gap-2 md:hidden">
+        <NuxtLink to="/" class="flex shrink-0 items-center gap-2">
           <img src="/hibikishop-logo.png" alt="HIBIKISHOP" class="h-8 w-8 rounded-full object-contain" />
         </NuxtLink>
       </div>
@@ -65,32 +65,26 @@ function submitSearch() {
         </div>
       </NuxtLink>
 
-      <nav class="ml-2 hidden items-center gap-1 md:flex md:ml-4" aria-label="Primary">
+      <nav class="ml-2 hidden items-center gap-1 md:flex md:ml-4" :aria-label="t('aria.navPrimary')">
         <NuxtLink
           v-for="link in navLinks"
           :key="link.key"
           :to="link.to"
-          class="rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150"
-          :class="
+          :class="[
+            'whitespace-nowrap rounded-lg px-2.5 py-2 text-sm font-medium transition-colors duration-150 md:px-2 xl:px-3',
+            link.cls,
             active === link.key
               ? 'bg-zinc-100 text-foreground dark:bg-zinc-800'
-              : 'text-muted-foreground hover:bg-zinc-50 hover:text-foreground dark:hover:bg-zinc-900'
-          "
+              : 'text-muted-foreground hover:bg-zinc-50 hover:text-foreground dark:hover:bg-zinc-900',
+          ]"
         >
           {{ t(link.label) }}
         </NuxtLink>
       </nav>
 
-      <div v-if="back" class="hidden items-center gap-2 md:flex">
-        <NuxtLink to="/" class="flex items-center gap-2">
-          <img src="/hibikishop-logo.png" alt="HIBIKISHOP" class="h-9 w-9 rounded-full object-contain" />
-          <span class="text-base font-semibold text-foreground">HIBIKISHOP</span>
-        </NuxtLink>
-      </div>
-
       <div class="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1.5">
-        <form class="hidden lg:block" role="search" @submit.prevent="submitSearch">
-          <label for="header-search" class="sr-only">Search photocards</label>
+        <form class="hidden xl:block" role="search" @submit.prevent="submitSearch">
+          <label for="header-search" class="sr-only">{{ t('search.aria') }}</label>
           <div class="relative">
             <Search class="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <input
@@ -103,7 +97,7 @@ function submitSearch() {
             <button
               type="button"
               class="absolute right-2 top-1/2 flex -translate-y-1/2 items-center rounded border border-zinc-300 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground transition-colors hover:text-foreground dark:border-zinc-600"
-              aria-label="Open command palette"
+              :aria-label="t('aria.openPalette')"
               @click="paletteOpen = true"
             >
               ⌘K
@@ -114,8 +108,8 @@ function submitSearch() {
         <Button
           variant="ghost"
           size="icon-sm"
-          class="rounded-lg lg:hidden"
-          aria-label="Search photocards"
+          class="rounded-lg xl:hidden"
+          :aria-label="t('search.aria')"
           as-child
         >
           <NuxtLink to="/browse">
@@ -127,7 +121,7 @@ function submitSearch() {
           variant="ghost"
           size="icon-sm"
           class="rounded-lg md:hidden"
-          aria-label="Shop"
+          :aria-label="t('nav.shop')"
           as-child
         >
           <NuxtLink to="/shop">
@@ -139,7 +133,7 @@ function submitSearch() {
           variant="ghost"
           size="icon-sm"
           class="rounded-lg"
-          aria-label="Wishlist"
+          :aria-label="t('palette.nav.wishlist')"
           as-child
         >
           <NuxtLink to="/collection?tab=wishlist" class="relative">
@@ -173,7 +167,7 @@ function submitSearch() {
         >
           <NuxtLink to="/login">
             <LogIn class="h-4 w-4" />
-            <span class="hidden sm:inline">{{ t('auth.login') }}</span>
+            <span class="hidden lg:inline">{{ t('auth.login') }}</span>
           </NuxtLink>
         </Button>
 

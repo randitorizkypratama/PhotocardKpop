@@ -564,8 +564,8 @@ const visiblePages = computed(() => {
               </div>
             </div>
 
-            <!-- Card type quick filters -->
-            <div class="-mx-1 min-w-0 overflow-x-auto px-1 pb-0.5">
+            <!-- Card type quick filters (mobile/tablet; desktop uses sidebar) -->
+            <div class="-mx-1 min-w-0 overflow-x-auto px-1 pb-0.5 lg:hidden">
               <div class="flex w-max min-w-full items-center gap-1.5" role="group" aria-label="Filter by card type">
                 <button
                   v-for="chipType in cardTypeChips"
@@ -581,13 +581,13 @@ const visiblePages = computed(() => {
               </div>
             </div>
 
-            <!-- Group pills + active chips -->
+            <!-- Group pills + active chips (pills are mobile/tablet; desktop uses sidebar) -->
             <div class="flex min-w-0 flex-wrap items-center gap-2">
               <button
                 v-for="group in GROUPS"
                 :key="group"
                 type="button"
-                class="chip max-w-full truncate"
+                class="chip max-w-full truncate lg:hidden"
                 :class="selectedGroup === group ? 'chip-active' : ''"
                 :aria-pressed="selectedGroup === group"
                 @click="selectedGroup = group"

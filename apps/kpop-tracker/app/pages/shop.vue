@@ -10,14 +10,14 @@ declare global {
 }
 
 useHead({ title: 'Shop — HIBIKISHOP PC' })
+const { t } = useLocale()
 useSeoMeta({
   ogTitle: 'Shop — HIBIKISHOP PC',
-  ogDescription: 'Etalase HIBIKISHOP — beli photocard di Shopee & Tokopedia, tonton video TikTok terbaru.',
+  ogDescription: () => t('shop.ogDescription'),
   ogUrl: 'https://kpop-tracker-six.vercel.app/shop',
 })
 
 const route = useRoute()
-const { t } = useLocale()
 
 const embedRoot = ref<HTMLElement | null>(null)
 const embedReady = ref(false)
@@ -271,23 +271,23 @@ function loadEmbedScript() {
               <div class="flex items-start justify-between gap-3">
                 <div class="flex items-center gap-2">
                   <span class="h-2 w-2 shrink-0 rounded-full" :class="product.dot" aria-hidden="true" />
-                  <h3 class="text-base font-semibold text-foreground sm:text-lg">{{ product.name }}</h3>
+                  <h3 class="text-base font-semibold text-foreground sm:text-lg">{{ t(product.nameKey) }}</h3>
                 </div>
                 <span
-                  v-if="product.badge"
+                  v-if="product.badgeKey"
                   class="shrink-0 rounded-md border border-zinc-200 bg-white/90 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/90 dark:text-zinc-200"
                 >
-                  {{ product.badge }}
+                  {{ t(product.badgeKey) }}
                 </span>
               </div>
 
               <p class="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">
-                {{ product.description }}
+                {{ t(product.descKey) }}
               </p>
 
               <Button class="mt-4 h-10 w-full gap-2 rounded-lg" as-child>
                 <a :href="product.href" target="_blank" rel="noopener noreferrer">
-                  {{ product.cta }}
+                  {{ t(product.ctaKey) }}
                   <ExternalLink class="h-4 w-4" />
                 </a>
               </Button>

@@ -2,6 +2,7 @@
 import { Sun, Moon } from 'lucide-vue-next'
 
 const { isDark, toggle } = useDarkMode()
+const { t } = useLocale()
 </script>
 
 <template>
@@ -9,7 +10,7 @@ const { isDark, toggle } = useDarkMode()
     variant="ghost"
     size="icon-sm"
     class="rounded-lg"
-    :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+    :aria-label="isDark ? t('aria.switchLight') : t('aria.switchDark')"
     @click="toggle"
   >
     <Sun v-if="isDark" class="h-4 w-4" />

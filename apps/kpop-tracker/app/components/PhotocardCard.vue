@@ -39,6 +39,8 @@ const emit = defineEmits<{
   (e: 'wishlist', id: PhotocardCardData['id']): void
 }>()
 
+const { t } = useLocale()
+
 const effectivePrice = computed(() => {
   const discounted = Number(props.card.discounted_price) || 0
   const price = Number(props.card.price) || 0
@@ -117,7 +119,7 @@ const metaLine = computed(() => {
         </p>
 
         <div class="mt-auto pt-3">
-          <p class="pc-meta-label">Market reference</p>
+          <p class="pc-meta-label">{{ t('card.marketReference') }}</p>
           <template v-if="effectivePrice > 0">
             <div class="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
               <span class="text-[13px] font-medium tabular-nums text-foreground">
@@ -131,7 +133,7 @@ const metaLine = computed(() => {
               </span>
             </div>
           </template>
-          <p v-else class="mt-1 text-[12px] text-muted-foreground">Not available</p>
+          <p v-else class="mt-1 text-[12px] text-muted-foreground">{{ t('card.notAvailable') }}</p>
         </div>
       </div>
     </NuxtLink>
@@ -141,7 +143,7 @@ const metaLine = computed(() => {
       type="button"
       class="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white/95 text-zinc-500 shadow-sm backdrop-blur-sm transition duration-150 hover:text-rose-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 dark:border-zinc-700 dark:bg-zinc-950/90 dark:text-zinc-400"
       :class="wishlisted ? 'text-rose-500 sm:opacity-100' : ''"
-      :aria-label="wishlisted ? 'Remove from wishlist' : 'Add to wishlist'"
+      :aria-label="wishlisted ? t('card.wishRemoveAria') : t('card.wishAddAria')"
       :aria-pressed="wishlisted"
       @click.prevent.stop="emit('wishlist', card.id)"
     >

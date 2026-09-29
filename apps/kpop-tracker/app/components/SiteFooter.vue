@@ -18,7 +18,7 @@
           </div>
         </div>
 
-        <nav class="flex flex-col gap-2.5" aria-label="Footer">
+        <nav class="flex flex-col gap-2.5" :aria-label="t('aria.footerNav')">
           <NuxtLink to="/browse" class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">{{ t('footer.browse') }}</NuxtLink>
           <NuxtLink to="/#groups" class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">{{ t('nav.groups') }}</NuxtLink>
           <NuxtLink to="/shop" class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">{{ t('nav.shop') }}</NuxtLink>

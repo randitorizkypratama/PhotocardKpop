@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowRight, AlertCircle } from 'lucide-vue-next'
+import { ArrowRight, AlertCircle, Music2 } from 'lucide-vue-next'
 import { formatIDR, formatUSD, groupDot } from '@/lib/catalog'
 import { cardTypeLabel } from '@/lib/cardTypes'
 
@@ -182,14 +182,15 @@ async function onWishlist(id: number | string) {
 
             <div class="mt-3 flex flex-col gap-5 sm:flex-row sm:gap-6">
               <div class="w-full max-w-[220px] shrink-0 self-start">
-                <span class="block aspect-square overflow-hidden rounded-xl border border-border bg-muted">
+                <span class="relative flex aspect-square items-center justify-center overflow-hidden rounded-xl border border-border bg-muted">
                   <img
-                    v-if="detail.artwork"
-                    :src="detail.artwork"
+                    v-if="detail.artwork || detail.image"
+                    :src="detail.artwork || detail.image"
                     :alt="`${detail.release_name} artwork`"
                     decoding="async"
                     class="h-full w-full object-cover"
                   />
+                  <Music2 v-else class="h-10 w-10 text-muted-foreground" aria-hidden="true" />
                 </span>
               </div>
 

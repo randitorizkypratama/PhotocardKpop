@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowRight, Search } from 'lucide-vue-next'
+import { ArrowRight, Music2, Search } from 'lucide-vue-next'
 import { GROUPS, groupAccentActive, groupDot } from '@/lib/catalog'
 import { FEATURED_CARD_TYPES, cardTypeBlurb } from '@/lib/cardTypes'
 
@@ -127,7 +127,7 @@ async function onWishlist(id: number | string) {
             </p>
 
             <form class="mx-auto mt-7 max-w-md" role="search" @submit.prevent="submitSearch">
-              <label for="hero-search" class="sr-only">Search member, album, card type</label>
+              <label for="hero-search" class="sr-only">{{ t('home.searchAria') }}</label>
               <div class="relative">
                 <Search class="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input
@@ -228,7 +228,7 @@ async function onWishlist(id: number | string) {
               :to="`/releases/${encodeURIComponent(release.group_name || 'IVE')}/${release.slug}`"
               class="group min-w-0"
             >
-              <span class="block aspect-square overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900">
+              <span class="relative block aspect-square overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900">
                 <img
                   v-if="release.artwork || release.image"
                   :src="release.artwork || release.image"
@@ -236,6 +236,11 @@ async function onWishlist(id: number | string) {
                   loading="lazy"
                   decoding="async"
                   class="h-full w-full object-cover object-top transition-transform duration-200 group-hover:scale-[1.02]"
+                />
+                <Music2
+                  v-else
+                  class="absolute left-1/2 top-1/2 h-6 w-6 -translate-x-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-600"
+                  aria-hidden="true"
                 />
               </span>
               <span class="mt-2 block truncate text-[13px] font-medium text-foreground">
@@ -342,17 +347,17 @@ async function onWishlist(id: number | string) {
         <div class="page-shell py-10 sm:py-12">
           <div class="flex flex-col gap-4 rounded-xl border border-zinc-200 bg-card p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6 dark:border-zinc-800">
             <div class="min-w-0">
-              <p class="eyebrow">HIBIKISHOP Store</p>
+              <p class="eyebrow">{{ t('shop.eyebrow') }}</p>
               <h2 class="mt-1 text-lg font-semibold tracking-tight text-foreground sm:text-xl">
-                Etalase &amp; video TikTok
+                {{ t('home.shopTitle') }}
               </h2>
               <p class="mt-1.5 text-sm text-muted-foreground">
-                Beli photocard di Shopee / Tokopedia, atau tonton konten terbaru kami.
+                {{ t('home.shopDesc') }}
               </p>
             </div>
             <Button class="h-10 shrink-0 gap-2 rounded-lg" as-child>
               <NuxtLink to="/shop">
-                Buka Shop
+                {{ t('home.shopCta') }}
                 <ArrowRight class="h-4 w-4" />
               </NuxtLink>
             </Button>

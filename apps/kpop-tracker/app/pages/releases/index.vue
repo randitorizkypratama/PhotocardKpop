@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowRight, AlertCircle } from 'lucide-vue-next'
+import { ArrowRight, AlertCircle, Music2 } from 'lucide-vue-next'
 import { GROUPS, groupDot } from '@/lib/catalog'
 
 useHead({ title: 'Releases — HIBIKISHOP PC' })
@@ -224,7 +224,7 @@ function albumPath(release: any) {
                 {{ formatDate(release.release_date) }}
               </span>
 
-              <span class="h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-border bg-muted sm:h-14 sm:w-14">
+              <span class="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-border bg-muted sm:h-14 sm:w-14">
                 <img
                   v-if="release.artwork || release.image"
                   :src="release.artwork || release.image"
@@ -232,6 +232,11 @@ function albumPath(release: any) {
                   loading="lazy"
                   decoding="async"
                   class="h-full w-full object-cover object-top"
+                />
+                <Music2
+                  v-else
+                  class="absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 text-muted-foreground"
+                  aria-hidden="true"
                 />
               </span>
 
@@ -272,7 +277,7 @@ function albumPath(release: any) {
             >
               <span class="w-12 shrink-0 text-xs text-muted-foreground sm:w-16">—</span>
 
-              <span class="h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-border bg-muted sm:h-14 sm:w-14">
+              <span class="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-border bg-muted sm:h-14 sm:w-14">
                 <img
                   v-if="release.artwork || release.image"
                   :src="release.artwork || release.image"
@@ -280,6 +285,11 @@ function albumPath(release: any) {
                   loading="lazy"
                   decoding="async"
                   class="h-full w-full object-cover object-top"
+                />
+                <Music2
+                  v-else
+                  class="absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 text-muted-foreground"
+                  aria-hidden="true"
                 />
               </span>
 

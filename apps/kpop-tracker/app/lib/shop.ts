@@ -6,71 +6,71 @@ export const SHOP_URLS = {
 
 export interface ShopProduct {
   id: string
-  name: string
-  description: string
-  badge?: string
+  nameKey: string
+  descKey: string
+  badgeKey?: string
   accent: string
   dot: string
   href: string
-  cta: string
+  ctaKey: string
 }
 
 export const shopProducts: ShopProduct[] = [
   {
     id: 'ive',
-    name: 'IVE Photocards',
-    description: 'Album pulls, POBs, and fan-signed cards — ready to ship.',
-    badge: 'Popular',
+    nameKey: 'shop.p.ive.name',
+    descKey: 'shop.p.ive.desc',
+    badgeKey: 'shop.p.ive.badge',
     accent: 'border-ive/25 bg-ive/5 hover:border-ive/40',
     dot: 'bg-ive',
     href: SHOP_URLS.shopee,
-    cta: 'Beli di Shopee',
+    ctaKey: 'shop.ctaShopee',
   },
   {
     id: 'aespa',
-    name: 'aespa Photocards',
-    description: 'Tour merch, lucky draws, and everyday essentials.',
-    badge: 'Restock',
+    nameKey: 'shop.p.aespa.name',
+    descKey: 'shop.p.aespa.desc',
+    badgeKey: 'shop.p.aespa.badge',
     accent: 'border-aespa/25 bg-aespa/5 hover:border-aespa/40',
     dot: 'bg-aespa',
     href: SHOP_URLS.tokopedia,
-    cta: 'Beli di Tokopedia',
+    ctaKey: 'shop.ctaTokopedia',
   },
   {
     id: 'h2h',
-    name: 'Hearts2Hearts',
-    description: 'Fresh releases and new drops tracked daily.',
-    badge: 'New',
+    nameKey: 'shop.p.h2h.name',
+    descKey: 'shop.p.h2h.desc',
+    badgeKey: 'shop.p.h2h.badge',
     accent: 'border-h2h/25 bg-h2h/5 hover:border-h2h/40',
     dot: 'bg-h2h',
     href: SHOP_URLS.shopee,
-    cta: 'Beli di Shopee',
+    ctaKey: 'shop.ctaShopee',
   },
   {
     id: 'bundle',
-    name: 'Bundle & Mystery',
-    description: 'Curated bundles and blind packs for collectors.',
+    nameKey: 'shop.p.bundle.name',
+    descKey: 'shop.p.bundle.desc',
     accent: 'border-zinc-200 bg-zinc-50/80 hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-900/40 dark:hover:border-zinc-600',
     dot: 'bg-zinc-500',
     href: SHOP_URLS.tiktok,
-    cta: 'Cek di TikTok',
+    ctaKey: 'shop.ctaTiktok',
   },
   {
     id: 'topup',
-    name: 'Pre-order & Top-up',
-    description: 'Open PO for albums and limited photocard sets.',
+    nameKey: 'shop.p.topup.name',
+    descKey: 'shop.p.topup.desc',
     accent: 'border-zinc-200 bg-zinc-50/80 hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-900/40 dark:hover:border-zinc-600',
     dot: 'bg-emerald-500',
     href: SHOP_URLS.tokopedia,
-    cta: 'Chat / Pre-order',
+    ctaKey: 'shop.ctaChat',
   },
   {
     id: 'all',
-    name: 'Full Etalase',
-    description: 'Browse every item in the HIBIKISHOP storefront.',
+    nameKey: 'shop.p.all.name',
+    descKey: 'shop.p.all.desc',
     accent: 'border-zinc-200 bg-zinc-50/80 hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-900/40 dark:hover:border-zinc-600',
     dot: 'bg-sky-500',
     href: SHOP_URLS.shopee,
-    cta: 'Buka etalase',
+    ctaKey: 'shop.ctaStore',
   },
 ]

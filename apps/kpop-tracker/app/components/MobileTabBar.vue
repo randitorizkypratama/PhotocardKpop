@@ -29,7 +29,7 @@ function isActive(to: string) {
   <nav
     class="fixed inset-x-0 bottom-0 z-50 border-t border-zinc-200 bg-background/95 backdrop-blur-md md:hidden dark:border-zinc-800"
     style="padding-bottom: env(safe-area-inset-bottom, 0px)"
-    aria-label="Mobile"
+    :aria-label="t('aria.mobileNav')"
   >
     <div class="flex h-14 items-stretch">
       <NuxtLink
