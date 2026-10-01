@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {
-  ChevronLeft, ChevronRight, Search,
+  Camera, ChevronLeft, ChevronRight, Search,
   SlidersHorizontal, X, ArrowUpDown, RotateCcw, AlertCircle, Check
 } from 'lucide-vue-next'
 import {
@@ -527,9 +527,20 @@ const visiblePages = computed(() => {
                   v-model="searchQuery"
                   type="search"
                   :placeholder="t('browse.search.placeholder')"
-                  class="h-10 rounded-lg pl-9"
+                  class="h-10 rounded-lg pl-9 pr-10"
                   :aria-label="t('browse.search.aria')"
                 />
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  class="absolute right-1 top-1/2 -translate-y-1/2 rounded-lg"
+                  :aria-label="t('browse.photoSearchAria')"
+                  as-child
+                >
+                  <NuxtLink to="/identify">
+                    <Camera class="h-4 w-4" />
+                  </NuxtLink>
+                </Button>
               </div>
 
               <div class="flex w-full min-w-0 items-center gap-2 sm:w-auto">

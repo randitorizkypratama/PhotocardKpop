@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowRight, Music2, Search } from 'lucide-vue-next'
+import { ArrowRight, Camera, Music2, Search } from 'lucide-vue-next'
 import { GROUPS, groupAccentActive, groupDot } from '@/lib/catalog'
 import { FEATURED_CARD_TYPES, cardTypeBlurb } from '@/lib/cardTypes'
 
@@ -139,6 +139,16 @@ async function onWishlist(id: number | string) {
                 />
               </div>
             </form>
+
+            <div class="mt-3.5 flex justify-center">
+              <NuxtLink
+                to="/identify"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-card px-3.5 py-2 text-sm font-medium text-muted-foreground transition-colors duration-150 hover:border-zinc-300 hover:text-foreground dark:border-zinc-800 dark:hover:border-zinc-700"
+              >
+                <Camera class="h-4 w-4" />
+                {{ t('home.photoSearch') }}
+              </NuxtLink>
+            </div>
 
             <div class="mt-5 flex flex-wrap items-center justify-center gap-2">
               <button
