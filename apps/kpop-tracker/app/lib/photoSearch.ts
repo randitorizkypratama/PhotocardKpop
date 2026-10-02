@@ -98,15 +98,21 @@ function getIndex() {
 
 /**
  * Preprocess a query photo so its statistics better match the blurred
- * Pocamarket thumbnails in the gallery.  Steps: load → center-crop to
- * 2:3 aspect ratio → downscale → slight Gaussian blur → export as Blob.
+ * Pocamarket thumbnails in the gallery.
+ *
+ * Steps:
+ *  1. Center-crop to 2:3 aspect ratio (photocard proportions)
+ *  2. Downscale to 224px tall (CLIP native resolution)
+ *  3. Apply slight Gaussian blur to approximate gallery thumbnail softness
+ *  4. Boost contrast so discriminative features survive the blur
+ *  5. Export as optimised JPEG
  */
 async function preprocessQueryImage(file: Blob): Promise<Blob> {
   const img = await createImageBitmap(file)
   const srcW = img.width
   const srcH = img.height
 
-  // Center-crop to 2:3 (photocard aspect ratio)
+  // --- 1. Center-crop to 2:3 ---
   const targetAR = 2 / 3
   let cropW: number, cropH: number
   if (srcW / srcH > targetAR) {
@@ -119,18 +125,20 @@ async function preprocessQueryImage(file: Blob): Promise<Blob> {
   const sx = Math.round((srcW - cropW) / 2)
   const sy = Math.round((srcH - cropH) / 2)
 
-  // Downscale to ~224px tall (CLIP native resolution on the short side)
+  // --- 2. Downscale to CLIP resolution ---
   const outH = 224
   const outW = Math.round(outH * targetAR) // ≈149
 
   const canvas = new OffscreenCanvas(outW, outH)
   const ctx = canvas.getContext('2d')!
-  // Light blur to soften without destroying facial details
-  ctx.filter = 'blur(1px)'
+
+  // --- 3. Soften to match gallery blur ---
+  ctx.filter = 'blur(1px) contrast(1.15) saturate(1.1)'
   ctx.drawImage(img, sx, sy, cropW, cropH, 0, 0, outW, outH)
   img.close()
 
-  return canvas.convertToBlob({ type: 'image/jpeg', quality: 0.92 })
+  // --- 4. Export optimised JPEG ---
+  return canvas.convertToBlob({ type: 'image/jpeg', quality: 0.80 })
 }
 
 /** Embed one image (batch of exactly 1) and return the CLIP vector.
