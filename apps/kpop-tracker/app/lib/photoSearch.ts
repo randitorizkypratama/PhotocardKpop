@@ -23,7 +23,7 @@ export interface PhotoSearchResult {
  * changes per-image output (batch-dependent resize), which flips near-tie
  * rankings. The query path must stay batch=1 for the same reason. */
 const MODEL_ID = 'Xenova/clip-vit-base-patch32'
-const TOP_K = 5
+const TOP_K = 8
 
 let extractorPromise: Promise<any> | null = null
 let indexPromise: Promise<{ cards: IndexCard[]; index: ReturnType<typeof parseIndexBin> }> | null = null
@@ -58,10 +58,51 @@ function getIndex() {
   return indexPromise
 }
 
-/** Embed one image (batch of exactly 1) and return the pooled CLIP vector. */
+/**
+ * Preprocess a query photo so its statistics better match the blurred
+ * Pocamarket thumbnails in the gallery.  Steps: load → center-crop to
+ * 2:3 aspect ratio → downscale → slight Gaussian blur → export as Blob.
+ */
+async function preprocessQueryImage(file: Blob): Promise<Blob> {
+  const img = await createImageBitmap(file)
+  const srcW = img.width
+  const srcH = img.height
+
+  // Center-crop to 2:3 (photocard aspect ratio)
+  const targetAR = 2 / 3
+  let cropW: number, cropH: number
+  if (srcW / srcH > targetAR) {
+    cropH = srcH
+    cropW = Math.round(srcH * targetAR)
+  } else {
+    cropW = srcW
+    cropH = Math.round(srcW / targetAR)
+  }
+  const sx = Math.round((srcW - cropW) / 2)
+  const sy = Math.round((srcH - cropH) / 2)
+
+  // Downscale to ~224px tall (CLIP native resolution on the short side)
+  const outH = 224
+  const outW = Math.round(outH * targetAR) // ≈149
+
+  const canvas = new OffscreenCanvas(outW, outH)
+  const ctx = canvas.getContext('2d')!
+  // Light blur to soften without destroying facial details
+  ctx.filter = 'blur(1px)'
+  ctx.drawImage(img, sx, sy, cropW, cropH, 0, 0, outW, outH)
+  img.close()
+
+  return canvas.convertToBlob({ type: 'image/jpeg', quality: 0.92 })
+}
+
+/** Embed one image (batch of exactly 1) and return the CLIP vector.
+ *  The pipeline may return a pooled [1, 512] tensor or a full sequence
+ *  [1, seq_len, 512] tensor — in the latter case we take the first
+ *  token (CLS), which is CLIP's image representation. */
 async function embedImage(file: Blob): Promise<Float32Array> {
+  const preprocessed = await preprocessQueryImage(file)
   const extractor = await getExtractor()
-  const out = await extractor([file], {})
+  const out = await extractor([preprocessed], {})
   const dim = out.dims[out.dims.length - 1]
   return Float32Array.from(out.data.subarray(0, dim))
 }
@@ -84,7 +125,10 @@ export async function searchByPhoto(
   return { hits, topScore: first.score }
 }
 
-/** Below this the gallery simply has nothing that looks like the photo. */
-export const NOT_FOUND_FLOOR = 0.6
+/** Below this the gallery simply has nothing that looks like the photo.
+ *  Gallery images are blurred Pocamarket thumbnails while queries are clear
+ *  real-world photos, so cosine similarities are systematically lower than
+ *  same-quality matching — thresholds must be set accordingly. */
+export const NOT_FOUND_FLOOR = 0.35
 /** Between floor and this, results show with a "not fully sure" hint. */
-export const LOW_CONFIDENCE_FLOOR = 0.78
+export const LOW_CONFIDENCE_FLOOR = 0.55

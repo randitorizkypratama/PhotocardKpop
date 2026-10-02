@@ -26,6 +26,7 @@
       },
       "devDependencies": {
         "autoprefixer": "^10.6.1",
+        "onnxruntime-node": "^1.30.0",
         "postcss": "^8.5.28",
         "tailwindcss": "3",
         "typescript": "5.9.3",
