@@ -5,6 +5,7 @@ import {
   NOT_FOUND_FLOOR,
   searchByPhoto,
   type PhotoSearchResult,
+  type SearchProgress,
   type SearchStage,
 } from '@/lib/photoSearch'
 import { groupDot } from '@/lib/catalog'
@@ -21,7 +22,9 @@ const { t } = useLocale()
 
 type Phase = 'idle' | 'working' | 'results' | 'notfound' | 'error'
 const phase = ref<Phase>('idle')
-const stage = ref<SearchStage>('model')
+const stage = ref<SearchStage>('model-download')
+const progressPercent = ref<number | null>(null)
+const progressDetail = ref<string | null>(null)
 const previewUrl = ref<string | null>(null)
 const result = ref<PhotoSearchResult | null>(null)
 const dragging = ref(false)
@@ -33,9 +36,25 @@ const lowConfidence = computed(
   () => phase.value === 'results' && (result.value?.topScore ?? 1) < LOW_CONFIDENCE_FLOOR,
 )
 
-const stageKey = computed(
-  () => `identify.stage${stage.value.charAt(0).toUpperCase()}${stage.value.slice(1)}`,
-)
+const stageKey = computed(() => {
+  const s = stage.value
+  if (s === 'model-download') return 'identify.stageModelDownload'
+  if (s === 'model-init') return 'identify.stageModelInit'
+  if (s === 'index') return 'identify.stageIndex'
+  return 'identify.stageAnalyze'
+})
+
+/** Overall progress bar width (0-100). */
+const progressWidth = computed(() => {
+  const s = stage.value
+  if (s === 'model-download') {
+    // Model download: 0-60% of total progress
+    return Math.min(60, progressPercent.value ?? 0) * 0.6
+  }
+  if (s === 'model-init') return 65
+  if (s === 'index') return 80
+  return 95
+})
 
 onBeforeUnmount(() => {
   searchSeq++
@@ -57,10 +76,15 @@ async function onFile(file: File | null | undefined) {
   previewUrl.value = URL.createObjectURL(file)
   result.value = null
   phase.value = 'working'
-  stage.value = 'model'
+  stage.value = 'model-download'
+  progressPercent.value = null
+  progressDetail.value = null
   try {
-    const res = await searchByPhoto(file, (s) => {
-      if (seq === searchSeq) stage.value = s
+    const res = await searchByPhoto(file, (p) => {
+      if (seq !== searchSeq) return
+      stage.value = p.stage
+      progressPercent.value = p.percent ?? null
+      progressDetail.value = p.detail ?? null
     })
     if (seq !== searchSeq) return
     result.value = res
@@ -155,16 +179,19 @@ function reset() {
                   <div class="flex items-center gap-2 text-sm font-medium text-foreground">
                     <Loader2 class="h-4 w-4 animate-spin text-muted-foreground" />
                     <span class="truncate">{{ t(stageKey) }}</span>
+                    <span v-if="progressPercent != null" class="ml-auto text-xs tabular-nums text-muted-foreground">
+                      {{ progressPercent }}%
+                    </span>
                   </div>
                   <div class="h-1.5 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
                     <div
-                      class="h-full rounded-full bg-zinc-500 transition-all duration-500 dark:bg-zinc-400"
-                      :style="{
-                        width:
-                          stage === 'model' ? '33%' : stage === 'index' ? '66%' : '90%',
-                      }"
+                      class="h-full rounded-full bg-zinc-500 transition-all duration-300 dark:bg-zinc-400"
+                      :style="{ width: progressWidth + '%' }"
                     />
                   </div>
+                  <p v-if="progressDetail" class="truncate text-[11px] text-muted-foreground">
+                    {{ progressDetail }}
+                  </p>
                 </div>
                 <div v-else class="flex h-full flex-col justify-center gap-3">
                   <p class="text-sm font-medium text-foreground">

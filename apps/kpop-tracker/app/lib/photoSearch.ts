@@ -11,8 +11,17 @@ import {
   type SearchHit,
 } from './photoSearchCore'
 
-export type SearchStage = 'model' | 'index' | 'analyze'
-export type SearchStageListener = (stage: SearchStage) => void
+export type SearchStage = 'model-download' | 'model-init' | 'index' | 'analyze'
+
+export interface SearchProgress {
+  stage: SearchStage
+  /** 0-100, available during model-download */
+  percent?: number
+  /** Human-readable detail (e.g. file name being downloaded) */
+  detail?: string
+}
+
+export type SearchStageListener = (progress: SearchProgress) => void
 
 export interface PhotoSearchResult {
   hits: SearchHit[]
@@ -28,11 +37,40 @@ const TOP_K = 8
 let extractorPromise: Promise<any> | null = null
 let indexPromise: Promise<{ cards: IndexCard[]; index: ReturnType<typeof parseIndexBin> }> | null = null
 
-function getExtractor(): Promise<any> {
+/** Per-file download tracking for progress reporting. */
+const fileProgress = new Map<string, { loaded: number; total: number }>()
+
+function getExtractor(onProgress?: SearchStageListener): Promise<any> {
   if (!extractorPromise) {
+    fileProgress.clear()
     extractorPromise = import('@huggingface/transformers').then(({ pipeline }) =>
-      pipeline('image-feature-extraction', MODEL_ID, { dtype: 'q8' }),
-    )
+      pipeline('image-feature-extraction', MODEL_ID, {
+        dtype: 'q8',
+        progress_callback: (evt: any) => {
+          if (evt.status === 'initiate') {
+            fileProgress.set(evt.file, { loaded: 0, total: evt.total ?? 0 })
+          } else if (evt.status === 'progress') {
+            const entry = fileProgress.get(evt.file)
+            if (entry) entry.loaded = evt.loaded
+            // Report overall download %
+            let totalLoaded = 0, totalBytes = 0
+            for (const f of fileProgress.values()) {
+              totalLoaded += f.loaded
+              totalBytes += f.total
+            }
+            const pct = totalBytes > 0 ? Math.round((totalLoaded / totalBytes) * 100) : 0
+            const fileName = (evt.file as string).split('/').pop() ?? evt.file
+            onProgress?.({ stage: 'model-download', percent: pct, detail: fileName })
+          } else if (evt.status === 'done') {
+            const entry = fileProgress.get(evt.file)
+            if (entry && entry.total > 0) entry.loaded = entry.total
+          }
+        },
+      }),
+    ).then((extractor) => {
+      onProgress?.({ stage: 'model-init' })
+      return extractor
+    })
   }
   return extractorPromise
 }
@@ -109,15 +147,14 @@ async function embedImage(file: Blob): Promise<Float32Array> {
 
 export async function searchByPhoto(
   file: Blob,
-  onStage?: SearchStageListener,
+  onProgress?: SearchStageListener,
 ): Promise<PhotoSearchResult> {
-  onStage?.('model')
   const indexLoaded = getIndex()
-  await getExtractor()
-  onStage?.('index')
+  await getExtractor(onProgress)
+  onProgress?.({ stage: 'index' })
   const { cards, index } = await indexLoaded
 
-  onStage?.('analyze')
+  onProgress?.({ stage: 'analyze' })
   const query = await embedImage(file)
   const hits = searchTopK(query, index, cards, TOP_K)
   const first = hits[0]
