@@ -1,0 +1,120 @@
+name: Rebuild search index
+
+on:
+  schedule:
+    # Every Sunday at 00:00 UTC (07:00 WIB)
+    - cron: '0 0 * * 0'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Force fresh rebuild (ignore checkpoint)'
+        required: false
+        default: 'false'
+        type: boolean
+
+permissions:
+  contents: write
+
+# Never let two rebuilds race on the checkpoint cache or on the push to main
+concurrency:
+  group: rebuild-search-index
+  cancel-in-progress: false
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      # The runner is ephemeral, so the checkpoint lives in the actions cache:
+      # it survives a failed/cancelled run (saved with `if: always()`) and a
+      # re-run or the next scheduled run resumes instead of re-embedding 16k
+      # images from scratch. Skipped when a forced rebuild is requested.
+      - name: Restore rebuild checkpoint
+        if: ${{ inputs.force != true }}
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            apps/kpop-tracker/.index-checkpoint.json
+            apps/kpop-tracker/.index-embeddings.bin
+          key: search-index-checkpoint-${{ github.run_id }}
+          restore-keys: |
+            search-index-checkpoint-
+
+      - name: Rebuild search index
+        working-directory: apps/kpop-tracker
+        env:
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+        run: |
+          ARGS="--resume"
+          if [ "${{ inputs.force }}" = "true" ]; then ARGS="--force"; fi
+          node scripts/rebuild-index.mjs $ARGS
+
+      - name: Save rebuild checkpoint
+        if: ${{ always() && hashFiles('apps/kpop-tracker/.index-checkpoint.json') != '' }}
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            apps/kpop-tracker/.index-checkpoint.json
+            apps/kpop-tracker/.index-embeddings.bin
+          key: search-index-checkpoint-${{ github.run_id }}-${{ github.run_attempt }}
+
+      # Rebuild takes hours, so main may have moved (and index files may have
+      # been regenerated) in the meantime. Re-sync onto the remote tip and
+      # re-apply our freshly built index, retrying instead of failing the job
+      # after hours of work.
+      - name: Commit updated index
+        run: |
+          set -euo pipefail
+
+          STAGE_DIR="$RUNNER_TEMP/index-staged"
+          mkdir -p "$STAGE_DIR"
+          cp apps/kpop-tracker/public/search/index.bin "$STAGE_DIR/"
+          cp apps/kpop-tracker/public/search/index.json "$STAGE_DIR/"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          MSG="chore: rebuild search index [automated]
+
+          Rebuilt by GitHub Actions workflow.
+          Includes sharpened images and updated CLIP embeddings.
+
+          Co-authored-by: CommandCodeBot <noreply@commandcode.ai>"
+
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git reset --hard origin/main
+
+            cp "$STAGE_DIR/index.bin" apps/kpop-tracker/public/search/index.bin
+            cp "$STAGE_DIR/index.json" apps/kpop-tracker/public/search/index.json
+            git add apps/kpop-tracker/public/search/index.bin
+            git add apps/kpop-tracker/public/search/index.json
+
+            if git diff --cached --quiet; then
+              echo "No changes to index files"
+              exit 0
+            fi
+
+            git commit -m "$MSG"
+            if git push origin HEAD:main; then
+              echo "Pushed rebuilt index to main."
+              exit 0
+            fi
+
+            echo "Push rejected (remote moved), retrying ($attempt/3)..."
+            sleep 5
+          done
+
+          echo "Failed to push after 3 attempts."
+          exit 1

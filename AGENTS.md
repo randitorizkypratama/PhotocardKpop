@@ -24,6 +24,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 - Build: `npx nuxt build` — if build lock error, kill the PID from the message or set `NUXT_IGNORE_LOCK=1`
 - Test: `bun run test` (vitest, `apps/kpop-tracker/tests/`); watch: `npx vitest`
 - Smoke test: `bun run smoke [base-url]` — verifies prod endpoints/pages, exits non-zero on failure
+- Search index rebuild: `node scripts/rebuild-index.mjs [--resume|--force]` (from `apps/kpop-tracker`) — downloads card images, sharpens them (`sharp` devDep), embeds with CLIP and rewrites `public/search/{index.bin,index.json}`; needs `TURSO_DATABASE_URL`/`TURSO_AUTH_TOKEN` from `.env` **or** the process env (CI has no `.env`). Checkpoint in `.index-checkpoint.json` + `.index-embeddings.bin` (gitignored, cached by the workflow).
 - Deploy (only when user permits): **pushing `main` auto-deploys to production** (Vercel↔GitHub, Root Directory = `apps/kpop-tracker`); manual `npx vercel --prod --yes` from `apps/kpop-tracker` is the **rollback** tool when a git build is broken (retry once on "Not authorized", then wait ~10s and verify `/api/releases/timeline`).
 - Typecheck: `bun run typecheck` (root delegates to app script `nuxt typecheck` via vue-tsc + typescript). **Must stay at 0 errors.** No lint/format tooling exists.
 
@@ -55,4 +56,4 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 
 - PowerShell: `$home` is read-only; no `Join-String`; prefer `ConvertFrom-Json` for JSON; use the grep tool over complex quoted regex in bash.
 - `bun add` of `@unovis/*` fails (integrity errors) — chart component was abandoned; do not retry without a different approach.
-- One CI workflow exists (`.github/workflows/security-audit.yml`: monthly `bun audit` + manual dispatch — audit only, never deploys). No ESLint/Prettier/Biome, no pre-commit hooks in this repo.
+- Two CI workflows exist: `.github/workflows/security-audit.yml` (monthly `bun audit` + manual dispatch — audit only, never deploys) and `.github/workflows/rebuild-index.yml` (Sunday 00:00 UTC + manual `workflow_dispatch`, `force` input) which **does deploy**: it rebuilds the identify index and commits `public/search/*` to `main`. It resumes from a checkpoint kept in `actions/cache` (saved with `if: always()`, skipped when `force`), and its commit step re-syncs onto `origin/main` with a push retry loop because the rebuild takes hours. No ESLint/Prettier/Biome, no pre-commit hooks in this repo.

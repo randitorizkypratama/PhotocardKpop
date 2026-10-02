@@ -37,3 +37,7 @@ bun-debug.log*
 .vercel/
 
 .vercel
+
+# Index rebuild checkpoints
+.index-checkpoint.json
+.index-embeddings.bin
