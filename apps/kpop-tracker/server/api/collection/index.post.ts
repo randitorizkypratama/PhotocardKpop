@@ -32,6 +32,18 @@ export default defineEventHandler(async (event) => {
   }
 
   const db = getTursoClient()
+
+  const card = await db.execute({
+    sql: 'SELECT 1 FROM cards WHERE id = ? LIMIT 1',
+    args: [cardId],
+  })
+  if (card.rows.length === 0) {
+    throw createError({
+      statusCode: 404,
+      statusMessage: 'Card not found',
+    })
+  }
+
   const now = new Date().toISOString()
 
   try {
@@ -41,10 +53,16 @@ export default defineEventHandler(async (event) => {
       args: [cardId, status, price, now, user.id],
     })
   } catch {
-    await db.execute({
+    const updated = await db.execute({
       sql: 'UPDATE collections SET bought_price = ? WHERE user_id = ? AND card_id = ? AND status = ?',
       args: [price, user.id, cardId, status],
     })
+    if (Number(updated.rowsAffected) === 0) {
+      throw createError({
+        statusCode: 404,
+        statusMessage: 'Card not found',
+      })
+    }
   }
 
   return {

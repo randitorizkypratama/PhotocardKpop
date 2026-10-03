@@ -1,7 +1,7 @@
 export default defineEventHandler(async (event) => {
-  const id = parseInt(getRouterParam(event, 'id') as string)
-  
-  if (isNaN(id)) {
+  const id = parseIdParam(getRouterParam(event, 'id'))
+
+  if (id === null) {
     throw createError({
       statusCode: 400,
       statusMessage: 'Invalid card ID',

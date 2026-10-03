@@ -15,11 +15,11 @@ const ALLOWED_WRITE_ORIGINS = new Set([
 ])
 
 /**
- * The site has no user accounts, so state-changing endpoints only accept
- * requests whose `Origin` is one of ours. Browsers always attach `Origin` to
- * non-GET fetches, so this blocks every cross-site script; requests without an
- * Origin (curl, scrapers) are rejected as well. This is not a substitute for
- * real auth — it stops drive-by abuse of the shared collection.
+ * State-changing endpoints only accept requests whose `Origin` is one of ours.
+ * Browsers always attach `Origin` to non-GET fetches, so this blocks cross-site
+ * writes (CSRF); requests without an Origin (curl, scrapers) are rejected too.
+ * Session authentication is enforced separately via `requireUser` — this check
+ * complements it, it does not replace it.
  */
 export function requireSameOrigin(event: H3Event) {
   const origin = (getHeader(event, 'origin') || '').replace(/\/$/, '')

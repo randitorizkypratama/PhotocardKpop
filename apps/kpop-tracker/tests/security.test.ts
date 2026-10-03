@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildCardFilter } from '../server/utils/cardfilter'
-import { knownStores, parseStructuredSearch } from '../server/utils/normalize'
+import { knownStores, parseIdParam, parseStructuredSearch } from '../server/utils/normalize'
 import { hashPassword, verifyPassword } from '../server/utils/password'
 import { safeExternalUrl } from '../app/lib/url'
 
@@ -115,5 +115,34 @@ describe('safeExternalUrl', () => {
     expect(safeExternalUrl('data:text/html,<script>alert(1)</script>')).toBe('')
     expect(safeExternalUrl('vbscript:msgbox(1)')).toBe('')
     expect(safeExternalUrl(null, 'https://fallback.dev')).toBe('https://fallback.dev')
+  })
+})
+
+describe('parseIdParam', () => {
+  it('accepts clean positive integer strings and numbers', () => {
+    expect(parseIdParam('1')).toBe(1)
+    expect(parseIdParam('12345')).toBe(12345)
+    expect(parseIdParam(42)).toBe(42)
+  })
+
+  it('rejects partial parses that parseInt would accept', () => {
+    expect(parseIdParam('12abc')).toBeNull()
+    expect(parseIdParam('1e2')).toBeNull()
+    expect(parseIdParam('0x10')).toBeNull()
+    expect(parseIdParam('+7')).toBeNull()
+    expect(parseIdParam('12.5')).toBeNull()
+  })
+
+  it('rejects empty, zero, negative and non-string input', () => {
+    expect(parseIdParam('')).toBeNull()
+    expect(parseIdParam('0')).toBeNull()
+    expect(parseIdParam('-3')).toBeNull()
+    expect(parseIdParam(undefined)).toBeNull()
+    expect(parseIdParam(null)).toBeNull()
+    expect(parseIdParam({})).toBeNull()
+  })
+
+  it('rejects values beyond safe integer range', () => {
+    expect(parseIdParam('999999999999999999999')).toBeNull()
   })
 })

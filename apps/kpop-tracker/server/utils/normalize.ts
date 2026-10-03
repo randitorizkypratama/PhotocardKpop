@@ -5,6 +5,22 @@
  * normalized values. Nothing here writes back to the database.
  */
 
+/**
+ * Strict positive-integer parser for route/query IDs.
+ *
+ * Unlike `parseInt` it rejects partial matches ("12abc" → 12), exponents
+ * ("1e2" → 1), signs ("+7") and floats; returns null so handlers can answer
+ * 400 instead of acting on a silently coerced value.
+ */
+export function parseIdParam(value: unknown): number | null {
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) && value > 0 ? value : null
+  }
+  if (typeof value !== 'string' || !/^[0-9]{1,15}$/.test(value)) return null
+  const parsed = Number(value)
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null
+}
+
 export const CARD_TYPE_CANONICAL = [
   'Album',
   'POB',
