@@ -19,6 +19,9 @@ useSeoMeta({
 
 const route = useRoute()
 
+const { user } = useAuth()
+const isAdmin = computed(() => user.value?.role === 'admin')
+
 const embedRoot = ref<HTMLElement | null>(null)
 const embedReady = ref(false)
 
@@ -332,7 +335,7 @@ function loadEmbedScript() {
 
           <!-- Connect prompt -->
           <div
-            v-if="tiktokStatus.configured && !tiktokStatus.connected"
+            v-if="isAdmin && tiktokStatus.configured && !tiktokStatus.connected"
             class="rounded-xl border border-zinc-200 bg-card p-5 shadow-sm dark:border-zinc-800 sm:p-6"
           >
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -372,7 +375,7 @@ function loadEmbedScript() {
             <Video class="mx-auto h-7 w-7 text-zinc-400" aria-hidden="true" />
             <p class="mt-3 text-sm font-medium text-foreground">{{ t('shop.videosEmpty') }}</p>
             <p class="mt-1 text-sm text-muted-foreground">{{ videosError || t('shop.videosEmptyHint') }}</p>
-            <Button v-if="tiktokStatus.configured" class="mt-4 h-10 gap-2 rounded-lg" as-child>
+            <Button v-if="isAdmin && tiktokStatus.configured" class="mt-4 h-10 gap-2 rounded-lg" as-child>
               <a href="/api/tiktok/auth">
                 <Link2 class="h-4 w-4" />
                 {{ t('shop.connect') }}

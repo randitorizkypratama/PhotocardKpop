@@ -1,6 +1,8 @@
 import { randomBytes } from 'node:crypto'
 
 export default defineEventHandler(async (event) => {
+  await requireAdmin(event)
+
   if (!isTikTokConfigured()) {
     throw createError({
       statusCode: 503,
