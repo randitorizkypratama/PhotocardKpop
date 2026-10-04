@@ -97,22 +97,31 @@ function getIndex() {
 }
 
 /**
- * Preprocess a query photo so its statistics better match the blurred
- * Pocamarket thumbnails in the gallery.
- *
- * Steps:
- *  1. Center-crop to 2:3 aspect ratio (photocard proportions)
- *  2. Downscale to 224px tall (CLIP native resolution)
- *  3. Apply slight Gaussian blur to approximate gallery thumbnail softness
- *  4. Boost contrast so discriminative features survive the blur
- *  5. Export as optimised JPEG
+ * Render the query crops used for embedding:
+ *  1. Center-crop to 2:3 (photocard proportions) → 149×224
+ *  2. Center square at 75% and 55% of the shorter edge → 224×224
+ * Physical-card photos frame the card inside a larger background (table,
+ * sleeve); averaging a wider 2:3 view with two zoomed squares keeps the
+ * embedding dominated by the card rather than the surroundings. No
+ * photometric filters — blur/contrast on the query only drifted it away
+ * from the index (measured: higher self-similarity and better top-1
+ * accuracy without them).
  */
-async function preprocessQueryImage(file: Blob): Promise<Blob> {
+async function preprocessQueryCrops(file: Blob): Promise<Blob[]> {
   const img = await createImageBitmap(file)
   const srcW = img.width
   const srcH = img.height
 
-  // --- 1. Center-crop to 2:3 ---
+  const render = async (
+    sx: number, sy: number, sw: number, sh: number, outW: number, outH: number,
+  ): Promise<Blob> => {
+    const canvas = new OffscreenCanvas(outW, outH)
+    const ctx = canvas.getContext('2d')!
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, outW, outH)
+    return canvas.convertToBlob({ type: 'image/jpeg', quality: 0.80 })
+  }
+
+  // 2:3 view
   const targetAR = 2 / 3
   let cropW: number, cropH: number
   if (srcW / srcH > targetAR) {
@@ -122,35 +131,53 @@ async function preprocessQueryImage(file: Blob): Promise<Blob> {
     cropW = srcW
     cropH = Math.round(srcW / targetAR)
   }
-  const sx = Math.round((srcW - cropW) / 2)
-  const sy = Math.round((srcH - cropH) / 2)
-
-  // --- 2. Downscale to CLIP resolution ---
   const outH = 224
   const outW = Math.round(outH * targetAR) // ≈149
 
-  const canvas = new OffscreenCanvas(outW, outH)
-  const ctx = canvas.getContext('2d')!
+  const crops: Blob[] = [
+    await render(Math.round((srcW - cropW) / 2), Math.round((srcH - cropH) / 2), cropW, cropH, outW, outH),
+  ]
 
-  // --- 3. Soften to match gallery blur ---
-  ctx.filter = 'blur(1px) contrast(1.15) saturate(1.1)'
-  ctx.drawImage(img, sx, sy, cropW, cropH, 0, 0, outW, outH)
+  // zoomed centre squares (exact 224×224 so the CLIP processor's own
+  // resize+centre-crop becomes a no-op and each zoom reaches the model)
+  const base = Math.max(1, Math.min(srcW, srcH))
+  for (const frac of [0.75, 0.55]) {
+    const s = Math.max(1, Math.round(base * frac))
+    const sx = Math.max(0, Math.round((srcW - s) / 2))
+    const sy = Math.max(0, Math.round((srcH - s) / 2))
+    crops.push(await render(sx, sy, Math.min(s, srcW - sx), Math.min(s, srcH - sy), 224, 224))
+  }
+
   img.close()
-
-  // --- 4. Export optimised JPEG ---
-  return canvas.convertToBlob({ type: 'image/jpeg', quality: 0.80 })
+  return crops
 }
 
-/** Embed one image (batch of exactly 1) and return the CLIP vector.
- *  The pipeline may return a pooled [1, 512] tensor or a full sequence
- *  [1, seq_len, 512] tensor — in the latter case we take the first
- *  token (CLS), which is CLIP's image representation. */
+function l2normalize(v: Float32Array): Float32Array {
+  let sum = 0
+  for (let i = 0; i < v.length; i++) sum += v[i]! * v[i]!
+  const n = Math.sqrt(sum) || 1
+  const out = new Float32Array(v.length)
+  for (let i = 0; i < v.length; i++) out[i] = v[i]! / n
+  return out
+}
+
+/** Embed the query as the average of its crops (each crop embedded alone —
+ *  transformers.js batch>1 changes per-image output, which flips near-tie
+ *  rankings). The pipeline may return a pooled [1, 512] tensor or a full
+ *  sequence [1, seq_len, 512]; in the latter case we take the first token
+ *  (CLS), CLIP's image representation. */
 async function embedImage(file: Blob): Promise<Float32Array> {
-  const preprocessed = await preprocessQueryImage(file)
+  const crops = await preprocessQueryCrops(file)
   const extractor = await getExtractor()
-  const out = await extractor([preprocessed], {})
-  const dim = out.dims[out.dims.length - 1]
-  return Float32Array.from(out.data.subarray(0, dim))
+  let acc: Float64Array | null = null
+  for (const crop of crops) {
+    const out = await extractor([crop], {})
+    const dim = out.dims[out.dims.length - 1]
+    const vec = l2normalize(Float32Array.from(out.data.subarray(0, dim)))
+    if (!acc) acc = new Float64Array(dim)
+    for (let d = 0; d < dim; d++) acc[d] = (acc[d] ?? 0) + vec[d]!
+  }
+  return l2normalize(Float32Array.from(acc!))
 }
 
 export async function searchByPhoto(
