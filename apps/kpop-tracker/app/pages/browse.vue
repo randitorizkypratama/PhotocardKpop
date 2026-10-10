@@ -51,6 +51,7 @@ const exchangeRates = ref<any>(null)
 const storeCounts = ref<{ store: string, count: number, by_group: Record<string, number> }[]>([])
 const facetStores = ref<{ store: string, count: number }[]>([])
 const facetTypes = ref<{ card_type: string, count: number }[]>([])
+const facetReleases = ref<{ release_name: string, count: number }[]>([])
 const facetsLoaded = ref(false)
 
 /** Store + type counts for the current filter set — each facet ignores its own selection. */
@@ -59,6 +60,26 @@ const stores = computed(() => facetStores.value)
 const typeCountMap = computed(() => {
   const map = new Map<string, number>()
   for (const entry of facetTypes.value) map.set(entry.card_type, entry.count)
+  return map
+})
+
+/**
+ * Releases with at least one photocard under the current filters. A release
+ * that is selected but filtered out elsewhere is kept in the list so it can
+ * still be seen (and cleared) from the sidebar.
+ */
+const releases = computed(() => {
+  const list = [...facetReleases.value]
+  const selected = selectedRelease.value
+  if (selected && !list.some(entry => entry.release_name === selected)) {
+    list.unshift({ release_name: selected, count: 0 })
+  }
+  return list
+})
+
+const releaseCountMap = computed(() => {
+  const map = new Map<string, number>()
+  for (const entry of facetReleases.value) map.set(entry.release_name, entry.count)
   return map
 })
 
@@ -114,6 +135,7 @@ async function loadFacets() {
     if (response?.success) {
       facetStores.value = response.data?.stores || []
       facetTypes.value = response.data?.card_types || []
+      facetReleases.value = response.data?.releases || []
       facetsLoaded.value = true
     }
   } catch (e) {
@@ -453,6 +475,43 @@ const visiblePages = computed(() => {
                   </span>
                 </button>
               </div>
+            </div>
+
+            <Separator />
+
+            <div>
+              <p class="pc-meta-label mb-2">{{ t('browse.releaseLabel') }}</p>
+              <div class="flex max-h-56 flex-col gap-0.5 overflow-y-auto pr-1">
+                <button
+                  type="button"
+                  class="filter-link"
+                  :class="!selectedRelease ? 'filter-link-active' : ''"
+                  :aria-pressed="!selectedRelease"
+                  @click="selectedRelease = null"
+                >
+                  <span class="truncate">{{ t('browse.allReleases') }}</span>
+                  <Check v-if="!selectedRelease" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                </button>
+                <button
+                  v-for="r in releases"
+                  :key="r.release_name"
+                  type="button"
+                  class="filter-link"
+                  :class="selectedRelease === r.release_name ? 'filter-link-active' : ''"
+                  :aria-pressed="selectedRelease === r.release_name"
+                  @click="selectedRelease = r.release_name"
+                >
+                  <span class="truncate">{{ r.release_name }}</span>
+                  <span class="ml-auto flex shrink-0 items-center gap-1.5">
+                    <span
+                      v-if="facetsLoaded && releaseCountMap.has(r.release_name)"
+                      class="text-[11px] tabular-nums text-muted-foreground"
+                    >{{ (releaseCountMap.get(r.release_name) ?? 0).toLocaleString() }}</span>
+                    <Check v-if="selectedRelease === r.release_name" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  </span>
+                </button>
+              </div>
+              <p v-if="releases.length === 0" class="mt-1 text-xs text-muted-foreground">{{ t('browse.releases.empty') }}</p>
             </div>
 
             <Separator />
@@ -845,6 +904,35 @@ const visiblePages = computed(() => {
                 @click="selectedCardType = cardType"
               >{{ cardType }}</button>
             </div>
+          </div>
+
+          <div>
+            <p class="mb-2 pc-meta-label">{{ t('browse.releaseLabel') }}</p>
+            <div class="flex max-h-44 flex-wrap gap-1.5 overflow-y-auto">
+              <button
+                type="button"
+                class="chip"
+                :class="!selectedRelease ? 'chip-active' : ''"
+                :aria-pressed="!selectedRelease"
+                @click="selectedRelease = null"
+              >{{ t('browse.allReleases') }}</button>
+              <button
+                v-for="r in releases"
+                :key="r.release_name"
+                type="button"
+                class="chip max-w-full truncate"
+                :class="selectedRelease === r.release_name ? 'chip-active' : ''"
+                :aria-pressed="selectedRelease === r.release_name"
+                @click="selectedRelease = r.release_name"
+              >
+                <span class="truncate">{{ r.release_name }}</span>
+                <span
+                  v-if="facetsLoaded && releaseCountMap.has(r.release_name)"
+                  class="ml-1 text-[11px] tabular-nums opacity-70"
+                >{{ (releaseCountMap.get(r.release_name) ?? 0).toLocaleString() }}</span>
+              </button>
+            </div>
+            <p v-if="releases.length === 0" class="mt-1 text-xs text-muted-foreground">{{ t('browse.releases.empty') }}</p>
           </div>
 
           <div>

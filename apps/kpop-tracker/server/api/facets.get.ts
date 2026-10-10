@@ -49,5 +49,21 @@ export default defineEventHandler(async (event) => {
     .filter(entry => entry.count > 0)
     .sort((a, b) => b.count - a.count)
 
-  return { success: true, data: { stores: storeData, card_types: typeData } }
+  // Release counts: every active filter except the release facet itself. Only
+  // releases that actually have photocards come back — the discography-only
+  // entries (zero cards) are deliberately left out of this filter.
+  const releaseFilter = buildCardFilter({ group, member, search, cardType, store, minPrice, maxPrice })
+  const releaseWhere = releaseFilter.where
+    ? `${releaseFilter.where} AND release_name IS NOT NULL AND TRIM(release_name) != ''`
+    : `WHERE release_name IS NOT NULL AND TRIM(release_name) != ''`
+  const releaseResult = await db.execute({
+    sql: `SELECT release_name, COUNT(*) as count FROM cards ${releaseWhere} GROUP BY release_name`,
+    args: releaseFilter.args,
+  })
+  const releaseData = releaseResult.rows
+    .map(row => ({ release_name: String(row.release_name), count: Number(row.count) || 0 }))
+    .filter(entry => entry.count > 0)
+    .sort((a, b) => b.count - a.count)
+
+  return { success: true, data: { stores: storeData, card_types: typeData, releases: releaseData } }
 })
