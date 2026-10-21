@@ -94,15 +94,17 @@ export default defineNuxtConfig({
       '/api/**': { cors: true },
 
       // Edge-cache the server-rendered public pages. Safe because the SSR body
-      // is anonymous and identical for everyone: nothing in the app calls
-      // useCookie/useRequestHeaders, and every auth + collection fetch runs in
-      // onMounted, so no visitor-specific data reaches the rendered HTML.
-      // /collection and /status are deliberately excluded — user and admin
-      // scoped. 600s: card and release data only changes on the 17:00 UTC cron,
-      // so this trades at most 10 minutes of freshness for not paying the
-      // render (measured TTFB 304-586 ms) or a serverless invocation per view.
-      // Query strings are distinct cache entries, so /releases?group= filters
-      // stay correct.
+      // is anonymous and identical for everyone: every auth and collection
+      // fetch runs in onMounted, and the only page that reads the request
+      // (status.vue forwards the session cookie) is excluded below. 600s: card
+      // and release data only changes on the 17:00 UTC cron, so this trades at
+      // most 10 minutes of freshness for not paying the render (measured TTFB
+      // 304-586 ms) or a serverless invocation per view. Query strings are
+      // distinct cache entries, so /releases?group= filters stay correct.
+      //
+      // tests/cache-safety.test.ts asserts that /status and /collection never
+      // join this list — their HTML carries the admin error log and per-user
+      // collections, so a cached copy would leak one visitor's data to the next.
       '/': { isr: 600 },
       '/browse': { isr: 600 },
       '/releases': { isr: 600 },
@@ -117,10 +119,13 @@ export default defineNuxtConfig({
           'Referrer-Policy': 'strict-origin-when-cross-origin',
           'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
           'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
-          // Partial policy on purpose: frame/base/object/form rules only.
-          // Constraining script-src needs per-page nonces for the Nuxt payload
-          // script + the inline theme script — revisit before tightening.
-          'Content-Security-Policy': "frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self'; upgrade-insecure-requests",
+          // Content-Security-Policy is deliberately absent here. Constraining
+          // script-src needs a per-response nonce, and a static route rule
+          // cannot supply one: a nonce that is identical for every visitor is
+          // readable by an attacker, so it protects nothing while looking as
+          // though it does. server/plugins/csp.ts sets the policy on the
+          // rendered response instead, where it can also stamp the matching
+          // nonce into the inline script tags it has to authorise.
         },
       },
     },
