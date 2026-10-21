@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ArrowRight } from 'lucide-vue-next'
 import { formatIDR } from '@/lib/catalog'
+import { gridSrcset, onImageError } from '@/lib/imageVariants'
 
 interface MoverRow {
   id: number
@@ -79,9 +80,12 @@ function pctLabel(value: number) {
                 <img
                   v-if="item.image"
                   :src="item.image"
+                  :srcset="gridSrcset(item.image)"
+                  sizes="40px"
                   :alt="`${item.name} photocard`"
                   loading="lazy"
                   decoding="async"
+                  @error="onImageError"
                   class="h-full w-full object-cover object-top"
                 />
               </span>

@@ -2,6 +2,7 @@
 import { ArrowRight, AlertCircle, Music2 } from 'lucide-vue-next'
 import { formatIDR, formatUSD, groupDot } from '@/lib/catalog'
 import { cardTypeLabel } from '@/lib/cardTypes'
+import { ART_CARD_WIDTHS, artworkSrcset, onImageError } from '@/lib/imageVariants'
 
 const route = useRoute()
 const group = String(route.params.group || '')
@@ -189,8 +190,11 @@ async function onWishlist(id: number | string) {
                   <img
                     v-if="detail.artwork || detail.image"
                     :src="detail.artwork || detail.image"
+                    :srcset="artworkSrcset(detail.artwork, ART_CARD_WIDTHS)"
+                    sizes="220px"
                     :alt="`${detail.release_name} artwork`"
                     decoding="async"
+                    @error="onImageError"
                     class="h-full w-full object-cover"
                   />
                   <Music2 v-else class="h-10 w-10 text-muted-foreground" aria-hidden="true" />

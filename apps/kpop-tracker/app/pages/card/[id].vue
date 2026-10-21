@@ -5,6 +5,7 @@ import {
 } from 'lucide-vue-next'
 import { groupAccent, groupDot, formatIDR, formatUSD } from '@/lib/catalog'
 import { cardTypeBlurb, cardTypeLabel } from '@/lib/cardTypes'
+import { ART_THUMB_WIDTHS, artworkSrcset, onImageError } from '@/lib/imageVariants'
 
 const route = useRoute()
 const cardId = parseInt(route.params.id as string)
@@ -343,9 +344,12 @@ const chartData = computed(() => {
               <img
                 v-if="release.artwork"
                 :src="release.artwork"
+                :srcset="artworkSrcset(release.artwork, ART_THUMB_WIDTHS)"
+                sizes="(min-width: 640px) 96px, 80px"
                 :alt="`${release.title} album artwork`"
                 loading="lazy"
                 decoding="async"
+                @error="onImageError"
                 class="h-20 w-20 shrink-0 rounded-lg border border-border object-cover sm:h-24 sm:w-24"
               />
               <div class="min-w-0">

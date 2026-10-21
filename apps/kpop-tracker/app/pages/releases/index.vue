@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ArrowRight, AlertCircle, Music2 } from 'lucide-vue-next'
 import { GROUPS, groupDot } from '@/lib/catalog'
+import { ART_THUMB_WIDTHS, artworkSrcset, onImageError } from '@/lib/imageVariants'
 
 useHead({ title: 'Releases — HIBIKISHOP PC' })
 useSeoMeta({
@@ -101,6 +102,11 @@ function formatDate(value: string) {
 
 function albumPath(release: any) {
   return `/releases/${encodeURIComponent(release.group_name)}/${release.slug}`
+}
+
+/** Both cover slots on this page are 48/56 px thumbnails, not artwork cards. */
+function artThumbSrcset(release: { artwork?: string | null, image?: string | null }) {
+  return artworkSrcset(release.artwork, ART_THUMB_WIDTHS)
 }
 </script>
 
@@ -219,9 +225,12 @@ function albumPath(release: any) {
                 <img
                   v-if="release.artwork || release.image"
                   :src="release.artwork || release.image"
+                  :srcset="artThumbSrcset(release)"
+                  sizes="(min-width: 640px) 56px, 48px"
                   :alt="t('releases.timeline.coverAlt', { name: release.release_name })"
                   loading="lazy"
                   decoding="async"
+                  @error="onImageError"
                   class="h-full w-full object-cover object-top"
                 />
                 <Music2
@@ -272,9 +281,12 @@ function albumPath(release: any) {
                 <img
                   v-if="release.artwork || release.image"
                   :src="release.artwork || release.image"
+                  :srcset="artThumbSrcset(release)"
+                  sizes="(min-width: 640px) 56px, 48px"
                   :alt="t('releases.timeline.coverAlt', { name: release.release_name })"
                   loading="lazy"
                   decoding="async"
+                  @error="onImageError"
                   class="h-full w-full object-cover object-top"
                 />
                 <Music2

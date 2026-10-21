@@ -2,6 +2,7 @@
 import { ArrowRight, Camera, Music2, Search } from 'lucide-vue-next'
 import { GROUPS, groupAccentActive, groupDot } from '@/lib/catalog'
 import { FEATURED_CARD_TYPES, cardTypeBlurb } from '@/lib/cardTypes'
+import { ART_CARD_WIDTHS, artworkSrcset, onImageError } from '@/lib/imageVariants'
 
 useHead({ title: 'HIBIKISHOP PC — K-Pop Photocard Database' })
 useSeoMeta({
@@ -90,6 +91,15 @@ function releaseDate(value?: string | null) {
   const date = new Date(value.length === 10 ? `${value}T00:00:00` : value)
   if (Number.isNaN(date.getTime())) return value
   return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+/**
+ * These squares run ~150 CSS px at the 6-column step. Null for the
+ * `release.image` fallback, which is a portrait card image without the
+ * artwork suffix — that one keeps its plain src.
+ */
+function artSrcset(release: { artwork?: string | null, image?: string | null }) {
+  return artworkSrcset(release.artwork, ART_CARD_WIDTHS)
 }
 
 function submitSearch() {
@@ -236,9 +246,12 @@ async function onWishlist(id: number | string) {
                 <img
                   v-if="release.artwork || release.image"
                   :src="release.artwork || release.image"
+                  :srcset="artSrcset(release)"
+                  sizes="(min-width: 1536px) 190px, (min-width: 1024px) 160px, (min-width: 640px) 31vw, 45vw"
                   :alt="`${release.release_name} release`"
                   loading="lazy"
                   decoding="async"
+                  @error="onImageError"
                   class="h-full w-full object-cover object-top transition-transform duration-200 group-hover:scale-[1.02]"
                 />
                 <Music2
