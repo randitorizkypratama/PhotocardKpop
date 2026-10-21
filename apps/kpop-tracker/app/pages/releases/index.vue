@@ -9,9 +9,6 @@ useSeoMeta({
   ogUrl: 'https://kpop-tracker-six.vercel.app/releases',
 })
 
-const releases = ref<any[]>([])
-const loading = ref(true)
-const loadError = ref(false)
 const { t } = useLocale()
 
 const route = useRoute()
@@ -21,22 +18,16 @@ const queryGroup = String(route.query.group || 'All')
 const selectedGroup = ref<string>(queryGroup === 'All' || GROUPS.includes(queryGroup as any) ? queryGroup : 'All')
 const selectedType = ref<string>(String(route.query.type || 'All'))
 
-onMounted(load)
+// Fetched during SSR so the timeline (and its cover art) is in the HTML.
+// The handler resolves to null instead of throwing — an unreachable API must
+// render the error state, never take the page down with it.
+const { data: timelineRes, pending: loading, refresh: load } = await useAsyncData(
+  'releases:timeline',
+  () => $fetch<any>('/api/releases/timeline').catch(() => null),
+)
 
-async function load() {
-  loading.value = true
-  loadError.value = false
-  try {
-    const response = await $fetch<any>('/api/releases/timeline')
-    if (response?.success) releases.value = response.data || []
-    else loadError.value = true
-  } catch (e) {
-    console.error('Failed to load releases:', e)
-    loadError.value = true
-  } finally {
-    loading.value = false
-  }
-}
+const releases = computed<any[]>(() => timelineRes.value?.data || [])
+const loadError = computed(() => timelineRes.value == null || timelineRes.value?.success !== true)
 
 const filterTabs = ['All', ...GROUPS]
 

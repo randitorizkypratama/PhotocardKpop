@@ -15,10 +15,6 @@ const cardTypeTabs = FEATURED_CARD_TYPES as unknown as string[]
 
 const selectedGroup = ref<string>('IVE')
 const searchQuery = ref('')
-const cards = ref<any[]>([])
-const loading = ref(true)
-const exchangeRates = ref<any>(null)
-const releases = ref<any[]>([])
 const { fetchCollection, wishlistIds, toggleWishlist } = useCollection()
 
 const groupTabs = GROUPS
@@ -47,55 +43,53 @@ const exploreGroups = [
   },
 ]
 
-onMounted(() => {
-  loadCards()
-  loadExchangeRates()
-  loadReleases()
-  fetchCollection()
-})
+// The collection is auth-scoped, so it stays client-side (useCollection already
+// guards that fetch). Everything below now runs during SSR instead: the HTML
+// ships with the hero releases and the first card grid already rendered, rather
+// than a skeleton that only fills in after mount.
+//
+// Each handler swallows its own failure — a slow or 429'd API must degrade to
+// the empty state, never abort the SSR render.
+onMounted(() => fetchCollection())
 
-watch(selectedGroup, () => loadCards())
+// useAsyncData() kicks off its fetch synchronously, so create all three first
+// and only await afterwards — awaiting inline would make SSR pay for them one
+// round trip at a time.
+const ratesAsync = useAsyncData(
+  // Shared key: navigating from here to a group page reuses the same rate
+  // instead of refetching it.
+  'shared:exchangerate',
+  () => $fetch<any>('/api/exchangerate').catch(() => null),
+)
 
-async function loadExchangeRates() {
-  try {
-    const response = await $fetch<any>('/api/exchangerate')
-    if (response.success) exchangeRates.value = response.data
-  } catch (e) {
-    console.error('Failed to load exchange rates:', e)
-  }
-}
+const releasesAsync = useAsyncData(
+  'home:releases',
+  () => $fetch<any>('/api/releases?limit=12').catch(() => null),
+)
 
-async function loadReleases() {
-  try {
-    const response = await $fetch<any>('/api/releases?limit=12')
-    if (response?.success) releases.value = response.data || []
-  } catch {
-    releases.value = []
-  }
-}
+const cardsAsync = useAsyncData(
+  () => `home:cards:${selectedGroup.value}`,
+  () => $fetch<any>(
+    `/api/cards?group=${encodeURIComponent(selectedGroup.value)}&page=1&limit=10&sort=popular`,
+  ).catch(() => null),
+  { watch: [selectedGroup] },
+)
 
-const rate = computed(() => exchangeRates.value?.usd?.rate || 17800)
+await Promise.all([ratesAsync, releasesAsync, cardsAsync])
+
+const { data: ratesRes } = ratesAsync
+const { data: releasesRes } = releasesAsync
+const { data: cardsRes, pending: loading } = cardsAsync
+
+const releases = computed<any[]>(() => releasesRes.value?.data || [])
+const cards = computed<any[]>(() => cardsRes.value?.data || [])
+const rate = computed(() => ratesRes.value?.data?.usd?.rate || 17800)
 
 function releaseDate(value?: string | null) {
   if (!value) return ''
   const date = new Date(value.length === 10 ? `${value}T00:00:00` : value)
   if (Number.isNaN(date.getTime())) return value
   return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-}
-
-async function loadCards() {
-  loading.value = true
-  try {
-    const response = await $fetch<any>(
-      `/api/cards?group=${encodeURIComponent(selectedGroup.value)}&page=1&limit=10&sort=popular`,
-    )
-    if (response.success) cards.value = response.data
-  } catch (e) {
-    console.error('Failed to load cards:', e)
-    cards.value = []
-  } finally {
-    loading.value = false
-  }
 }
 
 function submitSearch() {

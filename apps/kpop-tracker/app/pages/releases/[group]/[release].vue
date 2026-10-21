@@ -7,10 +7,6 @@ const route = useRoute()
 const group = String(route.params.group || '')
 const slug = String(route.params.release || '')
 
-const detail = ref<any>(null)
-const loading = ref(true)
-const loadError = ref(false)
-const notFound = ref(false)
 const { t } = useLocale()
 
 const cards = ref<any[]>([])
@@ -18,8 +14,39 @@ const page = ref(1)
 const totalPages = ref(1)
 const cardsLoading = ref(false)
 
-const exchangeRates = ref<any>(null)
 const { fetchCollection, wishlistIds, toggleWishlist } = useCollection()
+
+// Detail + rate ship with the SSR HTML. Neither handler throws: a dead or
+// rate-limited API must render the error state, never abort the render. A 404
+// is carried through as `notFound` so it renders "no such release" rather than
+// the retryable error panel.
+const detailAsync = useAsyncData(
+  `release:${group}:${slug}`,
+  () => $fetch<any>('/api/releases/detail', { query: { group, slug } })
+    .catch((e: any) => (e?.statusCode === 404
+      ? { success: false, notFound: true, data: null }
+      : null)),
+)
+const ratesAsync = useAsyncData(
+  'shared:exchangerate',
+  () => $fetch<any>('/api/exchangerate').catch(() => null),
+)
+
+await Promise.all([detailAsync, ratesAsync])
+
+const { data: detailRes, pending: loading, refresh: reloadDetail } = detailAsync
+const { data: ratesRes } = ratesAsync
+
+const detail = computed(() => detailRes.value?.data || null)
+const notFound = computed(() =>
+  detailRes.value?.notFound === true
+  || (detailRes.value != null && (!detailRes.value.success || !detailRes.value.data)),
+)
+const loadError = computed(() => detailRes.value == null)
+const rate = computed(() => ratesRes.value?.data?.usd?.rate || 17800)
+
+// The card list depends on the release, so it cannot join the parallel batch.
+if (detail.value?.count > 0) await loadCards(1)
 
 useHead({
   title: computed(() =>
@@ -39,38 +66,16 @@ useSeoMeta({
   ogUrl: computed(() => `https://kpop-tracker-six.vercel.app/releases/${encodeURIComponent(group)}/${encodeURIComponent(slug)}`),
 })
 
-onMounted(() => {
-  fetchCollection()
-  load()
-})
+// Auth-scoped: stays client-side (useCollection already guards that fetch).
+onMounted(() => fetchCollection())
 
+// Retry: refreshing the detail is useAsyncData's job, restarting the card
+// list is ours.
 async function load() {
-  loading.value = true
-  loadError.value = false
-  notFound.value = false
-  try {
-    const [release, rates] = await Promise.all([
-      $fetch<any>('/api/releases/detail', { query: { group, slug } }),
-      $fetch<any>('/api/exchangerate').catch(() => ({ success: false, data: null })),
-    ])
-    if (!release?.success || !release.data) {
-      notFound.value = true
-      return
-    }
-    detail.value = release.data
-    if (rates?.success) exchangeRates.value = rates.data
-    // Releases listed in the discography but absent from Pocamarket have no
-    // cards to fetch — skip the request and render the empty state directly.
-    if (detail.value.count > 0) await loadCards(1)
-  } catch (e: any) {
-    if (e?.statusCode === 404) notFound.value = true
-    else {
-      console.error('Failed to load release:', e)
-      loadError.value = true
-    }
-  } finally {
-    loading.value = false
-  }
+  await reloadDetail()
+  cards.value = []
+  page.value = 1
+  if (detail.value?.count > 0) await loadCards(1)
 }
 
 async function loadCards(nextPage: number) {
@@ -96,8 +101,6 @@ async function loadCards(nextPage: number) {
     cardsLoading.value = false
   }
 }
-
-const rate = computed(() => exchangeRates.value?.usd?.rate || 17800)
 
 const typeRows = computed(() => {
   const rows = detail.value?.byType || []

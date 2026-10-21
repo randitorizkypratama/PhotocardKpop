@@ -6,12 +6,28 @@ import { cardTypeLabel } from '@/lib/cardTypes'
 const route = useRoute()
 const group = String(route.params.group || '')
 
-const info = ref<any>(null)
-const loading = ref(true)
-const loadError = ref(false)
 const { t } = useLocale()
-const exchangeRates = ref<any>(null)
 const { fetchCollection, wishlistIds, toggleWishlist } = useCollection()
+
+// Both run during SSR and in parallel. Neither handler throws: a dead or
+// rate-limited API must render the error state, never abort the render.
+const infoAsync = useAsyncData(
+  `group:${group}`,
+  () => $fetch<any>(`/api/groups/${encodeURIComponent(group)}`).catch(() => null),
+)
+const ratesAsync = useAsyncData(
+  'shared:exchangerate',
+  () => $fetch<any>('/api/exchangerate').catch(() => null),
+)
+
+await Promise.all([infoAsync, ratesAsync])
+
+const { data: summaryRes, pending: loading, refresh: load } = infoAsync
+const { data: ratesRes } = ratesAsync
+
+const info = computed(() => summaryRes.value?.data || null)
+const loadError = computed(() => summaryRes.value == null || summaryRes.value?.success !== true)
+const rate = computed(() => ratesRes.value?.data?.usd?.rate || 17800)
 
 useHead({ title: computed(() => (info.value ? `${info.value.group} photocards — HIBIKISHOP PC` : 'Group — HIBIKISHOP PC')) })
 useSeoMeta({
@@ -19,31 +35,8 @@ useSeoMeta({
   ogUrl: computed(() => `https://kpop-tracker-six.vercel.app/groups/${encodeURIComponent(String(route.params.group || ''))}`),
 })
 
-onMounted(() => {
-  load()
-  fetchCollection()
-})
-
-async function load() {
-  loading.value = true
-  loadError.value = false
-  try {
-    const [summary, rates] = await Promise.all([
-      $fetch<any>(`/api/groups/${encodeURIComponent(group)}`),
-      $fetch<any>('/api/exchangerate').catch(() => ({ success: false, data: null })),
-    ])
-    if (summary.success) info.value = summary.data
-    else loadError.value = true
-    if (rates.success) exchangeRates.value = rates.data
-  } catch (e) {
-    console.error('Failed to load group:', e)
-    loadError.value = true
-  } finally {
-    loading.value = false
-  }
-}
-
-const rate = computed(() => exchangeRates.value?.usd?.rate || 17800)
+// Auth-scoped: stays client-side (useCollection already guards that fetch).
+onMounted(() => fetchCollection())
 
 const typeRows = computed(() => {
   const rows = info.value?.byType || []

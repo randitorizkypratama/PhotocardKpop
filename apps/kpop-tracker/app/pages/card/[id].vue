@@ -15,15 +15,40 @@ const {
   addToCollection, fetchCollection, toggleWishlist, wishlistIds, ownedIds,
 } = useCollection()
 
-const card = ref<any>(null)
-const loading = ref(true)
-const error = ref<string | null>(null)
 const showAddDialog = ref(false)
 const boughtPrice = ref<string | number>('')
-const exchangeRates = ref<any>(null)
 const adding = ref(false)
 const release = ref<any>(null)
 const releaseLoading = ref(false)
+
+// The card and the rate are fetched during SSR so the detail page (image,
+// name, price) ships in the HTML instead of a skeleton. Both handlers resolve
+// to null rather than throwing: an unreachable API must render the error
+// state, never abort the render.
+const cardAsync = useAsyncData(
+  `card:${cardId}`,
+  () => $fetch<any>(`/api/cards/${cardId}`).catch(() => null),
+)
+const ratesAsync = useAsyncData(
+  'shared:exchangerate',
+  () => $fetch<any>('/api/exchangerate').catch(() => null),
+)
+
+await Promise.all([cardAsync, ratesAsync])
+
+const { data: cardRes, pending: loading } = cardAsync
+const { data: ratesRes } = ratesAsync
+
+const card = computed(() => cardRes.value?.data || null)
+const rate = computed(() => ratesRes.value?.data?.usd?.rate || 17800)
+
+// null = ok, string = the message shown in the error panel.
+// success:false means "unknown card id"; null data means "the call failed".
+const error = computed<string | null>(() => {
+  if (cardRes.value == null) return t('card.unableLoad')
+  if (cardRes.value.success === false) return t('card.notFound')
+  return null
+})
 
 // Head/meta computeds must run after `card` is declared — they evaluate eagerly
 // during SSR, which would otherwise hit a TDZ on `card.value`.
@@ -41,28 +66,13 @@ useSeoMeta({
   ogUrl: computed(() => `https://kpop-tracker-six.vercel.app/card/${cardId}`),
 })
 
-onMounted(async () => {
+// Price history and release metadata are pure enrichment: not needed for the
+// first paint, client-side only, and both already degrade silently.
+onMounted(() => {
   fetchCollection()
-  try {
-    const [cardRes, ratesRes] = await Promise.all([
-      $fetch<any>(`/api/cards/${cardId}`),
-      $fetch<any>('/api/exchangerate').catch(() => ({ success: false, data: null })),
-    ])
-    if (cardRes.success) {
-      card.value = cardRes.data
-      await fetchPriceHistory(cardId)
-      loadRelease()
-    } else {
-      error.value = t('card.notFound')
-    }
-    if (ratesRes.success) {
-      exchangeRates.value = ratesRes.data
-    }
-  } catch (e) {
-    error.value = t('card.unableLoad')
-  } finally {
-    loading.value = false
-  }
+  if (!card.value) return
+  fetchPriceHistory(cardId)
+  loadRelease()
 })
 
 /** Release metadata is enrichment only — failures simply hide the section. */
@@ -82,7 +92,6 @@ async function loadRelease() {
   }
 }
 
-const rate = computed(() => exchangeRates.value?.usd?.rate || 17800)
 const isWishlisted = computed(() => wishlistIds.value.has(cardId))
 const isInCollection = computed(() => ownedIds.value.has(cardId))
 

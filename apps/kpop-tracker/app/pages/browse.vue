@@ -42,12 +42,6 @@ const pageSize = 20
 
 const cardTypeChips = computed(() => ['All', ...CARD_TYPES])
 
-const cards = ref<any[]>([])
-const loading = ref(true)
-const loadError = ref(false)
-const total = ref(0)
-const totalPages = ref(0)
-const exchangeRates = ref<any>(null)
 const storeCounts = ref<{ store: string, count: number, by_group: Record<string, number> }[]>([])
 const facetStores = ref<{ store: string, count: number }[]>([])
 const facetTypes = ref<{ card_type: string, count: number }[]>([])
@@ -98,10 +92,65 @@ const activeFilterCount = computed(() => {
   return count
 })
 
+// The rate is created first so the cards handler below can read it without
+// hitting a TDZ if it ever runs during setup.
+const ratesAsync = useAsyncData(
+  'shared:exchangerate',
+  () => $fetch<any>('/api/exchangerate').catch(() => null),
+  { getCachedData: hydrationOnly },
+)
+const { data: ratesRes } = ratesAsync
+
+// Cards are fetched during SSR, so the first page of results (and its images)
+// ships in the HTML instead of a skeleton.
+//
+// The handler reads the filter refs at call time, which keeps refetches driven
+// by the existing debounced watchers below — a reactive key would fire on every
+// keystroke and throw that debounce away.
+//
+// getCachedData limits payload reuse to hydration: arriving here client-side
+// must re-read the current filters rather than reuse the previous page.
+const cardsAsync = useAsyncData(
+  'browse:cards',
+  async () => {
+    const params = new URLSearchParams({
+      group: selectedGroup.value,
+      page: String(currentPage.value),
+      limit: String(pageSize),
+      sort: selectedSort.value,
+    })
+    if (selectedMember.value) params.set('member', selectedMember.value)
+    if (selectedCardType.value) params.set('card_type', selectedCardType.value)
+    if (selectedRelease.value) params.set('release', selectedRelease.value)
+    if (selectedStore.value) params.set('store', selectedStore.value)
+    if (searchQuery.value.trim()) params.set('search', searchQuery.value.trim())
+    if (minPriceIDR.value) params.set('min_price', idrToUSD(Number(minPriceIDR.value)).toFixed(4))
+    if (maxPriceIDR.value) params.set('max_price', idrToUSD(Number(maxPriceIDR.value)).toFixed(4))
+    // Resolves to null instead of throwing: a dead or rate-limited API must
+    // render the error state, never abort the render.
+    return $fetch<any>(`/api/cards?${params}`).catch(() => null)
+  },
+  { getCachedData: hydrationOnly },
+)
+
+const { data: cardsRes, pending: loading, refresh: refreshCards } = cardsAsync
+
+const cards = computed<any[]>(() => cardsRes.value?.data || [])
+const total = computed(() => cardsRes.value?.pagination?.total ?? 0)
+const totalPages = computed(() => cardsRes.value?.pagination?.totalPages ?? 0)
+const loadError = computed(() => cardsRes.value == null)
+// Backs the exchange-rate bar in the template (usd/myr/date).
+const exchangeRates = computed(() => ratesRes.value?.data || null)
+const rate = computed(() => ratesRes.value?.data?.usd?.rate || 17800)
+
+await Promise.all([ratesAsync, cardsAsync])
+
+// Facet counts and the static store map are sidebar metadata — they can land
+// after the cards without shifting the LCP, so they stay client-side and keep
+// their own request-id race protection.
 onMounted(() => {
-  loadCards()
-  loadExchangeRates()
   loadStores()
+  loadFacets()
   fetchCollection()
 })
 
@@ -143,19 +192,15 @@ async function loadFacets() {
   }
 }
 
-async function loadExchangeRates() {
-  try {
-    const response = await $fetch<any>('/api/exchangerate')
-    if (response.success) {
-      exchangeRates.value = response.data
-      if (minPriceIDR.value || maxPriceIDR.value) loadCards()
-    }
-  } catch (e) {
-    console.error('Failed to load exchange rates:', e)
-  }
+/** Reuse the SSR payload on hydration only — a client-side visit must refetch. */
+function hydrationOnly(key: string, nuxtApp: any) {
+  return nuxtApp.isHydrating ? nuxtApp.payload.data[key] : undefined
 }
 
-const rate = computed(() => exchangeRates.value?.usd?.rate || 17800)
+function idrToUSD(idr: number): number {
+  const r = ratesRes.value?.data?.usd?.rate
+  return r ? idr / r : idr / 17800
+}
 
 let suppressStoreWatch = false
 
@@ -275,44 +320,11 @@ function syncSearchQuery() {
   syncFilterQuery()
 }
 
-function idrToUSD(idr: number): number {
-  const r = exchangeRates.value?.usd?.rate
-  return r ? idr / r : idr / 17800
-}
-
-async function loadCards(loadFacetCounts = true) {
-  loading.value = true
-  loadError.value = false
-  // Facet counts follow the filters, not the page — pagination must not pay
-  // for the three aggregate queries again.
+/** Facet counts follow the filters, not the page — pagination must not pay
+ * for the three aggregate queries again. */
+function loadCards(loadFacetCounts = true) {
   if (loadFacetCounts) loadFacets()
-  try {
-    const params = new URLSearchParams({
-      group: selectedGroup.value,
-      page: String(currentPage.value),
-      limit: String(pageSize),
-      sort: selectedSort.value,
-    })
-    if (selectedMember.value) params.set('member', selectedMember.value)
-    if (selectedCardType.value) params.set('card_type', selectedCardType.value)
-    if (selectedRelease.value) params.set('release', selectedRelease.value)
-    if (selectedStore.value) params.set('store', selectedStore.value)
-    if (searchQuery.value.trim()) params.set('search', searchQuery.value.trim())
-    if (minPriceIDR.value) params.set('min_price', idrToUSD(Number(minPriceIDR.value)).toFixed(4))
-    if (maxPriceIDR.value) params.set('max_price', idrToUSD(Number(maxPriceIDR.value)).toFixed(4))
-    const response = await $fetch<any>(`/api/cards?${params}`)
-    if (response.success) {
-      cards.value = response.data
-      total.value = response.pagination.total
-      totalPages.value = response.pagination.totalPages
-    }
-  } catch (e) {
-    console.error('Failed to load cards:', e)
-    loadError.value = true
-    cards.value = []
-  } finally {
-    loading.value = false
-  }
+  return refreshCards()
 }
 
 function clearFilters() {
