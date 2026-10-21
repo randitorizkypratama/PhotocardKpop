@@ -39,24 +39,54 @@ onMounted(() => {
     window.tiktokEmbedLoaded()
     embedReady.value = true
   }
-  initTikTok()
 })
 
-async function initTikTok() {
-  await Promise.all([loadStatus(), loadVideos(false), loadProducts()])
-}
+/**
+ * The SSR self-call carries neither Origin nor Referer, and /api/tiktok/
+ * {products,videos} reject exactly that (requireSameOriginRead) so plain curl
+ * stays blocked. Declaring our own origin keeps us allowed and everyone else
+ * out. The same literal is already hardcoded for ogUrl across these pages.
+ */
+const SSR_HEADERS = { origin: 'https://kpop-tracker-six.vercel.app' }
 
-async function loadStatus() {
-  try {
-    const res = await $fetch<any>('/api/tiktok/status')
-    tiktokStatus.value = {
-      configured: Boolean(res.configured),
-      connected: Boolean(res.connected),
-    }
-  } catch {
-    tiktokStatus.value = { configured: false, connected: false }
-  }
+// Products, videos and connection status ship with the server-rendered HTML
+// instead of popping in after mount. No handler throws: a dead or rate-limited
+// TikTok API must leave these sections empty, not abort the render.
+//
+// All three declared before awaiting — useAsyncData starts its fetch during the
+// call, so awaiting one at a time would serialise round trips that can overlap.
+const statusAsync = useAsyncData('shop:status', () =>
+  $fetch<any>('/api/tiktok/status').catch(() => null),
+)
+const videosAsync = useAsyncData('shop:videos', () =>
+  $fetch<any>('/api/tiktok/videos', { headers: SSR_HEADERS }).catch(() => null),
+)
+const productsAsync = useAsyncData('shop:products', () =>
+  $fetch<any>('/api/tiktok/products', { headers: SSR_HEADERS }).catch(() => null),
+)
+await Promise.all([statusAsync, videosAsync, productsAsync])
+
+// Refs rather than computeds, and assigned here rather than derived: the refresh
+// button calls loadVideos(true) / loadProducts() later and must be able to
+// overwrite them.
+tiktokStatus.value = {
+  configured: Boolean(statusAsync.data.value?.configured),
+  connected: Boolean(statusAsync.data.value?.connected),
 }
+videos.value = videosAsync.data.value?.videos || []
+videosError.value = ''
+products.value = productsAsync.data.value?.products || []
+const productsRes = productsAsync.data.value
+productsNote.value = !productsRes
+  ? ''
+  : !productsRes.configured
+    ? t('shop.productsNoteConfig')
+    : (productsRes.products || []).length === 0
+      ? t('shop.productsNoteNone')
+      : ''
+
+// loadStatus is gone: connection status arrives with the SSR payload above and
+// there is no button that re-checks it, so a manual reload was its only refresh.
 
 async function loadVideos(force = false) {
   videosLoading.value = true

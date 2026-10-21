@@ -2,7 +2,7 @@
 import { ArrowRight, Camera, Music2, Search } from 'lucide-vue-next'
 import { GROUPS, groupAccentActive, groupDot } from '@/lib/catalog'
 import { FEATURED_CARD_TYPES, cardTypeBlurb } from '@/lib/cardTypes'
-import { ART_CARD_WIDTHS, artworkSrcset, onImageError } from '@/lib/imageVariants'
+import { ART_CARD_WIDTHS, artworkSrcset, gridSrcset, onImageError } from '@/lib/imageVariants'
 
 useHead({ title: 'HIBIKISHOP PC — K-Pop Photocard Database' })
 useSeoMeta({
@@ -10,7 +10,7 @@ useSeoMeta({
   ogDescription: 'Explore album PCs, POBs, lucky draws and special photocards — by group, member, album, with market reference from Pocamarket.',
   ogUrl: 'https://kpop-tracker-six.vercel.app/',
 })
-const { t } = useLocale()
+const { t, fmt } = useLocale()
 
 const cardTypeTabs = FEATURED_CARD_TYPES as unknown as string[]
 
@@ -94,12 +94,13 @@ function releaseDate(value?: string | null) {
 }
 
 /**
- * These squares run ~150 CSS px at the 6-column step. Null for the
- * `release.image` fallback, which is a portrait card image without the
- * artwork suffix — that one keeps its plain src.
+ * These squares run ~150 CSS px at the 6-column step.
+ *
+ * artworkSrcset declines a `release.image` fallback (no Apple size suffix), so
+ * fall through to the card grid route for it — CloudFront is allowlisted too.
  */
 function artSrcset(release: { artwork?: string | null, image?: string | null }) {
-  return artworkSrcset(release.artwork, ART_CARD_WIDTHS)
+  return artworkSrcset(release.artwork, ART_CARD_WIDTHS) ?? gridSrcset(release.image)
 }
 
 function submitSearch() {
@@ -264,7 +265,7 @@ async function onWishlist(id: number | string) {
                 {{ release.release_name }}
               </span>
               <span class="mt-0.5 block truncate text-[11px] text-muted-foreground">
-                {{ release.group_name || 'Photocards' }} · {{ release.count.toLocaleString() }} {{ t('releases.cards') }}
+                {{ release.group_name || 'Photocards' }} · {{ fmt(release.count) }} {{ t('releases.cards') }}
               </span>
               <span
                 v-if="release.release_date"

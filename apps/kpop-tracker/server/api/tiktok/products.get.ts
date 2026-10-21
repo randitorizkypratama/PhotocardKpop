@@ -8,23 +8,32 @@ interface ShopProduct {
   url?: string
 }
 
-export default defineEventHandler(async (event) => {
-  requireSameOriginRead(event)
-  const config = useRuntimeConfig()
-  const token = config.tiktokShopAccessToken as string
-  const baseUrl = (config.tiktokShopBaseUrl as string) || 'https://open-api.tiktokglobalshop.com'
-  const shopCipher = config.tiktokShopShopCipher as string
+/**
+ * The upstream TikTok Shop call only, cached — deliberately *not* the whole
+ * handler, because `cachedEventHandler` checks the cache before running the
+ * handler, which would let `requireSameOriginRead` be skipped on a hit. Keeping
+ * the guard in the handler means it still runs for every request; only the
+ * third-party round trip is avoided.
+ *
+ * 10 min also matches what videos.get.ts already does with its own DB-backed
+ * cache, so neither endpoint burns quota per page view.
+ */
+const loadShopProducts = cachedFunction(
+  async () => {
+    const config = useRuntimeConfig()
+    const token = config.tiktokShopAccessToken as string
+    const baseUrl = (config.tiktokShopBaseUrl as string) || 'https://open-api.tiktokglobalshop.com'
+    const shopCipher = config.tiktokShopShopCipher as string
 
-  if (!token) {
-    return {
-      success: false,
-      configured: false,
-      message: 'TIKTOK_SHOP_ACCESS_TOKEN not set (TikTok Shop Partner Center)',
-      products: [],
+    if (!token) {
+      return {
+        success: false,
+        configured: false,
+        message: 'TIKTOK_SHOP_ACCESS_TOKEN not set (TikTok Shop Partner Center)',
+        products: [] as ShopProduct[],
+      }
     }
-  }
 
-  try {
     const params = new URLSearchParams({ page_size: '100', status: 'ACTIVATE' })
     if (shopCipher) params.set('shop_cipher', shopCipher)
 
@@ -76,6 +85,16 @@ export default defineEventHandler(async (event) => {
       count: products.length,
       products,
     }
+  },
+  { name: 'tiktok-products', swr: true, maxAge: 10 * 60 },
+)
+
+export default defineEventHandler(async (event) => {
+  // Runs on every request, cache hit or not — this is the quota guard.
+  requireSameOriginRead(event)
+
+  try {
+    return await loadShopProducts()
   } catch (e) {
     const message = e instanceof Error ? e.message : 'TikTok Shop fetch failed'
     throw createError({

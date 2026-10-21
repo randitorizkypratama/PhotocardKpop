@@ -72,7 +72,7 @@
           </p>
           <p v-else-if="syncedLabel" class="flex items-center gap-1.5 text-xs tabular-nums text-muted-foreground">
             <span class="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
-            {{ t('sync.synced') }} {{ syncedLabel }} · {{ statusTotal.toLocaleString() }} {{ t('sync.cards') }}
+            {{ t('sync.synced') }} {{ syncedLabel }} · {{ fmt(statusTotal) }} {{ t('sync.cards') }}
           </p>
           <p class="text-xs text-muted-foreground">{{ t('footer.tracker') }}</p>
         </div>
@@ -83,7 +83,7 @@
 
 <script setup lang="ts">
 const year = new Date().getFullYear()
-const { locale, t, setLocale } = useLocale()
+const { locale, t, fmt, setLocale } = useLocale()
 const { user } = useAuth()
 const isAdmin = computed(() => user.value?.role === 'admin')
 

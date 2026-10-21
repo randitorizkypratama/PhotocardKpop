@@ -92,6 +92,24 @@ export default defineNuxtConfig({
     },
     routeRules: {
       '/api/**': { cors: true },
+
+      // Edge-cache the server-rendered public pages. Safe because the SSR body
+      // is anonymous and identical for everyone: nothing in the app calls
+      // useCookie/useRequestHeaders, and every auth + collection fetch runs in
+      // onMounted, so no visitor-specific data reaches the rendered HTML.
+      // /collection and /status are deliberately excluded — user and admin
+      // scoped. 600s: card and release data only changes on the 17:00 UTC cron,
+      // so this trades at most 10 minutes of freshness for not paying the
+      // render (measured TTFB 304-586 ms) or a serverless invocation per view.
+      // Query strings are distinct cache entries, so /releases?group= filters
+      // stay correct.
+      '/': { isr: 600 },
+      '/browse': { isr: 600 },
+      '/releases': { isr: 600 },
+      '/releases/**': { isr: 600 },
+      '/groups/**': { isr: 600 },
+      '/card/**': { isr: 600 },
+
       '/**': {
         headers: {
           'X-Frame-Options': 'DENY',

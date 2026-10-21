@@ -12,7 +12,7 @@ useSeoMeta({
 
 const route = useRoute()
 const router = useRouter()
-const { t } = useLocale()
+const { t, fmt } = useLocale()
 const { user, checked: authChecked, refresh: refreshAuth } = useAuth()
 
 const {
@@ -334,7 +334,7 @@ const tabDefs = computed(() => [
             </div>
             <div class="flex min-w-0 flex-1 items-center justify-end gap-2 text-xs text-muted-foreground sm:gap-3">
               <span v-if="section.hasProgress" class="shrink-0 tabular-nums">
-                {{ section.ownedCount }} / {{ section.total.toLocaleString() }} {{ t('collection.progressLabel') }}
+                {{ section.ownedCount }} / {{ fmt(section.total) }} {{ t('collection.progressLabel') }}
               </span>
               <span v-else class="shrink-0 tabular-nums">{{ section.ownedCount }} {{ t('collection.ownedLabel') }}</span>
               <div

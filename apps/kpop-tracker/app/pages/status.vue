@@ -30,10 +30,9 @@ interface SyncSummary {
   } | null
 }
 
-const summary = ref<SyncSummary | null>(null)
-const runs = ref<SyncRun[]>([])
-const loading = ref(true)
-const { t } = useLocale()
+// `fmt` is already this file's date formatter below; the number helper from
+// useLocale is aliased so both can be used without shadowing.
+const { t, fmt: fmtCount } = useLocale()
 const { user, checked: authChecked, refresh: refreshAuth } = useAuth()
 
 interface ErrorRow {
@@ -44,46 +43,67 @@ interface ErrorRow {
   path: string | null
   created_at: string
 }
-const errors = ref<ErrorRow[]>([])
-const errorsChecked = ref(false)
-
 const gate = ref<'checking' | 'guest' | 'forbidden' | 'admin'>('checking')
 
-onMounted(async () => {
-  if (!authChecked.value) await refreshAuth()
-  if (!user.value) {
-    gate.value = 'guest'
-    navigateTo('/login?next=/status')
-    return
-  }
-  if (user.value.role !== 'admin') {
-    gate.value = 'forbidden'
-    return
-  }
-  gate.value = 'admin'
+/**
+ * This page renders against the visitor's own session, so the gate and all three
+ * panels are in the server-rendered HTML instead of arriving after three waves
+ * of round trips (auth, then status+history, then errors — on a cold instance
+ * that was a visible spinner for well over a second).
+ *
+ * That makes /status the one page whose output depends on the request. It must
+ * never be given `isr` or `swr` in nuxt.config.ts: a cached copy would hand the
+ * admin error log — stack traces and file paths — to every visitor, which is a
+ * leak rather than mere staleness. tests/status-cache.test.ts fails if anyone
+ * adds it. Do not delete that test to make a change pass.
+ */
+const reqHeaders = useRequestHeaders(['cookie'])
+// Browsers send the cookie on their own fetches; only the server-rendered
+// self-call needs it spelled out, and the browser ignores it there anyway.
+const ssrOpts = import.meta.server && reqHeaders.cookie
+  ? { headers: { cookie: reqHeaders.cookie } }
+  : undefined
 
-  try {
-    const [statusRes, historyRes] = await Promise.all([
-      $fetch<{ success: boolean, data: SyncSummary }>('/api/sync/status'),
-      $fetch<{ success: boolean, data: SyncRun[] }>('/api/sync/history'),
+if (!authChecked.value) await refreshAuth(ssrOpts)
+
+const isAdmin = user.value?.role === 'admin'
+gate.value = !user.value ? 'guest' : isAdmin ? 'admin' : 'forbidden'
+
+if (!user.value) await navigateTo('/login?next=/status')
+
+// useAsyncData rather than bare $fetch: during hydration it reads the payload
+// instead of re-running, so the client does not repeat what the server did.
+// Errors are fetched in the same wave as status/history rather than after them,
+// so the panels settle together. Each call swallows its own failure — a dead
+// error log must not blank out the sync history.
+const panels = useAsyncData(
+  'status:panels',
+  async () => {
+    if (!isAdmin) return { summary: null, runs: [], errors: [] }
+
+    const [statusRes, historyRes, errorRes] = await Promise.all([
+      $fetch<{ success: boolean, data: SyncSummary }>('/api/sync/status', ssrOpts),
+      $fetch<{ success: boolean, data: SyncRun[] }>('/api/sync/history', ssrOpts).catch(() => null),
+      $fetch<{ success: boolean, data: ErrorRow[] }>('/api/errors', ssrOpts).catch(() => null),
     ])
-    if (statusRes?.success) summary.value = statusRes.data
-    if (historyRes?.success) runs.value = historyRes.data || []
-  } catch {
-    // Render whatever we got; the empty state covers the rest.
-  } finally {
-    loading.value = false
-  }
 
-  try {
-    const errorRes = await $fetch<{ success: boolean, data: ErrorRow[] }>('/api/errors')
-    if (errorRes?.success) errors.value = errorRes.data || []
-  } catch {
-    // Error log is best-effort.
-  } finally {
-    errorsChecked.value = true
-  }
-})
+    return {
+      summary: statusRes?.success ? statusRes.data : null,
+      runs: historyRes?.success ? historyRes.data || [] : [],
+      errors: errorRes?.success ? errorRes.data || [] : [],
+    }
+  },
+  { immediate: isAdmin },
+)
+
+const { data: panelsRes } = panels
+const summary = computed<SyncSummary | null>(() => panelsRes.value?.summary ?? null)
+const runs = computed<SyncRun[]>(() => panelsRes.value?.runs ?? [])
+const errors = computed<ErrorRow[]>(() => panelsRes.value?.errors ?? [])
+const loading = computed(() => panels.pending.value)
+// One wave now, so the error panel's skeleton can retire with the rest instead
+// of tracking its own second request.
+const errorsChecked = computed(() => !panels.pending.value)
 
 const STATUS_STYLES: Record<string, { label: string, chip: string, dot: string }> = {
   ok: {
@@ -160,7 +180,7 @@ function duration(run: { started_at: string, finished_at: string | null }) {
             <div class="rounded-xl border border-zinc-200 bg-card p-4 shadow-sm dark:border-zinc-800">
               <p class="text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground">{{ t('nav.browse') }}</p>
               <p class="mt-1.5 text-lg font-semibold tabular-nums text-foreground">
-                {{ summary ? summary.total.toLocaleString() : '—' }}
+                {{ summary ? fmtCount(summary.total) : '—' }}
               </p>
               <p class="text-xs text-muted-foreground">{{ t('status.tracked') }}</p>
             </div>
@@ -239,7 +259,7 @@ function duration(run: { started_at: string, finished_at: string | null }) {
                 <span v-if="duration(run)" :title="`${fmt(run.started_at)} → ${fmt(run.finished_at)}`">
                   {{ duration(run) }}
                 </span>
-                <span v-if="run.total_synced != null">{{ run.total_synced.toLocaleString() }} {{ t('sync.cards') }}</span>
+                <span v-if="run.total_synced != null">{{ fmtCount(run.total_synced) }} {{ t('sync.cards') }}</span>
               </div>
             </div>
 
@@ -252,7 +272,7 @@ function duration(run: { started_at: string, finished_at: string | null }) {
                   ? 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300'
                   : 'bg-red-500/10 text-red-700 dark:text-red-400'"
                 :title="group.success
-                  ? t('status.groupChipCards', { group: group.group, count: Number(group.totalSynced || 0).toLocaleString() })
+                  ? t('status.groupChipCards', { group: group.group, count: fmtCount(Number(group.totalSynced || 0)) })
                   : `${group.group}: ${group.error || t('status.failed')}`"
               >
                 <span

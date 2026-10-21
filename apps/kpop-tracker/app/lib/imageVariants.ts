@@ -34,8 +34,17 @@
  * Optimization is ever turned off.
  */
 
-/** Keep true only while `images.sizes` in `vercel.json` matches `GRID_WIDTHS`. */
-const ENABLED = true
+/**
+ * Keep true only while `images.sizes` in `vercel.json` matches `GRID_WIDTHS`.
+ *
+ * Off in dev on purpose: `/_vercel/image` is a Vercel platform runtime route and
+ * `nuxt dev` does not serve it, so every card grid would 404 locally and leave
+ * the app looking broken to whoever is working on it. Falling back to the plain
+ * `src` costs nothing here — dev has no optimization quota to spend. Album
+ * artwork is unaffected either way, since `artworkSrcset` rewrites Apple's own
+ * size suffix and never touches the optimizer.
+ */
+const ENABLED = !import.meta.dev
 
 /** Widths offered to the browser, in pixels. */
 export const GRID_WIDTHS = [320] as const

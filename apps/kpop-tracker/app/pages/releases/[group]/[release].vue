@@ -2,13 +2,13 @@
 import { ArrowRight, AlertCircle, Music2 } from 'lucide-vue-next'
 import { formatIDR, formatUSD, groupDot } from '@/lib/catalog'
 import { cardTypeLabel } from '@/lib/cardTypes'
-import { ART_CARD_WIDTHS, artworkSrcset, onImageError } from '@/lib/imageVariants'
+import { ART_CARD_WIDTHS, artworkSrcset, gridSrcset, onImageError } from '@/lib/imageVariants'
 
 const route = useRoute()
 const group = String(route.params.group || '')
 const slug = String(route.params.release || '')
 
-const { t } = useLocale()
+const { t, fmt } = useLocale()
 
 const cards = ref<any[]>([])
 const page = ref(1)
@@ -190,7 +190,7 @@ async function onWishlist(id: number | string) {
                   <img
                     v-if="detail.artwork || detail.image"
                     :src="detail.artwork || detail.image"
-                    :srcset="artworkSrcset(detail.artwork, ART_CARD_WIDTHS)"
+                    :srcset="artworkSrcset(detail.artwork, ART_CARD_WIDTHS) ?? gridSrcset(detail.image)"
                     sizes="220px"
                     :alt="`${detail.release_name} artwork`"
                     decoding="async"
@@ -222,7 +222,7 @@ async function onWishlist(id: number | string) {
                   </span>
                   <span v-if="detail.release_type">{{ detail.release_type }}</span>
                   <span v-if="detail.count > 0">
-                    <span class="font-medium tabular-nums text-foreground">{{ detail.count.toLocaleString() }}</span>
+                    <span class="font-medium tabular-nums text-foreground">{{ fmt(detail.count) }}</span>
                     {{ t('releases.cards') }}
                   </span>
                   <span v-else>{{ t('releases.noCardsYet') }}</span>
@@ -283,7 +283,7 @@ async function onWishlist(id: number | string) {
                     aria-hidden="true"
                   />
                   <span class="relative min-w-0 truncate text-sm text-foreground">{{ row.label }}</span>
-                  <span class="relative shrink-0 text-xs tabular-nums text-muted-foreground">{{ row.count.toLocaleString() }}</span>
+                  <span class="relative shrink-0 text-xs tabular-nums text-muted-foreground">{{ fmt(row.count) }}</span>
                 </NuxtLink>
               </div>
             </div>
@@ -298,7 +298,7 @@ async function onWishlist(id: number | string) {
                   :to="{ path: '/browse', query: { group: detail.group_name, release: detail.release_name, member: member.member_name } }"
                 >
                   <span class="truncate">{{ member.member_name }}</span>
-                  <span class="tabular-nums text-muted-foreground">{{ member.count.toLocaleString() }}</span>
+                  <span class="tabular-nums text-muted-foreground">{{ fmt(member.count) }}</span>
                 </NuxtLink>
               </div>
             </div>
@@ -327,7 +327,7 @@ async function onWishlist(id: number | string) {
               <p class="eyebrow">{{ t('palette.cards') }}</p>
               <h2 class="mt-1.5 section-title">
                 <template v-if="detail.count > 0">
-                  {{ detail.count.toLocaleString() }} {{ detail.count === 1 ? t('releaseDetail.cardOne') : t('releaseDetail.cardMany') }}
+                  {{ fmt(detail.count) }} {{ detail.count === 1 ? t('releaseDetail.cardOne') : t('releaseDetail.cardMany') }}
                 </template>
                 <template v-else>{{ t('releaseDetail.noPhotocardsYet') }}</template>
               </h2>

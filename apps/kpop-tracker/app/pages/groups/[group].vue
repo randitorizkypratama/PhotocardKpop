@@ -6,7 +6,7 @@ import { cardTypeLabel } from '@/lib/cardTypes'
 const route = useRoute()
 const group = String(route.params.group || '')
 
-const { t } = useLocale()
+const { t, fmt } = useLocale()
 const { fetchCollection, wishlistIds, toggleWishlist } = useCollection()
 
 // Both run during SSR and in parallel. Neither handler throws: a dead or
@@ -72,7 +72,7 @@ async function onWishlist(id: number | string) {
             <div class="skeleton-block h-3 w-48" />
           </div>
           <div v-else-if="info" class="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm text-muted-foreground">
-            <span><span class="font-medium tabular-nums text-foreground">{{ info.total.toLocaleString() }}</span> {{ t('browse.cardCount') }}</span>
+            <span><span class="font-medium tabular-nums text-foreground">{{ fmt(info.total) }}</span> {{ t('browse.cardCount') }}</span>
             <span><span class="font-medium tabular-nums text-foreground">{{ info.members }}</span> {{ t('groupDetail.members') }}</span>
             <span><span class="font-medium tabular-nums text-foreground">{{ info.releaseCount }}</span> {{ t('groupDetail.releases') }}</span>
             <span class="text-xs">{{ t('groupDetail.marketRef') }}</span>
@@ -105,7 +105,7 @@ async function onWishlist(id: number | string) {
                   :to="{ path: '/browse', query: { group, member: m.member_name } }"
                 >
                   <span class="truncate">{{ m.member_name }}</span>
-                  <span class="tabular-nums text-muted-foreground">{{ m.count.toLocaleString() }}</span>
+                  <span class="tabular-nums text-muted-foreground">{{ fmt(m.count) }}</span>
                 </NuxtLink>
               </div>
             </div>
@@ -126,7 +126,7 @@ async function onWishlist(id: number | string) {
                     aria-hidden="true"
                   />
                   <span class="relative min-w-0 truncate text-sm text-foreground">{{ row.label }}</span>
-                  <span class="relative shrink-0 text-xs tabular-nums text-muted-foreground">{{ row.count.toLocaleString() }}</span>
+                  <span class="relative shrink-0 text-xs tabular-nums text-muted-foreground">{{ fmt(row.count) }}</span>
                 </NuxtLink>
               </div>
               <p class="mt-2 text-[11px] text-muted-foreground">{{ t('groupDetail.countsNote') }}</p>
@@ -200,7 +200,7 @@ async function onWishlist(id: number | string) {
                     {{ release.release_name }}
                     <span v-if="release.release_date" class="text-xs text-muted-foreground">· {{ release.release_date.slice(0, 4) }}</span>
                   </span>
-                  <span class="shrink-0 text-xs tabular-nums text-muted-foreground">{{ release.count > 0 ? release.count.toLocaleString() : '—' }}</span>
+                  <span class="shrink-0 text-xs tabular-nums text-muted-foreground">{{ release.count > 0 ? fmt(release.count) : '—' }}</span>
                 </NuxtLink>
               </div>
             </section>

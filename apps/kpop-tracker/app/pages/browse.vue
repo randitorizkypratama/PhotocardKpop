@@ -17,7 +17,7 @@ useSeoMeta({
 
 const route = useRoute()
 const router = useRouter()
-const { t } = useLocale()
+const { t, fmt } = useLocale()
 
 const selectedGroup = ref<string>(String(route.query.group || 'IVE'))
 if (!GROUPS.includes(selectedGroup.value as any)) selectedGroup.value = 'IVE'
@@ -392,7 +392,7 @@ const visiblePages = computed(() => {
         <h1 class="mt-1.5 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{{ t('browse.title') }}</h1>
         <p class="mt-1.5 max-w-2xl text-sm text-muted-foreground">
           <template v-if="loading">{{ t('browse.loading') }}</template>
-          <template v-else><span class="font-medium tabular-nums text-foreground">{{ total.toLocaleString() }}</span> {{ t('browse.cardCount') }}</template>
+          <template v-else><span class="font-medium tabular-nums text-foreground">{{ fmt(total) }}</span> {{ t('browse.cardCount') }}</template>
           · {{ t('browse.dataSource') }}
           <a href="https://pocamarket.com" target="_blank" rel="noopener noreferrer" class="font-medium text-foreground underline-offset-2 hover:underline">POCAMARKET</a>.
         </p>
@@ -448,7 +448,7 @@ const visiblePages = computed(() => {
                 >
                   <span class="truncate">{{ s.store }}</span>
                   <span class="ml-auto flex shrink-0 items-center gap-1.5">
-                    <span class="text-[11px] tabular-nums text-muted-foreground">{{ s.count.toLocaleString() }}</span>
+                    <span class="text-[11px] tabular-nums text-muted-foreground">{{ fmt(s.count) }}</span>
                     <Check v-if="selectedStore === s.store" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   </span>
                 </button>
@@ -483,7 +483,7 @@ const visiblePages = computed(() => {
                   <span class="truncate">{{ cardType }}</span>
                   <span class="ml-auto flex shrink-0 items-center gap-1.5">
                     <span v-if="facetsLoaded" class="text-[11px] tabular-nums text-muted-foreground">
-                      {{ (typeCountMap.get(cardType) ?? 0).toLocaleString() }}
+                      {{ fmt(typeCountMap.get(cardType) ?? 0) }}
                     </span>
                     <Check v-if="selectedCardType === cardType" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   </span>
@@ -520,7 +520,7 @@ const visiblePages = computed(() => {
                     <span
                       v-if="facetsLoaded && releaseCountMap.has(r.release_name)"
                       class="text-[11px] tabular-nums text-muted-foreground"
-                    >{{ (releaseCountMap.get(r.release_name) ?? 0).toLocaleString() }}</span>
+                    >{{ fmt(releaseCountMap.get(r.release_name) ?? 0) }}</span>
                     <Check v-if="selectedRelease === r.release_name" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   </span>
                 </button>
@@ -800,7 +800,7 @@ const visiblePages = computed(() => {
           <!-- Pagination -->
           <div v-if="!loading && totalPages > 1 && cards.length > 0" class="mt-8 min-w-0 sm:mt-10">
             <p class="mb-3 text-center text-xs text-muted-foreground">
-              {{ t('browse.pageOfCards', { current: currentPage.toLocaleString(), total: totalPages.toLocaleString(), count: total.toLocaleString() }) }}
+              {{ t('browse.pageOfCards', { current: fmt(currentPage), total: fmt(totalPages), count: fmt(total) }) }}
             </p>
 
             <!-- Mobile: Prev / page indicator / Next only -->
@@ -944,7 +944,7 @@ const visiblePages = computed(() => {
                 <span
                   v-if="facetsLoaded && releaseCountMap.has(r.release_name)"
                   class="ml-1 text-[11px] tabular-nums opacity-70"
-                >{{ (releaseCountMap.get(r.release_name) ?? 0).toLocaleString() }}</span>
+                >{{ fmt(releaseCountMap.get(r.release_name) ?? 0) }}</span>
               </button>
             </div>
             <p v-if="releases.length === 0" class="mt-1 text-xs text-muted-foreground">{{ t('browse.releases.empty') }}</p>

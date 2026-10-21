@@ -8,9 +8,15 @@ export function useAuth() {
   const user = useState<AuthUser | null>('auth-user', () => null)
   const checked = useState<boolean>('auth-checked', () => false)
 
-  async function refresh() {
+  /**
+   * Re-read `/api/auth/me`. SSR self-calls carry no `Origin` and no cookie, so
+   * the session cookie has to be forwarded explicitly (`opts.headers`) or every
+   * server-rendered request would look like a guest. Callers without a session
+   * to forward pass nothing and get the client behaviour unchanged.
+   */
+  async function refresh(opts?: { headers?: Record<string, string> }) {
     try {
-      const res = await $fetch<{ user: AuthUser | null }>('/api/auth/me')
+      const res = await $fetch<{ user: AuthUser | null }>('/api/auth/me', opts)
       user.value = res.user
     } catch {
       user.value = null

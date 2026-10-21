@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ArrowRight, AlertCircle, Music2 } from 'lucide-vue-next'
 import { GROUPS, groupDot } from '@/lib/catalog'
-import { ART_THUMB_WIDTHS, artworkSrcset, onImageError } from '@/lib/imageVariants'
+import { ART_THUMB_WIDTHS, artworkSrcset, gridSrcset, onImageError } from '@/lib/imageVariants'
 
 useHead({ title: 'Releases — HIBIKISHOP PC' })
 useSeoMeta({
@@ -10,7 +10,7 @@ useSeoMeta({
   ogUrl: 'https://kpop-tracker-six.vercel.app/releases',
 })
 
-const { t } = useLocale()
+const { t, fmt } = useLocale()
 
 const route = useRoute()
 const router = useRouter()
@@ -104,9 +104,16 @@ function albumPath(release: any) {
   return `/releases/${encodeURIComponent(release.group_name)}/${release.slug}`
 }
 
-/** Both cover slots on this page are 48/56 px thumbnails, not artwork cards. */
+/**
+ * Both cover slots here are 48/56 px thumbnails, not artwork cards.
+ *
+ * Falls back to the CloudFront card image when a release has no artwork —
+ * artworkSrcset returns undefined for that URL because it lacks the Apple size
+ * suffix, so without this the fallback would ship unoptimized. `sizes` still
+ * fits: it describes the box, which is the same either way.
+ */
 function artThumbSrcset(release: { artwork?: string | null, image?: string | null }) {
-  return artworkSrcset(release.artwork, ART_THUMB_WIDTHS)
+  return artworkSrcset(release.artwork, ART_THUMB_WIDTHS) ?? gridSrcset(release.image)
 }
 </script>
 
@@ -247,7 +254,7 @@ function artThumbSrcset(release: { artwork?: string | null, image?: string | nul
                 </span>
                 <span class="mt-1 block truncate text-xs text-muted-foreground">
                   {{ release.group_name }}<template v-if="release.release_type"> · {{ release.release_type }}</template>
-                  <template v-if="release.count > 0"> · {{ release.count.toLocaleString() }} {{ t('releases.cards') }}</template>
+                  <template v-if="release.count > 0"> · {{ fmt(release.count) }} {{ t('releases.cards') }}</template>
                   <template v-else> · {{ t('releases.noCardsYet') }}</template>
                   <template v-if="release.label"> · {{ release.label }}</template>
                 </span>
@@ -303,7 +310,7 @@ function artThumbSrcset(release: { artwork?: string | null, image?: string | nul
                 </span>
                 <span class="mt-1 block truncate text-xs text-muted-foreground">
                   {{ release.group_name }}<template v-if="release.release_type"> · {{ release.release_type }}</template>
-                  <template v-if="release.count > 0"> · {{ release.count.toLocaleString() }} {{ t('releases.cards') }}</template>
+                  <template v-if="release.count > 0"> · {{ fmt(release.count) }} {{ t('releases.cards') }}</template>
                   <template v-else> · {{ t('releases.noCardsYet') }}</template>
                 </span>
               </span>

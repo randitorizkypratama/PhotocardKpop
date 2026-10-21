@@ -40,6 +40,22 @@ export function useLocale() {
     )
   }
 
+  /**
+   * Thousands-separated number, pinned to the app's locale.
+   *
+   * Never call `.toLocaleString()` with no argument: it falls back to the
+   * *runtime's* default locale, which is Node's on the server and the visitor's
+   * browser on the client. Those differ — Node served "1.061" while an en-US
+   * browser expected "1,061" — and Vue reports that as a hydration mismatch on
+   * every page that prints a count, for every visitor whose browser locale
+   * differs from the server's. Going through `locale` also means ID users see
+   * "1.061" *after* the toggle, and the server/client agree because both render
+   * the default 'en' during hydration.
+   */
+  function fmt(value: number): string {
+    return value.toLocaleString(locale.value === 'id' ? 'id-ID' : 'en-US')
+  }
+
   async function setLocale(next: Locale) {
     if (next === 'id') await ensureIdStrings()
     locale.value = next
@@ -71,5 +87,5 @@ export function useLocale() {
     }
   })
 
-  return { locale, t, setLocale, toggleLocale }
+  return { locale, t, fmt, setLocale, toggleLocale }
 }
