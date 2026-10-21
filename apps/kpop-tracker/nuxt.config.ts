@@ -64,6 +64,14 @@ export default defineNuxtConfig({
       link: [
         { rel: 'icon', type: 'image/png', href: '/hibikishop-logo.png' },
         { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
+        // Card images are on CloudFront and album art on the iTunes CDN.
+        // Because these pages are server-rendered, the browser only discovers
+        // both origins while parsing the <img> tags — without this it pays a
+        // fresh DNS + TCP + TLS round trip before the first pixel downloads.
+        // No `crossorigin`: these are plain image requests, and a mismatched
+        // preconnect would not be reused by them.
+        { rel: 'preconnect', href: 'https://d1sut5kn3lwnf7.cloudfront.net' },
+        { rel: 'preconnect', href: 'https://is1-ssl.mzstatic.com' },
       ],
       script: [
         {

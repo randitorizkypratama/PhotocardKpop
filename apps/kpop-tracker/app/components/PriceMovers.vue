@@ -16,20 +16,19 @@ interface MoverRow {
 const props = defineProps<{ rate?: number }>()
 const { t } = useLocale()
 
-const drops = ref<MoverRow[]>([])
-const risers = ref<MoverRow[]>([])
+// Fetched during SSR so both panels are in the HTML rather than popping in
+// after mount. The section is v-if="drops.length || risers.length", so a
+// failure simply hides it — the intended behaviour, and why the handler
+// resolves to null instead of throwing.
+const { data: moversRes } = await useAsyncData(
+  'shared:movers',
+  () => $fetch<{ success: boolean, data: { drops: MoverRow[], risers: MoverRow[] } }>(
+    '/api/movers',
+  ).catch(() => null),
+)
 
-onMounted(async () => {
-  try {
-    const response = await $fetch<{ success: boolean, data: { drops: MoverRow[], risers: MoverRow[] } }>('/api/movers')
-    if (response?.success) {
-      drops.value = response.data?.drops || []
-      risers.value = response.data?.risers || []
-    }
-  } catch {
-    // Section stays hidden when the endpoint fails.
-  }
-})
+const drops = computed<MoverRow[]>(() => moversRes.value?.data?.drops || [])
+const risers = computed<MoverRow[]>(() => moversRes.value?.data?.risers || [])
 
 function pctLabel(value: number) {
   const rounded = Math.abs(value) < 10 ? Math.abs(value).toFixed(1) : String(Math.round(Math.abs(value)))
