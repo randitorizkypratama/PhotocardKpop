@@ -1,34 +1,32 @@
 /**
- * Responsive grid images via Vercel Image Optimization — **disabled until the
- * endpoint is verified**.
+ * Grid images through Vercel Image Optimization.
  *
- * Why disabled: `/_vercel/image` currently answers 404 on this project for
- * both local and remote sources, so shipping a `srcset` now would make every
- * grid image fetch a URL that does not exist. With the flag off the card grid
- * behaves exactly as before (single `src`, no `sizes`).
+ * Every card image is **250×388** but weighs 63–100 KB, because the originals
+ * were encoded at very high quality. So this is *not* a downscaling win — the
+ * source is already narrower than any width offered here, and Vercel never
+ * upscales. What it buys is a re-encode at q=75: measured 64,889 B → 9,597 B,
+ * an 85% cut, at identical 250×388 output.
  *
- * To turn it on (one deploy, ~5 minutes):
- *   1. Add to `vercel.json`:
- *      "images": {
- *        "remotePatterns": [{ "protocol": "https", "hostname": "d1sut5kn3lwnf7.cloudfront.net" }],
- *        "sizes": [320, 640],
- *        "minimumCacheTTL": 31536000
- *      }
- *   2. Set `ENABLED` below to `true`.
- *   3. Verify before/after deploy:
- *      curl -sI "https://kpop-tracker-six.vercel.app/_vercel/image?url=https%3A%2F%2Fd1sut5kn3lwnf7.cloudfront.net%2Fmedia%2Fphotocard_blur%2F2023%2F04%2F11%2Fb4eb14ebc6a94487880a0c301d31d1&w=320&q=75"
- *      → must be 200 with a `content-type: image/…` and `cache-control` header.
+ * Hence one width, not two. `w=320` and `w=640` return byte-identical images
+ * here; registering both would only mint a second cached variant (and a second
+ * entry against the optimization quota) for the same bytes. `GRID_SIZES` still
+ * advertises the real per-breakpoint width so the browser resolves to the one
+ * candidate that exists.
  *
- * Two widths only (320/640): the grid renders ~180–280 CSS px per card, so
- * 320w covers 1× devices and 640w covers 2–3×. Fewer variants = fewer
- * billed optimizations (Vercel's free quota is per optimized response; these
- * are edge-cached for `minimumCacheTTL` afterwards).
+ * `sizes` in `vercel.json` must list exactly the widths in `GRID_WIDTHS`.
+ * Vercel rejects an unlisted width with **400** — confirmed live against
+ * `w=400`, which returns `text/plain` 400 while `w=320` returns 200.
+ *
+ * The real fix for the oversized originals is re-encoding them at the source.
+ * That would also cover the album artwork on /releases, which this does not
+ * touch (different origin, no srcset there).
  */
 
-const ENABLED = false
+/** Keep true only while `images.sizes` in `vercel.json` matches `GRID_WIDTHS`. */
+const ENABLED = true
 
 /** Widths offered to the browser, in pixels. */
-export const GRID_WIDTHS = [320, 640] as const
+export const GRID_WIDTHS = [320] as const
 
 /**
  * Approximate render width per breakpoint for the card grids (2/3/4/5 columns

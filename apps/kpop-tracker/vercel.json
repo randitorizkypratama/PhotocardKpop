@@ -7,7 +7,7 @@
         "hostname": "d1sut5kn3lwnf7.cloudfront.net"
       }
     ],
-    "sizes": [320, 640],
+    "sizes": [320],
     "minimumCacheTTL": 31536000
   },
   "crons": [
