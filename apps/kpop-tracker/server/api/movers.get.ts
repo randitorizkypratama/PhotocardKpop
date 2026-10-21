@@ -66,7 +66,7 @@ async function fetchMovers(direction: 'ASC' | 'DESC', cutoff: string, limit: num
   }))
 }
 
-export default defineEventHandler(async () => {
+export default cachedEventHandler(async () => {
   const cutoff = new Date(Date.now() - 36 * 60 * 60 * 1000).toISOString()
   const [drops, risers] = await Promise.all([
     fetchMovers('ASC', cutoff, 6),
@@ -78,4 +78,7 @@ export default defineEventHandler(async () => {
     data: { drops, risers },
     generated_at: new Date().toISOString(),
   }
-})
+  },
+  // Price movers only change when the daily cron writes new snapshots.
+  { swr: true, maxAge: 10 * 60 },
+)

@@ -1,4 +1,4 @@
-export default defineEventHandler(async (event) => {
+export default cachedEventHandler(async (event) => {
   const db = getTursoClient()
   const requested = parseInt(getQuery(event).limit as string) || 24
   const limit = Math.min(60, Math.max(1, requested))
@@ -59,4 +59,7 @@ export default defineEventHandler(async (event) => {
   }
 
   return { success: true, data }
-})
+  },
+  // Release list + discography dates: data only moves when the daily cron runs.
+  { swr: true, maxAge: 5 * 60 },
+)

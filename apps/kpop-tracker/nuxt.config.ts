@@ -74,6 +74,14 @@ export default defineNuxtConfig({
   },
 
   nitro: {
+    // /cache is what cachedEventHandler() reads and writes. On Vercel the
+    // deployment bundle is read-only, so the default FS driver would fail the
+    // write on every cache hit (and log it to error_log). Memory is per
+    // instance, which is fine: the cross-instance cache is the edge, fed by
+    // the s-maxage that `swr` sets on each cached handler.
+    storage: {
+      cache: { driver: 'memory' },
+    },
     routeRules: {
       '/api/**': { cors: true },
       '/**': {

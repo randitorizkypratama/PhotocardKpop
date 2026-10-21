@@ -1,4 +1,4 @@
-export default defineEventHandler(async (event) => {
+export default cachedEventHandler(async (event) => {
   const db = getTursoClient()
   const group = String(getQuery(event).group || '').trim()
 
@@ -147,4 +147,8 @@ export default defineEventHandler(async (event) => {
     })
 
   return { success: true, data }
-})
+  },
+  // The heaviest read in the app (GROUP BY over cards + discography for every
+  // group); it backs the whole /releases page and changes only on sync.
+  { swr: true, maxAge: 5 * 60 },
+)

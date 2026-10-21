@@ -37,8 +37,22 @@ export function useCollection() {
   const loading = useState<boolean>('collection-loading', () => false)
   const error = useState<string | null>('collection-error', () => null)
   const loaded = useState<boolean>('collection-loaded', () => false)
+  // Unlike `loaded`, this also settles for logged-out visitors, so the 401
+  // from /api/collection is paid once per session instead of per page.
+  const checked = useState<boolean>('collection-checked', () => false)
   const pendingCardIds = useState<Set<number>>('collection-pending', () => new Set())
   const { user, ensureChecked } = useAuth()
+
+  // Switching account (login or logout) invalidates whatever was cached for
+  // the previous one — otherwise a fresh login keeps showing the logged-out
+  // empty state, since fetchCollection() would skip on `checked`.
+  watch(() => user.value?.id ?? null, (id, previous) => {
+    if (id === previous) return
+    checked.value = false
+    loaded.value = false
+    items.value = []
+    stats.value = { totalOwned: 0, totalWishlist: 0, totalOwnedValue: 0, totalWishlistValue: 0 }
+  })
 
   async function requireLogin(): Promise<boolean> {
     const current = await ensureChecked()
@@ -75,7 +89,7 @@ export function useCollection() {
   const allIds = computed(() => new Set(items.value.map(item => item.card_id)))
 
   async function fetchCollection(force = false) {
-    if (loaded.value && !force) return
+    if (checked.value && !force) return
     loading.value = true
     error.value = null
 
@@ -86,14 +100,18 @@ export function useCollection() {
         items.value = response.data
         stats.value = response.stats
         loaded.value = true
+        checked.value = true
       }
     } catch (e) {
       if (isUnauthorized(e)) {
         items.value = []
         stats.value = { totalOwned: 0, totalWishlist: 0, totalOwnedValue: 0, totalWishlistValue: 0 }
         loaded.value = false
+        // Logged out is a settled answer, not a failure — stop asking.
+        checked.value = true
         error.value = null
       } else {
+        // Network / 5xx: leave `checked` false so the retry button still works.
         error.value = e instanceof Error ? e.message : 'Failed to fetch collection'
       }
     } finally {

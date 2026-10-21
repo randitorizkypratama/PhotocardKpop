@@ -26,6 +26,21 @@ const MB_UA = 'HIBIKISHOP-PC/1.0 (contact: hibikishop@example.com)'
 const DISCOGRAPHY_TTL_MS = 30 * 24 * 60 * 60 * 1000
 const MIN_MATCH_CHARS = 4
 
+/**
+ * In-process read cache. Every release request asks for all three groups, and
+ * without this each one costs its own Turso round trip (it was 3 queries per
+ * request before). Short TTL: it only exists to collapse repeat reads within
+ * one warm instance, the DB row timestamps stay authoritative.
+ */
+interface DiscographyMemoryEntry {
+  rows: DiscographyRelease[]
+  fetchedAt: number
+  storedAt: number
+}
+const memoryCache = new Map<string, DiscographyMemoryEntry>()
+const MEMORY_TTL_MS = 10 * 60 * 1000
+const staleWarned = new Set<string>()
+
 const PRIMARY_TYPES = new Set(['Album', 'EP', 'Single'])
 const EXCLUDED_SECONDARY_TYPES = new Set([
   'Compilation',
@@ -184,6 +199,9 @@ export async function readGroupDiscography(
   group: string,
   db?: Client,
 ): Promise<{ rows: DiscographyRelease[], fetchedAt: number } | null> {
+  const hit = memoryCache.get(group)
+  if (hit && Date.now() - hit.storedAt < MEMORY_TTL_MS) return hit
+
   try {
     const client = db || (await defaultDb())
     const result = await client.execute({
@@ -191,10 +209,10 @@ export async function readGroupDiscography(
             FROM discography WHERE group_name = ?`,
       args: [group],
     })
-    if (result.rows.length === 0) return null
+    if (result.rows.length === 0) return hit ?? null
 
     const fetchedAt = result.rows.reduce((max, row) => Math.max(max, Number(row.fetched_at) || 0), 0)
-    return {
+    const entry = {
       fetchedAt,
       rows: result.rows.map(row => ({
         group_name: group,
@@ -205,8 +223,11 @@ export async function readGroupDiscography(
         mbid: row.mbid ? String(row.mbid) : null,
       })),
     }
+    memoryCache.set(group, { ...entry, storedAt: Date.now() })
+    return entry
   } catch {
-    return null
+    // Turso unreachable: a warm in-process copy still beats an empty timeline.
+    return hit ?? null
   }
 }
 
@@ -229,22 +250,53 @@ export async function writeGroupDiscography(releases: DiscographyRelease[], db?:
     })),
   ]
   await client.batch(statements, 'write')
+  // Only warm the read cache once the DB actually has the new rows.
+  memoryCache.set(group, { rows: releases, fetchedAt: now, storedAt: now })
 }
 
-/** Cached discography read; refreshes from MusicBrainz when older than 30 days. */
+/**
+ * Cached discography read.
+ *
+ * The MusicBrainz refresh deliberately does NOT run on this path: MB is paced
+ * at 1 req/s, so refreshing from inside a page request could hold a render for
+ * seconds (exactly what happens when the 30-day cache expires mid-day). The
+ * daily cron (`/api/cron/sync` → `loadReleaseIndex(…, { refresh: true })`) is
+ * the caller that talks to MusicBrainz; this function only serves what is
+ * already stored — memory first (see readGroupDiscography), then Turso — and
+ * never blocks on an external API.
+ */
 export async function getGroupDiscography(
   group: string,
   options: { refresh?: boolean, db?: Client } = {},
 ): Promise<DiscographyRelease[]> {
   const cached = await readGroupDiscography(group, options.db)
-  if (!options.refresh && cached && cached.rows.length && Date.now() - cached.fetchedAt < DISCOGRAPHY_TTL_MS) {
+
+  if (options.refresh) {
+    return refreshGroupDiscography(group, cached, options.db)
+  }
+
+  if (cached?.rows.length) {
+    if (Date.now() - cached.fetchedAt < DISCOGRAPHY_TTL_MS) return cached.rows
+    warnStaleOnce(group, cached.fetchedAt)
+    // Stale still beats empty: the next cron run replaces it.
     return cached.rows
   }
 
+  // Fresh database (table still empty): the daily cron fills it — a page
+  // request must not be the thing that discovers that by waiting on MB.
+  return []
+}
+
+/** Talks to MusicBrainz (cron / manual sync only) and writes the result. */
+async function refreshGroupDiscography(
+  group: string,
+  cached: { rows: DiscographyRelease[], fetchedAt: number } | null,
+  db?: Client,
+): Promise<DiscographyRelease[]> {
   try {
     const rows = await fetchGroupDiscography(group)
     if (rows.length > 0) {
-      await writeGroupDiscography(rows, options.db)
+      await writeGroupDiscography(rows, db)
       return rows
     }
     // MB answered but returned nothing — treat it like a failed fetch so a
@@ -256,6 +308,14 @@ export async function getGroupDiscography(
     if (cached && cached.rows.length > 0) return cached.rows
     throw error
   }
+}
+
+/** Logged once per process per group, not once per request. */
+function warnStaleOnce(group: string, fetchedAt: number) {
+  if (staleWarned.has(group)) return
+  staleWarned.add(group)
+  const days = Math.max(1, Math.round((Date.now() - fetchedAt) / (24 * 60 * 60 * 1000)))
+  console.warn(`[discography] ${group} cache is ${days}d old — refresh through the daily cron (/api/cron/sync), not a page request.`)
 }
 
 export interface ReleaseMatchEntry {

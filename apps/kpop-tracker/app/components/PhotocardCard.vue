@@ -2,6 +2,7 @@
 import { Heart } from 'lucide-vue-next'
 import { formatIDR, formatUSD, groupDot } from '@/lib/catalog'
 import { cardTypeLabel } from '@/lib/cardTypes'
+import { GRID_SIZES, gridSrcset, onImageError } from '@/lib/imageVariants'
 
 interface PhotocardCardData {
   id: number | string
@@ -26,12 +27,15 @@ const props = withDefaults(
     showWishlist?: boolean
     wishlisted?: boolean
     badge?: string | null
+    /** Above-the-fold cards load eagerly at high priority; the rest stay lazy. */
+    eager?: boolean
   }>(),
   {
     rate: undefined,
     showWishlist: false,
     wishlisted: false,
     badge: null,
+    eager: false,
   },
 )
 
@@ -62,6 +66,8 @@ const promoRate = computed(() => {
 })
 
 const typeLabel = computed(() => cardTypeLabel(props.card.card_type))
+/** Null while image variants are disabled — see app/lib/imageVariants.ts. */
+const srcset = computed(() => gridSrcset(props.card.image))
 const memberDot = computed(() => groupDot(props.card.group_name))
 const releaseLine = computed(() => {
   const release = props.card.release_name?.trim()
@@ -87,10 +93,14 @@ const metaLine = computed(() => {
       <div class="pc-card-image">
         <img
           :src="card.image"
+          :srcset="srcset || undefined"
+          :sizes="srcset ? GRID_SIZES : undefined"
           :alt="`${card.name} photocard`"
-          loading="lazy"
+          :loading="eager ? 'eager' : 'lazy'"
+          :fetchpriority="eager ? 'high' : 'auto'"
           decoding="async"
           class="h-full w-full object-cover object-top"
+          @error="onImageError"
         />
 
         <div class="absolute left-3 top-2 flex flex-col items-start">

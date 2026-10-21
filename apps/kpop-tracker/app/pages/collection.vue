@@ -324,7 +324,7 @@ const tabDefs = computed(() => [
       <!-- Grouped binder sections -->
       <div v-else class="space-y-10">
         <section
-          v-for="section in groupedItems"
+          v-for="(section, sectionIndex) in groupedItems"
           :key="section.group"
         >
           <div class="mb-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
@@ -357,17 +357,18 @@ const tabDefs = computed(() => [
           </div>
 
           <div class="space-y-6">
-            <div v-for="row in section.members" :key="row.member">
+            <div v-for="(row, rowIndex) in section.members" :key="row.member">
               <div class="mb-2.5 flex items-baseline justify-between gap-3 border-b border-border pb-2">
                 <p class="truncate text-xs font-semibold uppercase tracking-[0.1em] text-foreground">{{ row.member }}</p>
                 <span class="shrink-0 text-[11px] tabular-nums text-muted-foreground">{{ row.items.length }} {{ t('browse.cardCount') }}</span>
               </div>
 
               <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
-                <div v-for="item in row.items" :key="item.id" class="group relative">
+                <div v-for="(item, itemIndex) in row.items" :key="item.id" class="group relative">
                   <PhotocardCard
                     :card="mapForCard(item)"
                     :rate="rate"
+                    :eager="sectionIndex === 0 && rowIndex === 0 && itemIndex < 4"
                     :badge="item.status === 'owned' ? t('collection.badgeOwned') : t('collection.badgeWishlist')"
                   />
                   <button

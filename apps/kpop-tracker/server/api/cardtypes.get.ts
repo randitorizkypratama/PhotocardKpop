@@ -1,4 +1,4 @@
-export default defineEventHandler(async () => {
+export default cachedEventHandler(async () => {
   const db = getTursoClient()
   const result = await db.execute(`
     SELECT group_name, card_type, COUNT(*) AS count
@@ -23,4 +23,7 @@ export default defineEventHandler(async () => {
 
   const data = [...map.values()].sort((a, b) => b.count - a.count)
   return { success: true, data }
-})
+  },
+  // Card-type counts over the whole table — changed only by the daily sync.
+  { swr: true, maxAge: 60 * 60 },
+)

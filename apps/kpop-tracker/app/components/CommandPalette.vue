@@ -24,15 +24,8 @@ const navItems = computed(() => {
   return items
 })
 
-onMounted(() => window.addEventListener('keydown', onKeydown))
-onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
-
-function onKeydown(event: KeyboardEvent) {
-  if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
-    event.preventDefault()
-    open.value = !open.value
-  }
-}
+// The Cmd/Ctrl+K listener is owned by app.vue: this component is only mounted
+// while the palette is open, so it cannot be the thing that opens it.
 
 watch(open, (value) => {
   if (!value) {

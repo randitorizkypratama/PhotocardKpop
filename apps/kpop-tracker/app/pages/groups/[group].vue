@@ -175,10 +175,11 @@ async function onWishlist(id: number | string) {
 
               <div v-else class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-4">
                 <PhotocardCard
-                  v-for="card in info.latest"
+                  v-for="(card, index) in info.latest"
                   :key="card.id"
                   :card="card"
                   :rate="rate"
+                  :eager="Number(index) < 4"
                   show-wishlist
                   :wishlisted="wishlistIds.has(card.id)"
                   @wishlist="onWishlist"

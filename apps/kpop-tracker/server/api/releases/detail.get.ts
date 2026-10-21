@@ -1,6 +1,6 @@
 import { resolveRelease } from '../../utils/releases'
 
-export default defineEventHandler(async (event) => {
+export default cachedEventHandler(async (event) => {
   const query = getQuery(event)
   const group = String(query.group || '').trim()
   const slug = String(query.slug || '').trim()
@@ -104,4 +104,7 @@ export default defineEventHandler(async (event) => {
       })),
     },
   }
-})
+  },
+  // Album pages are read-only between syncs; 4xx (unknown slug) is never cached.
+  { swr: true, maxAge: 5 * 60 },
+)

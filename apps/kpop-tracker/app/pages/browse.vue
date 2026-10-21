@@ -280,10 +280,12 @@ function idrToUSD(idr: number): number {
   return r ? idr / r : idr / 17800
 }
 
-async function loadCards() {
+async function loadCards(loadFacetCounts = true) {
   loading.value = true
   loadError.value = false
-  loadFacets()
+  // Facet counts follow the filters, not the page — pagination must not pay
+  // for the three aggregate queries again.
+  if (loadFacetCounts) loadFacets()
   try {
     const params = new URLSearchParams({
       group: selectedGroup.value,
@@ -326,7 +328,7 @@ function clearFilters() {
 
 function goToPage(page: number) {
   currentPage.value = page
-  loadCards()
+  loadCards(false)
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
@@ -736,7 +738,7 @@ const visiblePages = computed(() => {
                 <p class="text-sm text-red-700/90 dark:text-red-300/90">{{ t('browse.error.hint') }}</p>
               </div>
             </div>
-            <Button variant="outline" size="sm" class="rounded-lg border-red-300 bg-white dark:border-red-800 dark:bg-zinc-900" @click="loadCards">
+            <Button variant="outline" size="sm" class="rounded-lg border-red-300 bg-white dark:border-red-800 dark:bg-zinc-900" @click="loadCards()">
               {{ t('browse.error.retry') }}
             </Button>
           </div>
@@ -771,11 +773,12 @@ const visiblePages = computed(() => {
             class="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
           >
             <PhotocardCard
-              v-for="card in cards"
+              v-for="(card, index) in cards"
               :key="card.id"
               class="min-w-0"
               :card="card"
               :rate="rate"
+              :eager="index < 4"
               show-wishlist
               :wishlisted="wishlistIds.has(card.id)"
               @wishlist="onWishlist"

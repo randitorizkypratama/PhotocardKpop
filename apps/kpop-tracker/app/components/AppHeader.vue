@@ -18,12 +18,15 @@ const paletteOpen = useState('command-palette-open', () => false)
 const { locale, t, toggleLocale } = useLocale()
 
 const { stats, fetchCollection } = useCollection()
-const { user, refresh, logout } = useAuth()
+const { user, ensureChecked, logout } = useAuth()
 
-onMounted(() => {
+onMounted(async () => {
   // One lightweight fetch per session so the heart can show the wishlist count
-  // on pages that don't load the collection themselves.
-  refresh().then(() => fetchCollection())
+  // on pages that don't load the collection themselves. ensureChecked() is a
+  // no-op after the first page — refresh() used to re-hit /api/auth/me on
+  // every navigation.
+  await ensureChecked()
+  if (user.value) fetchCollection()
 })
 
 const navLinks = [

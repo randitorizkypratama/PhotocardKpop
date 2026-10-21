@@ -1,4 +1,4 @@
-export default defineEventHandler(async (event) => {
+export default cachedEventHandler(async (event) => {
   const db = getTursoClient()
   const stores = knownStores()
 
@@ -35,4 +35,8 @@ export default defineEventHandler(async (event) => {
     .sort((a, b) => b.count - a.count)
 
   return { success: true, data }
-})
+  },
+  // Static per-sync store map: a full-table LIKE scan that ran on every
+  // browse load for data the daily cron is the only thing to change.
+  { swr: true, maxAge: 10 * 60 },
+)

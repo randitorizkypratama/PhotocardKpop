@@ -1,4 +1,4 @@
-export default defineEventHandler(async (event) => {
+export default cachedEventHandler(async (event) => {
   const query = getQuery(event)
   const group = (query.group as string) || undefined
   const member = (query.member as string) || undefined
@@ -66,4 +66,9 @@ export default defineEventHandler(async (event) => {
     .sort((a, b) => b.count - a.count)
 
   return { success: true, data: { stores: storeData, card_types: typeData, releases: releaseData } }
-})
+  },
+  // Facet counts are three aggregate scans fired on every filter change — the
+  // cache key includes the full query string, so each filter combo is cached
+  // on its own.
+  { swr: true, maxAge: 2 * 60 },
+)
