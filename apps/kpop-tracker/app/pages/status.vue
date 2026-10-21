@@ -212,7 +212,12 @@ function duration(run: { started_at: string, finished_at: string | null }) {
           <p class="mt-1 text-sm text-muted-foreground">{{ t('status.emptyHint') }}</p>
         </div>
 
-        <ul v-else class="space-y-3">
+        <ul
+          v-else
+          tabindex="0"
+          :aria-label="t('status.recentRuns')"
+          class="max-h-[420px] space-y-3 overflow-y-auto overscroll-contain pb-3"
+        >
           <li
             v-for="run in runs"
             :key="run.id"
@@ -285,7 +290,12 @@ function duration(run: { started_at: string, finished_at: string | null }) {
           <p class="text-sm text-muted-foreground">{{ t('status.errorsEmpty') }}</p>
         </div>
 
-        <ul v-else class="space-y-3">
+        <ul
+          v-else
+          tabindex="0"
+          :aria-label="t('status.errors')"
+          class="max-h-[420px] space-y-3 overflow-y-auto overscroll-contain pb-3"
+        >
           <li
             v-for="row in errors"
             :key="row.id"
