@@ -1,5 +1,15 @@
 {
   "outputDirectory": ".vercel/output",
+  "images": {
+    "remotePatterns": [
+      {
+        "protocol": "https",
+        "hostname": "d1sut5kn3lwnf7.cloudfront.net"
+      }
+    ],
+    "sizes": [320, 640],
+    "minimumCacheTTL": 31536000
+  },
   "crons": [
     {
       "path": "/api/cron/sync",
