@@ -23,10 +23,27 @@ export default defineEventHandler(async (event) => {
   let totalOwnedValue = 0
   let totalWishlistValue = 0
 
+  // What the owner actually paid, as opposed to what the market says it is
+  // worth — the whole reason bought_price exists. It has been collected since
+  // day one and never read back until now, so nothing on screen could tell the
+  // user what their collection had cost them.
+  //
+  // Only `owned` counts: a wishlist entry with a price recorded is a note about
+  // a price seen, not money spent. `ownedWithoutCost` is tracked because a total
+  // that silently skips half the cards reads as exact when it is not.
+  let totalOwnedCost = 0
+  let ownedWithoutCost = 0
+
   for (const row of rows) {
     const price = (row.last_discounted_price as number) || (row.last_price as number) || 0
     if (row.status === 'owned') {
       totalOwnedValue += price
+      const cost = row.bought_price
+      if (cost === null || cost === undefined) {
+        ownedWithoutCost += 1
+      } else {
+        totalOwnedCost += Number(cost) || 0
+      }
     } else {
       totalWishlistValue += price
     }
@@ -40,6 +57,8 @@ export default defineEventHandler(async (event) => {
       totalWishlist: rows.filter(r => r.status === 'wishlist').length,
       totalOwnedValue,
       totalWishlistValue,
+      totalOwnedCost,
+      ownedWithoutCost,
     },
   }
 })

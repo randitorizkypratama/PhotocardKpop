@@ -334,6 +334,8 @@ export const STRINGS_EN: Record<string, string> = {
     'collection.title': 'My Collection',
     'collection.desc': 'Your digital photocard binder — cards you own and want.',
     'collection.ownedValue': 'owned value',
+    'collection.spent': 'total spent',
+    'collection.spentPartial': 'Total spent is partial — owned cards without a recorded price: {count}.',
     'collection.wishlist': 'wishlist',
     'collection.all': 'All',
     'collection.tabOwned': 'Owned',

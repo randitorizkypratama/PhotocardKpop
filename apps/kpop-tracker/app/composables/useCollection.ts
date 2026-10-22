@@ -16,8 +16,13 @@ interface CollectionItem {
 interface CollectionStats {
   totalOwned: number
   totalWishlist: number
+  /** Market value of owned cards: last_discounted_price || last_price. */
   totalOwnedValue: number
   totalWishlistValue: number
+  /** Cost basis: sum of what the owner actually paid. Separate from market value on purpose. */
+  totalOwnedCost: number
+  /** Owned cards with no recorded price — the cost total is partial when this is > 0. */
+  ownedWithoutCost: number
 }
 
 interface CollectionResponse {
@@ -33,6 +38,8 @@ export function useCollection() {
     totalWishlist: 0,
     totalOwnedValue: 0,
     totalWishlistValue: 0,
+    totalOwnedCost: 0,
+    ownedWithoutCost: 0,
   }))
   const loading = useState<boolean>('collection-loading', () => false)
   const error = useState<string | null>('collection-error', () => null)
@@ -51,7 +58,7 @@ export function useCollection() {
     checked.value = false
     loaded.value = false
     items.value = []
-    stats.value = { totalOwned: 0, totalWishlist: 0, totalOwnedValue: 0, totalWishlistValue: 0 }
+    stats.value = { totalOwned: 0, totalWishlist: 0, totalOwnedValue: 0, totalWishlistValue: 0, totalOwnedCost: 0, ownedWithoutCost: 0 }
   })
 
   async function requireLogin(): Promise<boolean> {
@@ -105,7 +112,7 @@ export function useCollection() {
     } catch (e) {
       if (isUnauthorized(e)) {
         items.value = []
-        stats.value = { totalOwned: 0, totalWishlist: 0, totalOwnedValue: 0, totalWishlistValue: 0 }
+        stats.value = { totalOwned: 0, totalWishlist: 0, totalOwnedValue: 0, totalWishlistValue: 0, totalOwnedCost: 0, ownedWithoutCost: 0 }
         loaded.value = false
         // Logged out is a settled answer, not a failure — stop asking.
         checked.value = true

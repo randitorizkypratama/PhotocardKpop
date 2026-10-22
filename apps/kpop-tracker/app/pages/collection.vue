@@ -78,6 +78,20 @@ async function loadExchangeRates() {
 
 const rate = computed(() => exchangeRates.value?.usd?.rate || 17800)
 
+// Unrealised gain: market value minus what was actually paid.
+//
+// Deliberately null when any owned card has no recorded price. Cost basis is a
+// partial sum in that case, so subtracting it from market value would show a
+// shortfall as if it were a real loss on a book that was never fully written
+// down. The missing-price note below the summary carries that caveat instead.
+const gain = computed(() => {
+  const s = stats.value
+  // `!(x > 0)` rather than `x <= 0`: an absent or malformed total must read as
+  // unknown, not as 0, or the subtraction below renders NaN on screen.
+  if (s.ownedWithoutCost > 0 || !(s.totalOwnedCost > 0)) return null
+  return s.totalOwnedValue - s.totalOwnedCost
+})
+
 const tabItems = computed(() => {
   if (activeTab.value === 'all') return items.value
   return items.value.filter(item => item.status === activeTab.value)
@@ -225,14 +239,27 @@ const tabDefs = computed(() => [
 
       <template v-else>
       <!-- Compact summary -->
-      <div class="mb-5 grid grid-cols-3 gap-2 rounded-xl border border-border bg-card px-3 py-3 text-sm sm:mb-8 sm:flex sm:flex-wrap sm:items-center sm:gap-x-6 sm:gap-y-2 sm:px-4 sm:py-3.5">
+      <div class="mb-5 grid grid-cols-2 gap-x-4 gap-y-2.5 rounded-xl border border-border bg-card px-3 py-3 text-sm sm:mb-8 sm:flex sm:flex-wrap sm:items-center sm:gap-x-6 sm:gap-y-2 sm:px-4 sm:py-3.5">
         <div class="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-2">
           <span class="text-lg font-semibold tabular-nums text-foreground">{{ items.length }}</span>
           <span class="truncate text-xs text-muted-foreground sm:text-sm">{{ t('browse.cardCount') }}</span>
         </div>
         <div class="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-2">
           <span class="truncate font-medium tabular-nums text-foreground">
+            {{ formatUSD(stats.totalOwnedCost) }}
+          </span>
+          <span class="truncate text-xs text-muted-foreground sm:text-sm">{{ t('collection.spent') }}</span>
+        </div>
+        <div class="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-2">
+          <span class="truncate font-medium tabular-nums text-foreground">
             {{ formatUSD(stats.totalOwnedValue) }}
+          </span>
+          <span
+            v-if="gain !== null"
+            class="truncate text-xs font-medium tabular-nums"
+            :class="gain >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'"
+          >
+            {{ (gain >= 0 ? '+' : '−') + formatUSD(Math.abs(gain)) }}
           </span>
           <span class="truncate text-xs text-muted-foreground sm:text-sm">{{ t('collection.ownedValue') }}</span>
         </div>
@@ -241,6 +268,13 @@ const tabDefs = computed(() => [
           <span class="truncate text-xs text-muted-foreground sm:text-sm">{{ t('collection.wishlist') }}</span>
         </div>
       </div>
+
+      <!-- Cost basis is only as complete as the prices the user entered. It is
+           pulled back under the card with a negative margin so the summary keeps
+           its original gap to the tabs whether or not this line renders. -->
+      <p v-if="stats.ownedWithoutCost > 0" class="-mt-4 mb-5 text-xs text-muted-foreground sm:-mt-6 sm:mb-8">
+        {{ t('collection.spentPartial', { count: stats.ownedWithoutCost }) }}
+      </p>
 
       <!-- Tabs -->
       <Tabs v-model="activeTab" class="mb-5">

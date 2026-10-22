@@ -328,6 +328,8 @@ export const STRINGS_ID: Record<string, string> = {
     'collection.title': 'Koleksi Saya',
     'collection.desc': 'Binder photocard digitalmu — kartu yang kamu miliki dan inginkan.',
     'collection.ownedValue': 'nilai kepemilikan',
+    'collection.spent': 'total pengeluaran',
+    'collection.spentPartial': 'Total pengeluaran belum lengkap — kartu dimiliki tanpa catatan harga: {count}.',
     'collection.wishlist': 'wishlist',
     'collection.all': 'Semua',
     'collection.tabOwned': 'Dimiliki',
