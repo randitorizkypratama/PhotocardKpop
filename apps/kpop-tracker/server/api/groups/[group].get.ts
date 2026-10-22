@@ -24,9 +24,14 @@ export default defineEventHandler(async (event) => {
       args: [group],
     }),
     db.execute({
+      // Ordering by id, not updated_at: the cron stamps one `now` onto every
+      // row it syncs, so updated_at ranked all 6236 IVE cards equally and these
+      // twelve "newest" cards were an arbitrary tie order. Pocamarket ids ascend
+      // with listing time (verified by day-band, no overlap), so id DESC is the
+      // newest. updated_at was selected here as well and never read in app/.
       sql: `SELECT id, name, image, group_name, member_name, card_type, release_name,
-                   last_price, last_discounted_price, last_wish_count, updated_at
-            FROM cards WHERE group_name = ? ORDER BY updated_at DESC LIMIT 12`,
+                   last_price, last_discounted_price, last_wish_count
+            FROM cards WHERE group_name = ? ORDER BY id DESC LIMIT 12`,
       args: [group],
     }),
   ])

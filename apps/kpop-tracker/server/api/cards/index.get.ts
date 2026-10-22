@@ -52,7 +52,16 @@ export default cachedEventHandler(
     else if (sort === 'price_desc') orderClause = 'ORDER BY COALESCE(last_discounted_price, last_price) DESC'
     else if (sort === 'name') orderClause = 'ORDER BY name ASC'
     else if (sort === 'stock') orderClause = 'ORDER BY last_stocked_count DESC'
-    else if (sort === 'newest') orderClause = 'ORDER BY updated_at DESC'
+    // Not updated_at. The daily cron computes one `now` for the whole run and
+    // writes it to every row it upserts, so after a full sync all 16567 cards
+    // share a single timestamp and this ordering was arbitrary — the table held
+    // only 5 distinct values, 16507 of them identical.
+    //
+    // Pocamarket ids ascend with listing time: measured across October, the id
+    // ranges of cards first seen on successive days never overlap
+    // (2026-10-01 511776..511974 … 2026-10-21 516923..517330), so id DESC means
+    // "most recently listed" and rides the primary key.
+    else if (sort === 'newest') orderClause = 'ORDER BY id DESC'
 
     // COUNT and the page used to run back to back — two round trips to Turso
     // on every browse request. A batch is one round trip.
