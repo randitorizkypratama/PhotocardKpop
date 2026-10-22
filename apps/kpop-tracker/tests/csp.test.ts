@@ -72,6 +72,23 @@ describe('withCsp', () => {
     expect(csp).toContain('https://va.vercel-scripts.com')
   })
 
+  it('permits WebAssembly without permitting eval', () => {
+    const { csp } = withCsp(PAGE, '/', NONCE)
+
+    // /identify compiles an ONNX model through WebAssembly.compile, and
+    // script-src governs that call. Without this source the page fails at
+    // model-init for every visitor, while every other page and every CSP
+    // violation count looks healthy — the compile is only attempted once
+    // somebody uploads a photo. Removing it is silent, so it is asserted.
+    expect(csp).toContain("'wasm-unsafe-eval'")
+
+    // Distinct source, not a synonym: 'unsafe-eval' would additionally permit
+    // eval() and Function(), which is a far wider hole than compiling wasm
+    // bytes. The leading quote is part of the match so this fails if anyone
+    // "simplifies" the directive to plain 'unsafe-eval'.
+    expect(csp).not.toContain("'unsafe-eval'")
+  })
+
   it('generates a distinct policy per call', () => {
     const a = withCsp(PAGE, '/', 'nonceA')
     const b = withCsp(PAGE, '/', 'nonceB')

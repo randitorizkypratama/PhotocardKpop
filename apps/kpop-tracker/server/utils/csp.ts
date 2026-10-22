@@ -71,7 +71,23 @@ export function withCsp(html: string, path: string, nonce: string): { body: stri
           // header literally contained 'nonce-${nonce}', which the browser
           // rejects as an invalid source and then blocks every inline script —
           // a blank site. Caught by the local violation check.
-          `script-src 'self' 'nonce-${nonce}' https://va.vercel-scripts.com`,
+          //
+          // 'wasm-unsafe-eval' is required by /identify. That page runs ONNX
+          // Runtime in the browser, which compiles a WebAssembly module, and
+          // script-src governs WebAssembly.compile — so without this source the
+          // page fails at model-init for every visitor. It was broken in
+          // production by the commit that introduced this header and no amount
+          // of counting CSP violations would have found it: violations are only
+          // logged when something actually attempts the compile, and that
+          // happens only once a visitor uploads a photo. It was reproduced by
+          // compiling a minimal module on the live page, not by watching logs.
+          //
+          // This is deliberately not 'unsafe-eval': it permits compiling inert
+          // wasm bytes and does not permit eval() or Function(). Browsers
+          // without support for the source (Chromium <97, Firefox <115) simply
+          // keep blocking wasm, so the feature degrades rather than the policy
+          // widening.
+          `script-src 'self' 'nonce-${nonce}' 'wasm-unsafe-eval' https://va.vercel-scripts.com`,
         ]),
     'upgrade-insecure-requests',
   ]
