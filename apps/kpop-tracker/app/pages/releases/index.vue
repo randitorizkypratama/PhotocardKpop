@@ -69,11 +69,12 @@ function ensureValidType() {
 watch(selectedGroup, ensureValidType)
 watch(releases, ensureValidType)
 
-// Keep the filter state in the URL so a filtered timeline can be shared.
-watch([selectedGroup, selectedType], ([group, type]) => {
+// Keep the filter + sort state in the URL so a filtered/sorted timeline can be shared.
+watch([selectedGroup, selectedType, selectedSort], ([group, type, sort]) => {
   const query: Record<string, string> = {}
   if (group !== 'All') query.group = group
   if (type !== 'All') query.type = type
+  if (sort !== 'newest') query.sort = sort
   router.replace({ query })
 })
 
@@ -102,22 +103,68 @@ if (selectedType.value !== 'All') {
   else if (releases.value.length) selectedType.value = 'All'
 }
 
+type SortOption = 'newest' | 'oldest' | 'most_cards'
+
+const SORT_OPTIONS_RELEASES: { value: SortOption; labelKey: string }[] = [
+  { value: 'newest', labelKey: 'releases.timeline.sortNewest' },
+  { value: 'oldest', labelKey: 'releases.timeline.sortOldest' },
+  { value: 'most_cards', labelKey: 'releases.timeline.sortMostCards' },
+]
+
+const selectedSort = ref<SortOption>(
+  (['newest', 'oldest', 'most_cards'] as SortOption[]).includes(route.query.sort as SortOption)
+    ? (route.query.sort as SortOption)
+    : 'newest',
+)
+
+/**
+ * Apply sort to the filtered releases before bucketing into years.
+ * The API already returns newest-first, so 'newest' is essentially a no-op —
+ * but we re-sort explicitly so switching between options is always correct.
+ */
+const sortedFiltered = computed(() => {
+  const list = [...filtered.value]
+  if (selectedSort.value === 'most_cards') {
+    return list.sort((a, b) => (b.count ?? 0) - (a.count ?? 0))
+  }
+  if (selectedSort.value === 'oldest') {
+    return list.sort((a, b) => {
+      if (a.release_date && b.release_date) return a.release_date < b.release_date ? -1 : a.release_date > b.release_date ? 1 : 0
+      if (a.release_date) return -1
+      if (b.release_date) return 1
+      return (a.count ?? 0) - (b.count ?? 0)
+    })
+  }
+  // newest (default)
+  return list.sort((a, b) => {
+    if (a.release_date && b.release_date) return a.release_date < b.release_date ? 1 : a.release_date > b.release_date ? -1 : 0
+    if (a.release_date) return -1
+    if (b.release_date) return 1
+    return (b.count ?? 0) - (a.count ?? 0)
+  })
+})
+
 const years = computed(() => {
+  // For 'most_cards' sort, group all into one flat list instead of year buckets
+  // so the ranking is obvious and not fragmented per year.
+  if (selectedSort.value === 'most_cards') return []
+
   const buckets = new Map<string, any[]>()
-  for (const release of filtered.value) {
+  for (const release of sortedFiltered.value) {
     if (!release.release_date) continue
     const year = String(release.release_date).slice(0, 4)
     if (!buckets.has(year)) buckets.set(year, [])
     buckets.get(year)!.push(release)
   }
-  return [...buckets.entries()]
-    .sort((a, b) => Number(b[0]) - Number(a[0]))
-    .map(([year, items]) => ({ year, items }))
+  const sorted = [...buckets.entries()]
+  if (selectedSort.value === 'oldest') sorted.sort((a, b) => Number(a[0]) - Number(b[0]))
+  else sorted.sort((a, b) => Number(b[0]) - Number(a[0]))
+  return sorted.map(([year, items]) => ({ year, items }))
 })
 
-const undated = computed(() => filtered.value.filter(release => !release.release_date))
+const undated = computed(() => sortedFiltered.value.filter(release => !release.release_date))
 
-const datedCount = computed(() => filtered.value.length - undated.value.length)
+const datedCount = computed(() => sortedFiltered.value.length - undated.value.length)
 
 function formatDate(value: string) {
   const date = new Date(value.length === 10 ? `${value}T00:00:00` : value)

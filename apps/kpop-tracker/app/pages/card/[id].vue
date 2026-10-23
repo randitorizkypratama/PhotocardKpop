@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import {
   TrendingUp, TrendingDown, Minus,
-  Heart, Tag, Check, Clock, ExternalLink, AlertCircle
+  Heart, Tag, Check, Clock, AlertCircle
 } from 'lucide-vue-next'
 import { groupAccent, groupDot, formatIDR, formatUSD } from '@/lib/catalog'
 import { cardTypeBlurb, cardTypeLabel } from '@/lib/cardTypes'
 import { ART_THUMB_WIDTHS, artworkSrcset, onImageError } from '@/lib/imageVariants'
+import { SHOP_URLS } from '@/lib/shop'
 
 const route = useRoute()
 const cardId = parseInt(route.params.id as string)
@@ -102,8 +103,6 @@ const error = computed<string | null>(() => {
  * /search/detail/{id} — and Pocamarket's ids are our ids, the same rows
  * (517330 "Lemon Tang JINGDONG" in both).
  */
-const pocamarketUrl = computed(() => `https://pocamarket.com/search/detail/${cardId}`)
-
 // Head/meta computeds must run after `card` is declared — they evaluate eagerly
 // during SSR, which would otherwise hit a TDZ on `card.value`.
 useHead({
@@ -485,12 +484,6 @@ const chartData = computed(() => {
             </div>
 
             <div class="mt-4 grid grid-cols-1 gap-2 sm:flex sm:flex-row">
-              <Button variant="outline" class="h-11 w-full gap-2 rounded-lg sm:h-10 sm:flex-1" as-child>
-                <a :href="pocamarketUrl" target="_blank" rel="noopener noreferrer">
-                  {{ t('card.viewOnPocamarket') }}
-                  <ExternalLink class="h-4 w-4" />
-                </a>
-              </Button>
               <Button
                 variant="outline"
                 class="h-11 w-full gap-2 rounded-lg sm:h-10 sm:flex-1"
@@ -511,6 +504,40 @@ const chartData = computed(() => {
               <Tag class="h-4 w-4" />
               {{ isInCollection ? t('card.inCollection') : t('card.addToCollection') }}
             </Button>
+
+            <!-- HIBIKISHOP store links -->
+            <div class="mt-4 border-t border-border pt-4">
+              <p class="pc-meta-label mb-2">{{ t('card.buyAtStore') }}</p>
+              <div class="grid grid-cols-3 gap-2">
+                <a
+                  :href="SHOP_URLS.tokopedia"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="flex flex-col items-center justify-center gap-1.5 rounded-lg border border-border bg-zinc-50 px-2 py-3 text-xs font-medium text-muted-foreground transition-colors hover:border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900/60 dark:hover:border-zinc-600 dark:hover:bg-zinc-800/60"
+                >
+                  <img src="/social/tokopedia.png" alt="Tokopedia" class="h-5 w-5 object-contain" loading="lazy" />
+                  Tokopedia
+                </a>
+                <a
+                  :href="SHOP_URLS.shopee"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="flex flex-col items-center justify-center gap-1.5 rounded-lg border border-border bg-zinc-50 px-2 py-3 text-xs font-medium text-muted-foreground transition-colors hover:border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900/60 dark:hover:border-zinc-600 dark:hover:bg-zinc-800/60"
+                >
+                  <img src="/social/shopee.svg" alt="Shopee" class="h-5 w-5 object-contain" loading="lazy" />
+                  Shopee
+                </a>
+                <a
+                  :href="SHOP_URLS.tiktok"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="flex flex-col items-center justify-center gap-1.5 rounded-lg border border-border bg-zinc-50 px-2 py-3 text-xs font-medium text-muted-foreground transition-colors hover:border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900/60 dark:hover:border-zinc-600 dark:hover:bg-zinc-800/60"
+                >
+                  <img src="/social/tiktok.svg" alt="TikTok Shop" class="h-5 w-5 object-contain" loading="lazy" />
+                  TikTok Shop
+                </a>
+              </div>
+            </div>
           </div>
 
           <!-- What is this card type -->
