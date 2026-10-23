@@ -211,8 +211,9 @@ async function onWishlist(id: number | string) {
         </div>
       </section>
 
-      <!-- Explore by card type -->
-      <section id="card-types" class="scroll-mt-20 border-b border-zinc-200 dark:border-zinc-800">
+      <!-- Explore by card type — tinted band, alternating with the default
+           background of the releases section below. -->
+      <section id="card-types" class="scroll-mt-20 border-b border-zinc-200 bg-muted dark:border-zinc-800">
         <div class="page-shell py-10 sm:py-12">
           <div class="mb-5 flex flex-wrap items-end justify-between gap-3 sm:mb-6">
             <div>
@@ -310,74 +311,78 @@ async function onWishlist(id: number | string) {
         </div>
       </section>
 
-      <!-- Trending -->
-      <section class="page-shell py-10 sm:py-12">
-        <div class="mb-5 flex flex-wrap items-end justify-between gap-3 sm:mb-6">
-          <div>
-            <p class="eyebrow">{{ selectedGroup }}</p>
-            <h2 class="mt-1 text-lg font-semibold tracking-tight text-foreground sm:text-xl">{{ t('trending.title') }}</h2>
+      <!-- Trending — tinted band, alternating with the default-background
+           releases section above and PriceMovers below. -->
+      <section class="bg-muted">
+        <div class="page-shell py-10 sm:py-12">
+          <div class="mb-5 flex flex-wrap items-end justify-between gap-3 sm:mb-6">
+            <div>
+              <p class="eyebrow">{{ selectedGroup }}</p>
+              <h2 class="mt-1 text-lg font-semibold tracking-tight text-foreground sm:text-xl">{{ t('trending.title') }}</h2>
+            </div>
+            <NuxtLink
+              to="/browse"
+              class="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {{ t('viewAll') }}
+              <ArrowRight class="h-4 w-4" />
+            </NuxtLink>
           </div>
-          <NuxtLink
-            to="/browse"
-            class="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-          >
-            {{ t('viewAll') }}
-            <ArrowRight class="h-4 w-4" />
-          </NuxtLink>
-        </div>
 
-        <div v-if="loading" class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
-          <div v-for="i in 10" :key="i" class="pc-skeleton">
-            <div class="skeleton-block aspect-square rounded-none" />
-            <div class="space-y-2.5 p-3">
-              <div class="skeleton-block h-3 w-1/3" />
-              <div class="skeleton-block h-3.5 w-full" />
-              <div class="skeleton-block h-3.5 w-2/3" />
-              <div class="skeleton-block h-4 w-1/2" />
+          <div v-if="loading" class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
+            <div v-for="i in 10" :key="i" class="pc-skeleton">
+              <div class="skeleton-block aspect-square rounded-none" />
+              <div class="space-y-2.5 p-3">
+                <div class="skeleton-block h-3 w-1/3" />
+                <div class="skeleton-block h-3.5 w-full" />
+                <div class="skeleton-block h-3.5 w-2/3" />
+                <div class="skeleton-block h-4 w-1/2" />
+              </div>
             </div>
           </div>
-        </div>
 
-        <!-- Failed request, distinct from an empty catalogue. Without this
-             branch a dead or 429'd API fell through to the panel below and
-             announced "No photocards found." alongside a button inviting the
-             visitor to browse all of them — a failure wearing the costume of a
-             genuinely empty shelf. -->
-        <div v-else-if="loadError" class="rounded-xl border border-dashed border-red-300 py-12 text-center dark:border-red-800">
-          <p class="text-sm font-medium text-foreground">{{ t('empty.errorTitle') }}</p>
-          <p class="mt-1 text-sm text-muted-foreground">{{ t('empty.errorHint') }}</p>
-          <Button variant="outline" class="mt-4 rounded-lg" @click="reloadCards">
-            {{ t('empty.errorRetry') }}
-          </Button>
-        </div>
+          <!-- Failed request, distinct from an empty catalogue. Without this
+               branch a dead or 429'd API fell through to the panel below and
+               announced "No photocards found." alongside a button inviting the
+               visitor to browse all of them — a failure wearing the costume of a
+               genuinely empty shelf. -->
+          <div v-else-if="loadError" class="rounded-xl border border-dashed border-red-300 py-12 text-center dark:border-red-800">
+            <p class="text-sm font-medium text-foreground">{{ t('empty.errorTitle') }}</p>
+            <p class="mt-1 text-sm text-muted-foreground">{{ t('empty.errorHint') }}</p>
+            <Button variant="outline" class="mt-4 rounded-lg" @click="reloadCards">
+              {{ t('empty.errorRetry') }}
+            </Button>
+          </div>
 
-        <div v-else-if="cards.length === 0" class="rounded-xl border border-dashed border-zinc-300 py-12 text-center dark:border-zinc-700">
-          <p class="text-sm font-medium text-foreground">{{ t('empty.noCards') }}</p>
-          <p class="mt-1 text-sm text-muted-foreground">{{ t('empty.hint') }}</p>
-          <Button variant="outline" class="mt-4 rounded-lg" as-child>
-            <NuxtLink to="/browse">{{ t('empty.browseAll') }}</NuxtLink>
-          </Button>
-        </div>
+          <div v-else-if="cards.length === 0" class="rounded-xl border border-dashed border-zinc-300 py-12 text-center dark:border-zinc-700">
+            <p class="text-sm font-medium text-foreground">{{ t('empty.noCards') }}</p>
+            <p class="mt-1 text-sm text-muted-foreground">{{ t('empty.hint') }}</p>
+            <Button variant="outline" class="mt-4 rounded-lg" as-child>
+              <NuxtLink to="/browse">{{ t('empty.browseAll') }}</NuxtLink>
+            </Button>
+          </div>
 
-        <div v-else class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
-          <PhotocardCard
-            v-for="(card, index) in cards"
-            :key="card.id"
-            :card="card"
-            :rate="rate"
-            :eager="index < 4"
-            show-wishlist
-            :wishlisted="wishlistIds.has(card.id)"
-            @wishlist="onWishlist"
-          />
+          <div v-else class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
+            <PhotocardCard
+              v-for="(card, index) in cards"
+              :key="card.id"
+              :card="card"
+              :rate="rate"
+              :eager="index < 4"
+              show-wishlist
+              :wishlisted="wishlistIds.has(card.id)"
+              @wishlist="onWishlist"
+            />
+          </div>
         </div>
       </section>
 
       <!-- Price movers -->
       <PriceMovers :rate="rate" />
 
-      <!-- Explore Groups -->
-      <section id="groups" class="scroll-mt-20 border-t border-zinc-200 dark:border-zinc-800">
+      <!-- Explore Groups — tinted band, alternating with the default-background
+           PriceMovers section above and the shop CTA below. -->
+      <section id="groups" class="scroll-mt-20 border-t border-zinc-200 bg-muted dark:border-zinc-800">
         <div class="page-shell py-10 sm:py-12">
           <div class="mb-5 sm:mb-6">
             <p class="eyebrow">{{ t('groups.eyebrow') }}</p>
