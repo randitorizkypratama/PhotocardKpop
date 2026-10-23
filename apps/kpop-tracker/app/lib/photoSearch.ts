@@ -10,6 +10,7 @@ import {
   type IndexMeta,
   type SearchHit,
 } from './photoSearchCore'
+import { getOrientation } from './exifUtil'
 
 export type SearchStage = 'model-download' | 'model-init' | 'index' | 'analyze'
 
@@ -42,6 +43,7 @@ const fileProgress = new Map<string, { loaded: number; total: number }>()
 
 function getExtractor(onProgress?: SearchStageListener): Promise<any> {
   if (!extractorPromise) {
+    // First call: model needs to be downloaded and initialised.
     fileProgress.clear()
     extractorPromise = import('@huggingface/transformers').then(({ pipeline }) =>
       pipeline('image-feature-extraction', MODEL_ID, {
@@ -71,6 +73,11 @@ function getExtractor(onProgress?: SearchStageListener): Promise<any> {
       onProgress?.({ stage: 'model-init' })
       return extractor
     })
+  } else {
+    // Model is already cached — fast path. Emit 'model-init' so the UI
+    // immediately advances past the download stage without waiting for the
+    // resolved promise (microtask) to fire.
+    onProgress?.({ stage: 'model-init' })
   }
   return extractorPromise
 }
@@ -130,8 +137,17 @@ function getIndex() {
  * photometric filters — blur/contrast on the query only drifted it away
  * from the index (measured: higher self-similarity and better top-1
  * accuracy without them).
+ *
+ * EXIF orientation is read and applied manually via canvas so that photos
+ * taken with a phone camera are rotated/flipped before cropping — both
+ * createImageBitmap (Chrome/Edge) and HTMLImageElement (Safari) can ignore
+ * the orientation tag, which would produce a landscape crop from a portrait
+ * shot and embed completely different features from the index vectors.
  */
 async function preprocessQueryCrops(file: Blob): Promise<Blob[]> {
+  // Read EXIF orientation before decoding — the raw bytes are still intact here.
+  const orientation = await getOrientation(file).catch(() => 1)
+
   // Attempt to create an ImageBitmap; fallback to HTMLImageElement for browsers
   // where createImageBitmap fails (e.g., certain JPEGs with EXIF orientation in Edge)
   let img: ImageBitmap | HTMLImageElement
@@ -157,8 +173,30 @@ async function preprocessQueryCrops(file: Blob): Promise<Blob[]> {
   const srcW = img.width || (img as HTMLImageElement).naturalWidth || 1
   const srcH = img.height || (img as HTMLImageElement).naturalHeight || 1
 
+  // Determine if this orientation requires swapping width/height axes.
+  // EXIF orientations 5–8 involve a 90° or 270° rotation that transposes axes.
+  const swapAxes = orientation >= 5 && orientation <= 8
+
+  // Logical (post-rotation) dimensions used for all crop calculations.
+  const logicalW = swapAxes ? srcH : srcW
+  const logicalH = swapAxes ? srcW : srcH
+
+  /**
+   * Draw a crop of the *raw* image (pre-rotation) onto an output canvas that
+   * represents the *rotated* view, applying the EXIF transform on the fly.
+   *
+   * The EXIF orientation values and the matching canvas transforms are:
+   *  1 – no-op
+   *  2 – flip horizontal
+   *  3 – rotate 180°
+   *  4 – flip vertical
+   *  5 – transpose (rotate 90° CW + flip horizontal)
+   *  6 – rotate 90° CW
+   *  7 – rotate 90° CW + flip horizontal (= rotate 270° + flip)
+   *  8 – rotate 90° CCW (= rotate 270° CW)
+   */
   const render = async (
-    sx: number, sy: number, sw: number, sh: number, outW: number, outH: number,
+    lx: number, ly: number, lw: number, lh: number, outW: number, outH: number,
   ): Promise<Blob> => {
     // Use OffscreenCanvas when available, fall back to regular <canvas>
     let canvas: OffscreenCanvas | HTMLCanvasElement
@@ -172,7 +210,39 @@ async function preprocessQueryCrops(file: Blob): Promise<Blob[]> {
       canvas.height = outH
       ctx = canvas.getContext('2d')!
     }
-    ctx.drawImage(img as CanvasImageSource, sx, sy, sw, sh, 0, 0, outW, outH)
+
+    // Map logical crop coords back to raw source coords, then draw with the
+    // rotation/flip transform so the output is always correctly oriented.
+    // sx/sy/sw/sh are the raw pixel rectangle to pull from the source image.
+    let sx: number, sy: number, sw: number, sh: number
+    if (swapAxes) {
+      // Axes are transposed — logical (lx,ly,lw,lh) maps to raw (ly,lx,lh,lw)
+      sx = ly; sy = lx; sw = lh; sh = lw
+    } else {
+      sx = lx; sy = ly; sw = lw; sh = lh
+    }
+
+    ctx.save()
+    ctx.translate(outW / 2, outH / 2)
+    switch (orientation) {
+      case 2: ctx.scale(-1, 1); break
+      case 3: ctx.rotate(Math.PI); break
+      case 4: ctx.scale(1, -1); break
+      case 5: ctx.rotate(Math.PI / 2); ctx.scale(-1, 1); break
+      case 6: ctx.rotate(Math.PI / 2); break
+      case 7: ctx.rotate(-Math.PI / 2); ctx.scale(-1, 1); break
+      case 8: ctx.rotate(-Math.PI / 2); break
+      // case 1 and default: no transform needed
+    }
+    // After rotation, draw the source crop centred at origin, scaled to output.
+    if (swapAxes) {
+      // For 90°/270° rotations the source sw/sh map to output outH/outW
+      ctx.drawImage(img as CanvasImageSource, sx, sy, sw, sh, -outH / 2, -outW / 2, outH, outW)
+    } else {
+      ctx.drawImage(img as CanvasImageSource, sx, sy, sw, sh, -outW / 2, -outH / 2, outW, outH)
+    }
+    ctx.restore()
+
     if (canvas instanceof OffscreenCanvas) {
       return canvas.convertToBlob({ type: 'image/jpeg', quality: 0.80 })
     }
@@ -186,31 +256,31 @@ async function preprocessQueryCrops(file: Blob): Promise<Blob[]> {
     })
   }
 
-  // 2:3 view
+  // 2:3 view (using logical/post-rotation dimensions)
   const targetAR = 2 / 3
   let cropW: number, cropH: number
-  if (srcW / srcH > targetAR) {
-    cropH = srcH
-    cropW = Math.round(srcH * targetAR)
+  if (logicalW / logicalH > targetAR) {
+    cropH = logicalH
+    cropW = Math.round(logicalH * targetAR)
   } else {
-    cropW = srcW
-    cropH = Math.round(srcW / targetAR)
+    cropW = logicalW
+    cropH = Math.round(logicalW / targetAR)
   }
   const outH = 224
   const outW = Math.round(outH * targetAR) // ≈149
 
   const crops: Blob[] = [
-    await render(Math.round((srcW - cropW) / 2), Math.round((srcH - cropH) / 2), cropW, cropH, outW, outH),
+    await render(Math.round((logicalW - cropW) / 2), Math.round((logicalH - cropH) / 2), cropW, cropH, outW, outH),
   ]
 
   // zoomed centre squares (exact 224×224 so the CLIP processor's own
   // resize+centre-crop becomes a no-op and each zoom reaches the model)
-  const base = Math.max(1, Math.min(srcW, srcH))
+  const base = Math.max(1, Math.min(logicalW, logicalH))
   for (const frac of [0.75, 0.55]) {
     const s = Math.max(1, Math.round(base * frac))
-    const sx = Math.max(0, Math.round((srcW - s) / 2))
-    const sy = Math.max(0, Math.round((srcH - s) / 2))
-    crops.push(await render(sx, sy, Math.min(s, srcW - sx), Math.min(s, srcH - sy), 224, 224))
+    const lx = Math.max(0, Math.round((logicalW - s) / 2))
+    const ly = Math.max(0, Math.round((logicalH - s) / 2))
+    crops.push(await render(lx, ly, Math.min(s, logicalW - lx), Math.min(s, logicalH - ly), 224, 224))
   }
 
   // Only ImageBitmap has .close(); HTMLImageElement does not
@@ -234,9 +304,9 @@ function l2normalize(v: Float32Array): Float32Array {
  *  rankings). The pipeline may return a pooled [1, 512] tensor or a full
  *  sequence [1, seq_len, 512]; in the latter case we take the first token
  *  (CLS), CLIP's image representation. */
-async function embedImage(file: Blob): Promise<Float32Array> {
+async function embedImage(file: Blob, onProgress?: SearchStageListener): Promise<Float32Array> {
   const crops = await preprocessQueryCrops(file)
-  const extractor = await getExtractor()
+  const extractor = await getExtractor(onProgress)
   let acc: Float64Array | null = null
   for (const crop of crops) {
     const out = await extractor([crop], {})
@@ -259,7 +329,7 @@ export async function searchByPhoto(
   const { cards, index } = await indexLoaded
 
   onProgress?.({ stage: 'analyze' })
-  const query = await embedImage(file)
+  const query = await embedImage(file, onProgress)
   const hits = searchTopK(query, index, cards, TOP_K, groupFilter)
   const first = hits[0]
   if (!first) throw new Error('empty index')
