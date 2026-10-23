@@ -33,6 +33,7 @@
   "devDependencies": {
     "autoprefixer": "^10.6.1",
     "onnxruntime-node": "^1.30.0",
+    "playwright-chromium": "^1.64.1",
     "postcss": "^8.5.28",
     "sharp": "^0.35.5",
     "tailwindcss": "3",
