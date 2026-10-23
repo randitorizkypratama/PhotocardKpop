@@ -3,7 +3,7 @@
  * runs fully in the browser) + cosine search over the prebuilt index in
  * /search/. Everything is lazy — nothing loads until the first search.
  */
-import {
+import { getOrientation } from '@/lib/exifUtil'
   parseIndexBin,
   searchTopK,
   type IndexCard,
