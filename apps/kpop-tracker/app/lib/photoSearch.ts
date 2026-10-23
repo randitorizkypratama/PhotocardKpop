@@ -128,6 +128,43 @@ function getIndex() {
 }
 
 /**
+ * Replace near-black background pixels with a neutral mid-grey (128,128,128).
+ *
+ * Real-world photocard photos are almost always shot on a dark surface (table,
+ * fabric) or have a large dark sleeve border. The index images come from
+ * Pocamarket thumbnails which have a light/white background. This mismatch
+ * dominates the embedding even after histogram normalization, because CLIP
+ * encodes the global colour distribution of the image — a large dark region
+ * pulls the entire embedding toward "dark scene" regardless of the card content.
+ *
+ * Strategy: pixels where all three channels are below `darkThreshold` are
+ * classified as background and replaced with mid-grey. We use a conservative
+ * threshold (50/255 ≈ 20% brightness) so actual dark elements of the card
+ * (hair, dark clothing) are preserved — only the very dark sleeve/table border
+ * is replaced. Mid-grey (128) is chosen because it is the mean of a uniform
+ * distribution and adds the least directional bias to the embedding.
+ *
+ * Applied BEFORE normalizeImageData so the histogram stretch operates on the
+ * card content only, not on a mix of card + dark border.
+ */
+function neutralizeDarkBackground(
+  ctx: OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  darkThreshold = 50,
+): void {
+  const imageData = ctx.getImageData(0, 0, w, h)
+  const d = imageData.data
+  const GREY = 128
+  for (let i = 0; i < d.length; i += 4) {
+    if (d[i]! < darkThreshold && d[i + 1]! < darkThreshold && d[i + 2]! < darkThreshold) {
+      d[i] = GREY; d[i + 1] = GREY; d[i + 2] = GREY
+    }
+  }
+  ctx.putImageData(imageData, 0, 0)
+}
+
+/**
  * Per-channel histogram stretch (equivalent to sharp().normalize()).
  * Reads the canvas pixels, finds the min/max for each of R, G, B independently,
  * then linearly remaps each channel so its darkest pixel becomes 0 and its
@@ -291,14 +328,14 @@ async function preprocessQueryCrops(file: Blob): Promise<Blob[]> {
     }
     ctx.restore()
 
-    // Auto-normalize: stretch per-channel histogram to [0, 255], matching the
-    // `sharp().normalize()` step used when building the index. Without this,
-    // real-world photos with large dark backgrounds (table, sleeve) have a very
-    // different pixel-value distribution from the index images (blurred CDN
-    // thumbnails with auto-contrast applied), which pushes cosine scores down
-    // regardless of visual similarity. Doing it on the final outW×outH crop
-    // (after draw) is equivalent to doing it on the source and avoids a second
-    // canvas allocation.
+    // Step 1 — Replace near-black background pixels (sleeve, table) with
+    // neutral mid-grey before normalizing. The index thumbnails have a light
+    // background; a large dark border in the query pulls the embedding away
+    // from every card in the index regardless of card content.
+    neutralizeDarkBackground(ctx, outW, outH)
+
+    // Step 2 — Stretch per-channel histogram to [0, 255], matching the
+    // `sharp().normalize()` step used when building the index.
     normalizeImageData(ctx, outW, outH)
 
     if (canvas instanceof OffscreenCanvas) {
