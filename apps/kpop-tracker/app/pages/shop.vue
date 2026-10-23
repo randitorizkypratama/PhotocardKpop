@@ -23,7 +23,44 @@ const { user } = useAuth()
 const isAdmin = computed(() => user.value?.role === 'admin')
 
 const embedRoot = ref<HTMLElement | null>(null)
-const embedReady = ref(false)
+// loading → the blockquote placeholder is in the DOM waiting for TikTok;
+// ready   → embed.js replaced it with its iframe;
+// failed  → the script was blocked or never produced an iframe: show our own
+//           card instead of leaving visitors a 280px box with one bare link.
+const embedState = ref<'loading' | 'ready' | 'failed'>('loading')
+let embedPoll: ReturnType<typeof setInterval> | null = null
+let embedDeadline: ReturnType<typeof setTimeout> | null = null
+
+function stopWatchingEmbed() {
+  if (embedPoll) clearInterval(embedPoll)
+  if (embedDeadline) clearTimeout(embedDeadline)
+  embedPoll = null
+  embedDeadline = null
+}
+
+function failEmbed() {
+  if (embedState.value !== 'loading') return
+  embedState.value = 'failed'
+  stopWatchingEmbed()
+}
+
+/**
+ * Succeeds only when an iframe actually exists inside embedRoot — a script
+ * `onload` proves the file downloaded, not that TikTok rendered anything
+ * (ad-blockers resolve the tag, slow requests never insert the iframe). The
+ * deadline turns the silent case into a visible fallback instead of the empty
+ * box visitors were getting.
+ */
+function watchEmbed() {
+  if (embedState.value !== 'loading' || embedPoll) return
+  embedPoll = setInterval(() => {
+    if (embedRoot.value?.querySelector('iframe')) {
+      embedState.value = 'ready'
+      stopWatchingEmbed()
+    }
+  }, 250)
+  embedDeadline = setTimeout(failEmbed, 10000)
+}
 
 const tiktokStatus = ref<{ configured: boolean; connected: boolean }>({ configured: false, connected: false })
 const videos = ref<any[]>([])
@@ -35,11 +72,16 @@ const productsNote = ref('')
 
 onMounted(() => {
   loadEmbedScript()
+  // If embed.js was already on the page (client-side navigation from an
+  // earlier visit), kick it again so our freshly mounted blockquote is
+  // processed too — then let watchEmbed decide success or failure.
   if (embedRoot.value && window.tiktokEmbedLoaded) {
     window.tiktokEmbedLoaded()
-    embedReady.value = true
   }
+  watchEmbed()
 })
+
+onUnmounted(stopWatchingEmbed)
 
 /**
  * The SSR self-call carries neither Origin nor Referer, and /api/tiktok/
@@ -145,18 +187,19 @@ const connectedNotice = computed(() => {
 
 function loadEmbedScript() {
   if (document.querySelector('script[src="https://www.tiktok.com/embed.js"]')) {
-    embedReady.value = true
     return
   }
   const script = document.createElement('script')
   script.src = 'https://www.tiktok.com/embed.js'
   script.async = true
   script.onload = () => {
-    embedReady.value = true
     if (typeof window.tiktokEmbedLoaded === 'function') {
       window.tiktokEmbedLoaded()
     }
   }
+  // Ad-blockers reject the tag outright; without this the page used to sit
+  // on an empty box forever. Timeout in watchEmbed() covers the rest.
+  script.onerror = failEmbed
   document.body.appendChild(script)
 }
 </script>
@@ -458,7 +501,9 @@ function loadEmbedScript() {
               {{ t('shop.liveEmbed') }}
             </p>
             <ClientOnly>
-              <div ref="embedRoot" class="tiktok-embed-root min-h-[280px]">
+              <!-- While loading (or once ready) the blockquote must stay in
+                   the DOM: that is what embed.js processes into the iframe. -->
+              <div v-if="embedState !== 'failed'" ref="embedRoot" class="tiktok-embed-root min-h-[280px]">
                 <blockquote
                   class="tiktok-embed"
                   cite="https://www.tiktok.com/@hibikis13"
@@ -471,6 +516,23 @@ function loadEmbedScript() {
                     <a target="_blank" href="https://www.tiktok.com/@hibikis13?refer=creator_embed">@hibikis13</a>
                   </section>
                 </blockquote>
+              </div>
+              <!-- Blocked/failed embed: an honest card with a working link
+                   instead of a 280px box containing one 24px link. -->
+              <div
+                v-else
+                class="flex min-h-[280px] flex-col items-center justify-center gap-4 rounded-lg border border-dashed border-zinc-300 p-6 text-center dark:border-zinc-700"
+              >
+                <img src="/social/tiktok.svg" alt="" class="h-8 w-8" aria-hidden="true" />
+                <p class="max-w-sm text-sm leading-relaxed text-muted-foreground">
+                  {{ t('shop.liveEmbedBlocked') }}
+                </p>
+                <Button variant="outline" class="h-10 rounded-lg" as-child>
+                  <a :href="SHOP_URLS.tiktok" target="_blank" rel="noopener noreferrer">
+                    <ExternalLink class="h-4 w-4" aria-hidden="true" />
+                    {{ t('shop.openTikTok') }}
+                  </a>
+                </Button>
               </div>
               <template #fallback>
                 <div class="flex min-h-[280px] items-center justify-center rounded-lg border border-dashed border-zinc-300 text-sm text-muted-foreground dark:border-zinc-700">

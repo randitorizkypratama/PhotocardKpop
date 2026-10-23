@@ -309,6 +309,7 @@ export const STRINGS_EN: Record<string, string> = {
     'shop.views': 'views',
     'shop.videoAlt': 'TikTok video',
     'shop.liveEmbed': 'Live profile embed',
+    'shop.liveEmbedBlocked': 'The TikTok profile embed could not load — the script was blocked or you are offline. You can still open the profile directly.',
     'shop.loading': 'Loading TikTok…',
     'shop.ogDescription': 'HIBIKISHOP storefront — buy photocards on Shopee & Tokopedia, watch the latest TikTok videos.',
     'shop.ctaShopee': 'Buy on Shopee',

@@ -303,6 +303,7 @@ export const STRINGS_ID: Record<string, string> = {
     'shop.views': 'ditonton',
     'shop.videoAlt': 'Video TikTok',
     'shop.liveEmbed': 'Embed profil langsung',
+    'shop.liveEmbedBlocked': 'Embed profil TikTok tidak bisa dimuat — script diblokir atau Anda sedang offline. Profil tetap bisa dibuka secara langsung.',
     'shop.loading': 'Memuat TikTok…',
     'shop.ogDescription': 'Etalase HIBIKISHOP - beli photocard di Shopee & Tokopedia, tonton video TikTok terbaru.',
     'shop.ctaShopee': 'Beli di Shopee',
