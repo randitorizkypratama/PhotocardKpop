@@ -386,6 +386,8 @@ export const STRINGS_ID: Record<string, string> = {
     'identify.btnCamera': 'Ambil foto',
     'identify.btnUpload': 'Unggah foto',
     'identify.btnAgain': 'Cari foto lain',
+    'identify.filterGroupAll': 'Semua Grup',
+    'identify.filterGroupLabel': 'Filter grup (opsional)',
     'identify.stageModelDownload': 'Mengunduh model AI (hanya pertama kali)…',
     'identify.stageModelInit': 'Menginisialisasi model…',
     'identify.stageIndex': 'Memuat index kartu…',

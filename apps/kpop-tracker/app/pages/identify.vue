@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowRight, Camera, Lightbulb, Loader2, RefreshCcw, SearchX, Upload } from 'lucide-vue-next'
+import { ArrowRight, Camera, Filter, Lightbulb, Loader2, RefreshCcw, SearchX, Upload } from 'lucide-vue-next'
 import {
   LOW_CONFIDENCE_FLOOR,
   NOT_FOUND_FLOOR,
@@ -20,12 +20,16 @@ useSeoMeta({
 
 const { t } = useLocale()
 
+const GROUPS = ['IVE', 'aespa', 'Hearts2Hearts'] as const
+const selectedGroup = ref<string | null>(null)
+
 type Phase = 'idle' | 'working' | 'results' | 'notfound' | 'error'
 const phase = ref<Phase>('idle')
 const stage = ref<SearchStage>('model-download')
 const progressPercent = ref<number | null>(null)
 const progressDetail = ref<string | null>(null)
 const previewUrl = ref<string | null>(null)
+const currentFile = ref<File | null>(null)
 const result = ref<PhotoSearchResult | null>(null)
 const dragging = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -65,27 +69,24 @@ function openPicker(kind: 'file' | 'camera') {
   ;(kind === 'file' ? fileInput.value : cameraInput.value)?.click()
 }
 
-async function onFile(file: File | null | undefined) {
-  if (!file) return
-  if (!file.type.startsWith('image/')) {
-    phase.value = 'error'
-    return
-  }
+async function triggerSearch(file: File) {
   const seq = ++searchSeq
-  if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
-  previewUrl.value = URL.createObjectURL(file)
   result.value = null
   phase.value = 'working'
   stage.value = 'model-download'
   progressPercent.value = null
   progressDetail.value = null
   try {
-    const res = await searchByPhoto(file, (p) => {
-      if (seq !== searchSeq) return
-      stage.value = p.stage
-      progressPercent.value = p.percent ?? null
-      progressDetail.value = p.detail ?? null
-    })
+    const res = await searchByPhoto(
+      file,
+      (p) => {
+        if (seq !== searchSeq) return
+        stage.value = p.stage
+        progressPercent.value = p.percent ?? null
+        progressDetail.value = p.detail ?? null
+      },
+      selectedGroup.value,
+    )
     if (seq !== searchSeq) return
     result.value = res
     phase.value = res.topScore >= NOT_FOUND_FLOOR ? 'results' : 'notfound'
@@ -93,6 +94,26 @@ async function onFile(file: File | null | undefined) {
     console.error('photo identify failed:', e)
     if (seq !== searchSeq) return
     phase.value = 'error'
+  }
+}
+
+async function onFile(file: File | null | undefined) {
+  if (!file) return
+  if (!file.type.startsWith('image/')) {
+    phase.value = 'error'
+    return
+  }
+  if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
+  previewUrl.value = URL.createObjectURL(file)
+  currentFile.value = file
+  await triggerSearch(file)
+}
+
+function selectGroupFilter(group: string | null) {
+  if (selectedGroup.value === group) return
+  selectedGroup.value = group
+  if (currentFile.value && (phase.value === 'results' || phase.value === 'notfound')) {
+    void triggerSearch(currentFile.value)
   }
 }
 
@@ -111,6 +132,7 @@ function reset() {
   searchSeq++
   if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
   previewUrl.value = null
+  currentFile.value = null
   result.value = null
   phase.value = 'idle'
 }
@@ -133,9 +155,46 @@ function reset() {
           </p>
         </div>
 
+        <!-- Optional Group Filter Bar -->
+        <div class="mt-6 flex flex-col items-center justify-center gap-2 sm:flex-row">
+          <span class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            <Filter class="h-3.5 w-3.5" />
+            {{ t('identify.filterGroupLabel') }}:
+          </span>
+          <div class="inline-flex rounded-lg border border-zinc-200 bg-card p-1 shadow-sm dark:border-zinc-800">
+            <button
+              type="button"
+              class="rounded-md px-3 py-1 text-xs font-medium transition-colors"
+              :class="
+                selectedGroup === null
+                  ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
+                  : 'text-muted-foreground hover:text-foreground'
+              "
+              @click="selectGroupFilter(null)"
+            >
+              {{ t('identify.filterGroupAll') }}
+            </button>
+            <button
+              v-for="g in GROUPS"
+              :key="g"
+              type="button"
+              class="flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-medium transition-colors"
+              :class="
+                selectedGroup === g
+                  ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
+                  : 'text-muted-foreground hover:text-foreground'
+              "
+              @click="selectGroupFilter(g)"
+            >
+              <span class="h-1.5 w-1.5 rounded-full" :class="groupDot(g)" />
+              {{ g }}
+            </button>
+          </div>
+        </div>
+
         <!-- Dropzone / preview -->
         <div
-          class="mt-7 rounded-2xl border-2 border-dashed transition-colors duration-150"
+          class="mt-6 rounded-2xl border-2 border-dashed transition-colors duration-150"
           :class="
             dragging
               ? 'border-zinc-500 bg-zinc-50 dark:border-zinc-400 dark:bg-zinc-900/60'
@@ -166,14 +225,20 @@ function reset() {
             <p class="mt-5 text-xs text-muted-foreground">{{ t('identify.privacy') }}</p>
           </div>
 
-          <!-- Photo selected: preview + status -->
+          <!-- Photo selected: preview with card framing guide + status -->
           <div v-else class="p-4 sm:p-5">
             <div class="flex items-start gap-4">
-              <img
-                :src="previewUrl!"
-                :alt="t('identify.ownPhoto')"
-                class="h-28 w-[73px] shrink-0 rounded-lg border border-zinc-200 object-cover sm:h-36 sm:w-[95px] dark:border-zinc-700"
-              />
+              <!-- Framed Preview -->
+              <div class="relative h-28 w-[73px] shrink-0 overflow-hidden rounded-lg border-2 border-zinc-300 bg-zinc-950 sm:h-36 sm:w-[95px] dark:border-zinc-700">
+                <img
+                  :src="previewUrl!"
+                  :alt="t('identify.ownPhoto')"
+                  class="h-full w-full object-cover"
+                />
+                <!-- Subtle photocard ratio overlay guide -->
+                <div class="pointer-events-none absolute inset-0 border border-white/30 rounded-md" />
+              </div>
+
               <div class="min-w-0 flex-1">
                 <div v-if="phase === 'working'" class="flex h-full flex-col justify-center gap-2">
                   <div class="flex items-center gap-2 text-sm font-medium text-foreground">

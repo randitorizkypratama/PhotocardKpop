@@ -392,6 +392,8 @@ export const STRINGS_EN: Record<string, string> = {
     'identify.btnCamera': 'Take a photo',
     'identify.btnUpload': 'Upload photo',
     'identify.btnAgain': 'Search another photo',
+    'identify.filterGroupAll': 'All Groups',
+    'identify.filterGroupLabel': 'Filter by group (optional)',
     'identify.stageModelDownload': 'Downloading AI model (first time only)…',
     'identify.stageModelInit': 'Initializing model…',
     'identify.stageIndex': 'Loading card index…',

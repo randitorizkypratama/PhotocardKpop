@@ -75,10 +75,34 @@ function getExtractor(onProgress?: SearchStageListener): Promise<any> {
   return extractorPromise
 }
 
+const CACHE_NAME = 'photocard-search-index-v1'
+
+async function fetchWithCache(url: string): Promise<Response> {
+  if (typeof caches !== 'undefined') {
+    try {
+      const cache = await caches.open(CACHE_NAME)
+      const cached = await cache.match(url)
+      if (cached) return cached
+
+      const res = await fetch(url)
+      if (res.ok) {
+        await cache.put(url, res.clone())
+      }
+      return res
+    } catch {
+      // Fallback to normal fetch if CacheStorage fails or is unavailable
+    }
+  }
+  return fetch(url)
+}
+
 function getIndex() {
   if (!indexPromise) {
     indexPromise = (async () => {
-      const [binRes, metaRes] = await Promise.all([fetch('/search/index.bin'), fetch('/search/index.json')])
+      const [binRes, metaRes] = await Promise.all([
+        fetchWithCache('/search/index.bin'),
+        fetchWithCache('/search/index.json'),
+      ])
       if (!binRes.ok) throw new Error('index.bin HTTP ' + binRes.status)
       if (!metaRes.ok) throw new Error('index.json HTTP ' + metaRes.status)
       const [buf, meta] = await Promise.all([binRes.arrayBuffer(), metaRes.json() as Promise<IndexMeta>])
@@ -183,6 +207,7 @@ async function embedImage(file: Blob): Promise<Float32Array> {
 export async function searchByPhoto(
   file: Blob,
   onProgress?: SearchStageListener,
+  groupFilter?: string | null,
 ): Promise<PhotoSearchResult> {
   const indexLoaded = getIndex()
   await getExtractor(onProgress)
@@ -191,7 +216,7 @@ export async function searchByPhoto(
 
   onProgress?.({ stage: 'analyze' })
   const query = await embedImage(file)
-  const hits = searchTopK(query, index, cards, TOP_K)
+  const hits = searchTopK(query, index, cards, TOP_K, groupFilter)
   const first = hits[0]
   if (!first) throw new Error('empty index')
   return { hits, topScore: first.score }

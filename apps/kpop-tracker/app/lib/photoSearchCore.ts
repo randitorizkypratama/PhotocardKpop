@@ -73,12 +73,14 @@ export function parseIndexBin(buf: ArrayBuffer | Uint8Array): SearchIndex {
   return { n, dim, vectors, norms }
 }
 
-/** Cosine top-K over the gallery. Query is normalized internally. */
+/** Cosine top-K over the gallery. Query is normalized internally.
+ * Optional group filter narrows down the search space to matching cards. */
 export function searchTopK(
   query: Float32Array | number[],
   index: SearchIndex,
   cards: IndexCard[],
   k: number,
+  groupFilter?: string | null,
 ): SearchHit[] {
   const { n, dim, vectors, norms } = index
   if (query.length !== dim) throw new Error(`query dim ${query.length} != index dim ${dim}`)
@@ -89,20 +91,24 @@ export function searchTopK(
   qn = Math.sqrt(qn) || 1
 
   const scores = new Float64Array(n)
+  const normFilter = groupFilter?.trim().toUpperCase()
+
+  const order: number[] = []
   for (let i = 0; i < n; i++) {
+    if (normFilter && cards[i]!.group_name.toUpperCase() !== normFilter) {
+      continue
+    }
+
     let dot = 0
     const row = i * dim
     for (let d = 0; d < dim; d++) dot += query[d]! * vectors[row + d]!
-    scores[i] = dot / (qn * norms[i]!)
-  }
+    const score = dot / (qn * norms[i]!)
+    scores[i] = score
 
-  const limit = Math.min(k, n)
-  const order: number[] = []
-  for (let i = 0; i < n; i++) {
-    if (order.length < limit) {
+    if (order.length < k) {
       order.push(i)
       order.sort((a, b) => scores[b]! - scores[a]!)
-    } else if (scores[i]! > scores[order[order.length - 1]!]!) {
+    } else if (score > scores[order[order.length - 1]!]!) {
       order[order.length - 1] = i
       order.sort((a, b) => scores[b]! - scores[a]!)
     }
