@@ -80,11 +80,22 @@ await Promise.all([ratesAsync, releasesAsync, cardsAsync])
 
 const { data: ratesRes } = ratesAsync
 const { data: releasesRes } = releasesAsync
-const { data: cardsRes, pending: loading } = cardsAsync
+const { data: cardsRes, pending: loading, refresh: reloadCards } = cardsAsync
 
 const releases = computed<any[]>(() => releasesRes.value?.data || [])
 const cards = computed<any[]>(() => cardsRes.value?.data || [])
 const rate = computed(() => ratesRes.value?.data?.usd?.rate || 17800)
+
+/**
+ * Separates "the request failed" from "there is nothing here".
+ *
+ * Each handler resolves to null instead of throwing, which is correct for SSR —
+ * an unreachable API must not abort the render. But `cards` then reads as an
+ * empty array either way, so the empty state below told the visitor there were
+ * no photocards at all, offering a button to browse all of them, while the real
+ * answer was that the call had failed. Neither branch could tell the two apart.
+ */
+const loadError = computed(() => cardsRes.value == null)
 
 function releaseDate(value?: string | null) {
   if (!value) return ''
@@ -304,6 +315,19 @@ async function onWishlist(id: number | string) {
               <div class="skeleton-block h-4 w-1/2" />
             </div>
           </div>
+        </div>
+
+        <!-- Failed request, distinct from an empty catalogue. Without this
+             branch a dead or 429'd API fell through to the panel below and
+             announced "No photocards found." alongside a button inviting the
+             visitor to browse all of them — a failure wearing the costume of a
+             genuinely empty shelf. -->
+        <div v-else-if="loadError" class="rounded-xl border border-dashed border-red-300 py-12 text-center dark:border-red-800">
+          <p class="text-sm font-medium text-foreground">{{ t('empty.errorTitle') }}</p>
+          <p class="mt-1 text-sm text-muted-foreground">{{ t('empty.errorHint') }}</p>
+          <Button variant="outline" class="mt-4 rounded-lg" @click="reloadCards">
+            {{ t('empty.errorRetry') }}
+          </Button>
         </div>
 
         <div v-else-if="cards.length === 0" class="rounded-xl border border-dashed border-zinc-300 py-12 text-center dark:border-zinc-700">

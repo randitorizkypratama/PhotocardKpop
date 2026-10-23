@@ -23,12 +23,27 @@ const release = ref<any>(null)
 const releaseLoading = ref(false)
 
 // The card and the rate are fetched during SSR so the detail page (image,
-// name, price) ships in the HTML instead of a skeleton. Both handlers resolve
-// to null rather than throwing: an unreachable API must render the error
-// state, never abort the render.
+// name, price) ships in the HTML instead of a skeleton. Neither handler throws:
+// an unreachable API must render the error state, never abort the render. The
+// rate keeps resolving to null as before.
 const cardAsync = useAsyncData(
   `card:${cardId}`,
-  () => $fetch<any>(`/api/cards/${cardId}`).catch(() => null),
+  async () => {
+    try {
+      return await $fetch<any>(`/api/cards/${cardId}`)
+    } catch (e: any) {
+      // The API answers 404 for an id that names no card and 400 for a
+      // malformed one — both mean "there is no such card here" — while anything
+      // else means the request itself failed. The status is carried across
+      // deliberately: `.catch(() => null)` discarded it, so a mistyped id and a
+      // dead API rendered the identical panel, and the success:false branch
+      // below stayed unreachable because a rejected fetch never yields an object.
+      return {
+        success: false,
+        statusCode: Number(e?.statusCode ?? e?.status ?? e?.data?.statusCode ?? 0),
+      }
+    }
+  },
 )
 const ratesAsync = useAsyncData(
   'shared:exchangerate',
@@ -37,19 +52,57 @@ const ratesAsync = useAsyncData(
 
 await Promise.all([cardAsync, ratesAsync])
 
-const { data: cardRes, pending: loading } = cardAsync
+const { data: cardRes, pending: loading, refresh: reloadCard } = cardAsync
 const { data: ratesRes } = ratesAsync
 
 const card = computed(() => cardRes.value?.data || null)
 const rate = computed(() => ratesRes.value?.data?.usd?.rate || 17800)
 
-// null = ok, string = the message shown in the error panel.
-// success:false means "unknown card id"; null data means "the call failed".
+/**
+ * The id names no card: 404 for an id that does not exist, 400 for one that is
+ * malformed — the only two answers the API gives about the id itself.
+ *
+ * Kept apart from `error` because it decides two things — which message the
+ * panel shows, and whether offering "Try again" makes sense at all, since
+ * retrying cannot turn a nonexistent id into a card.
+ *
+ * Deliberately not "any 4xx": this endpoint is rate-limited (300 reads/min/IP)
+ * and a 429 means the call was refused, not that the card is absent. Reporting
+ * a throttled visitor's card as "Photocard not found." would be inventing an
+ * answer the server never gave — 5xx and network failures fall out the same
+ * way, to the retryable branch.
+ */
+const notFound = computed(() => {
+  if (cardRes.value?.success !== false) return false
+  const status = Number(cardRes.value.statusCode || 0)
+  return status === 404 || status === 400
+})
+
+// null = ok, string = the message shown in the error panel. Reaching "not
+// found" at all requires the status to survive the fetch: while failures
+// collapsed to null this branch was unreachable and a dead API claimed the
+// card was missing.
 const error = computed<string | null>(() => {
   if (cardRes.value == null) return t('card.unableLoad')
-  if (cardRes.value.success === false) return t('card.notFound')
+  if (cardRes.value.success === false) return notFound.value ? t('card.notFound') : t('card.unableLoad')
   return null
 })
+
+/**
+ * The listing for this exact card, not the site root.
+ *
+ * The upstream search payload carries no per-card URL and the cards table stores
+ * none either (checked: no url/link/href column, no URL-shaped value), so the
+ * button opened pocamarket.com's homepage — promising to show *this* card and
+ * delivering a search page the visitor would have to start over on.
+ *
+ * The pattern was read off the site itself rather than guessed: plain fetch got
+ * 429 from its bot wall on every candidate path, which answers nothing, while a
+ * browser that passed the checkpoint showed its own results linking to
+ * /search/detail/{id} — and Pocamarket's ids are our ids, the same rows
+ * (517330 "Lemon Tang JINGDONG" in both).
+ */
+const pocamarketUrl = computed(() => `https://pocamarket.com/search/detail/${cardId}`)
 
 // Head/meta computeds must run after `card` is declared — they evaluate eagerly
 // during SSR, which would otherwise hit a TDZ on `card.value`.
@@ -248,11 +301,25 @@ const chartData = computed(() => {
         role="alert"
       >
         <AlertCircle class="mx-auto h-8 w-8 text-red-600 dark:text-red-400" aria-hidden="true" />
-        <p class="mt-3 text-sm font-medium text-red-900 dark:text-red-200">{{ t('card.error.title') }}</p>
-        <p class="mt-1 text-sm text-red-700/90 dark:text-red-300/90">{{ error }}</p>
-        <Button variant="outline" class="mt-4 rounded-lg border-red-300 bg-white dark:border-red-800 dark:bg-zinc-900" as-child>
-          <NuxtLink to="/browse">{{ t('card.error.back') }}</NuxtLink>
-        </Button>
+        <!-- The heading is the outcome itself. A fixed caption used to sit above
+             both outcomes, so a missing card was announced as a failed load —
+             and because that caption is byte-identical to `card.unableLoad`, the
+             failure case printed the same sentence twice. -->
+        <p class="mt-3 text-sm font-medium text-red-900 dark:text-red-200">{{ error }}</p>
+        <p v-if="notFound" class="mt-1 text-sm text-red-700/90 dark:text-red-300/90">{{ t('card.notFoundHint') }}</p>
+        <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
+          <Button
+            v-if="!notFound"
+            variant="outline"
+            class="rounded-lg border-red-300 bg-white dark:border-red-800 dark:bg-zinc-900"
+            @click="reloadCard"
+          >
+            {{ t('card.error.retry') }}
+          </Button>
+          <Button variant="outline" class="rounded-lg border-red-300 bg-white dark:border-red-800 dark:bg-zinc-900" as-child>
+            <NuxtLink to="/browse">{{ t('card.error.back') }}</NuxtLink>
+          </Button>
+        </div>
       </div>
 
       <!-- Product -->
@@ -419,7 +486,7 @@ const chartData = computed(() => {
 
             <div class="mt-4 grid grid-cols-1 gap-2 sm:flex sm:flex-row">
               <Button variant="outline" class="h-11 w-full gap-2 rounded-lg sm:h-10 sm:flex-1" as-child>
-                <a href="https://pocamarket.com" target="_blank" rel="noopener noreferrer">
+                <a :href="pocamarketUrl" target="_blank" rel="noopener noreferrer">
                   {{ t('card.viewOnPocamarket') }}
                   <ExternalLink class="h-4 w-4" />
                 </a>
