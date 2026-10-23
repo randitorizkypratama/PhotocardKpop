@@ -859,7 +859,7 @@ const visiblePages = computed(() => {
           </div>
 
           <!-- Loading skeletons -->
-          <div v-if="loading" class="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+          <div v-if="loading" class="grid min-w-0 grid-cols-3 gap-2 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
             <div v-for="i in pageSize" :key="i" class="pc-skeleton min-w-0">
               <div class="skeleton-block aspect-square rounded-none" />
               <div class="space-y-2.5 p-3">
@@ -885,7 +885,7 @@ const visiblePages = computed(() => {
           <!-- Cards -->
           <div
             v-else
-            class="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
+            class="grid min-w-0 grid-cols-3 gap-2 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5"
           >
             <PhotocardCard
               v-for="(card, index) in cards"
@@ -955,19 +955,56 @@ const visiblePages = computed(() => {
       </div>
     </main>
 
-    <!-- Mobile filter sheet -->
-    <Sheet v-model:open="mobileFiltersOpen">
-      <SheetContent
-        side="bottom"
-        class="max-h-[85vh] overflow-y-auto overscroll-contain rounded-t-2xl border-zinc-200 p-0 dark:border-zinc-800 sm:inset-x-auto sm:right-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:w-full sm:max-w-md sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:border"
-      >
-        <SheetHeader class="relative border-b border-zinc-200 px-4 py-4 pr-12 text-left dark:border-zinc-800">
-          <SheetTitle class="text-base font-semibold">{{ t('browse.filters') }}</SheetTitle>
-          <SheetDescription class="text-sm text-muted-foreground">
-            {{ t('browse.filtersDesc') }}
-          </SheetDescription>
-        </SheetHeader>
+    <!-- Mobile filter drawer (bottom sheet, pure Tailwind) -->
+    <!-- Backdrop -->
+    <Transition
+      enter-active-class="transition-opacity duration-300"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-active-class="transition-opacity duration-300"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="mobileFiltersOpen"
+        class="fixed inset-0 z-40 bg-black/50 lg:hidden"
+        aria-hidden="true"
+        @click="mobileFiltersOpen = false"
+      />
+    </Transition>
 
+    <!-- Drawer panel -->
+    <div
+      class="fixed inset-x-0 bottom-0 z-50 flex flex-col rounded-t-2xl border-t border-zinc-200 bg-card transition-transform duration-300 lg:hidden dark:border-zinc-800"
+      :class="mobileFiltersOpen ? 'translate-y-0' : 'translate-y-full'"
+      style="max-height: 85vh"
+      role="dialog"
+      aria-modal="true"
+      :aria-label="t('browse.filters')"
+    >
+      <!-- Drag handle -->
+      <div class="flex shrink-0 justify-center pb-1 pt-3" aria-hidden="true">
+        <span class="h-1 w-10 rounded-full bg-zinc-300 dark:bg-zinc-600" />
+      </div>
+
+      <!-- Header -->
+      <div class="flex shrink-0 items-center justify-between border-b border-zinc-200 px-4 pb-3 pt-1 dark:border-zinc-800">
+        <div>
+          <h2 class="text-base font-semibold text-foreground">{{ t('browse.filters') }}</h2>
+          <p class="text-sm text-muted-foreground">{{ t('browse.filtersDesc') }}</p>
+        </div>
+        <button
+          type="button"
+          class="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-zinc-100 hover:text-foreground dark:hover:bg-zinc-800"
+          :aria-label="t('browse.close')"
+          @click="mobileFiltersOpen = false"
+        >
+          <X class="h-5 w-5" />
+        </button>
+      </div>
+
+      <!-- Scrollable content -->
+      <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         <div class="space-y-5 px-4 py-4">
           <div>
             <p class="mb-2 pc-meta-label">{{ t('browse.groupLabel') }}</p>
@@ -1081,13 +1118,14 @@ const visiblePages = computed(() => {
             </div>
           </div>
         </div>
+      </div>
 
-        <SheetFooter class="gap-2 border-t border-zinc-200 px-4 py-4 dark:border-zinc-800 sm:flex-row">
-          <Button variant="outline" class="flex-1 rounded-lg" @click="clearFilters">{{ t('browse.clearMobile') }}</Button>
-          <Button class="flex-1 rounded-lg" @click="mobileFiltersOpen = false">{{ t('browse.showResults') }}</Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+      <!-- Footer -->
+      <div class="flex shrink-0 gap-2 border-t border-zinc-200 px-4 py-4 dark:border-zinc-800">
+        <Button variant="outline" class="flex-1 rounded-lg" @click="clearFilters">{{ t('browse.clearMobile') }}</Button>
+        <Button class="flex-1 rounded-lg" @click="mobileFiltersOpen = false">{{ t('browse.showResults') }}</Button>
+      </div>
+    </div>
 
     <SiteFooter />
     <MobileTabBar />

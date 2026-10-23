@@ -205,11 +205,11 @@ function reset() {
 
         <!-- Dropzone / preview -->
         <div
-          class="mt-6 rounded-2xl border-2 border-dashed transition-colors duration-150"
+          class="mt-6 min-h-[280px] rounded-2xl border-2 border-dashed transition-colors duration-200"
           :class="
             dragging
               ? 'border-zinc-500 bg-zinc-50 dark:border-zinc-400 dark:bg-zinc-900/60'
-              : 'border-zinc-300 bg-card dark:border-zinc-700'
+              : 'border-zinc-300 bg-card hover:border-zinc-500 dark:border-zinc-700 dark:hover:border-zinc-400'
           "
           @dragover.prevent="dragging = true"
           @dragleave.prevent="dragging = false"
@@ -217,8 +217,8 @@ function reset() {
         >
           <!-- Empty state -->
           <div v-if="!previewUrl" class="px-6 py-10 text-center sm:py-14">
-            <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
-              <Camera class="h-7 w-7 text-muted-foreground" />
+            <div class="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
+              <Camera class="h-12 w-12 text-muted-foreground" />
             </div>
             <p class="mt-4 text-sm font-medium text-foreground sm:text-base">
               {{ t('identify.dropTitle') }}
@@ -259,9 +259,9 @@ function reset() {
                       {{ progressPercent }}%
                     </span>
                   </div>
-                  <div class="h-1.5 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+                  <div class="h-2 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
                     <div
-                      class="h-full rounded-full bg-zinc-500 transition-all duration-300 dark:bg-zinc-400"
+                      class="h-full rounded-full bg-zinc-500 transition-all duration-300 ease-in-out dark:bg-zinc-400"
                       :style="{ width: progressWidth + '%' }"
                     />
                   </div>

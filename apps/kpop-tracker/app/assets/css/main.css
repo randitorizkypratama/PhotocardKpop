@@ -178,3 +178,15 @@ body {
     @apply animate-pulse rounded-md bg-zinc-200/80 dark:bg-zinc-800/80;
   }
 }
+
+
+/* Page transitions */
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.15s ease;
+}
+
+.page-enter-from,
+.page-leave-to {
+  opacity: 0;
+}

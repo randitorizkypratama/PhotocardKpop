@@ -325,8 +325,8 @@ const chartData = computed(() => {
       <div v-else-if="card" class="grid gap-6 lg:grid-cols-2 lg:gap-10 xl:gap-14">
         <!-- Left: image -->
         <div class="lg:sticky lg:top-20 lg:self-start">
-          <div class="mx-auto w-full max-w-md overflow-hidden rounded-xl border border-zinc-200 bg-card shadow-sm dark:border-zinc-800 lg:max-w-none">
-            <div class="relative aspect-square bg-zinc-100 dark:bg-zinc-900">
+          <div class="mx-auto w-full max-w-md overflow-hidden rounded-xl border border-zinc-200 bg-card shadow-lg dark:border-zinc-800 lg:max-w-none">
+            <div class="relative aspect-[2/3] bg-zinc-100 dark:bg-zinc-900">
               <img
                 :src="card.image"
                 :alt="`${card.name} photocard`"
@@ -455,10 +455,10 @@ const chartData = computed(() => {
             </div>
 
             <template v-if="effectivePrice > 0">
-              <p class="mt-2 text-2xl font-semibold tabular-nums tracking-tight text-foreground sm:text-3xl">
+              <p class="mt-2 text-2xl font-bold tabular-nums tracking-tight text-foreground sm:text-3xl">
                 Rp {{ formatIDR(effectivePrice, rate) }}
               </p>
-              <p class="mt-1 text-sm tabular-nums text-muted-foreground">
+              <p class="mt-0.5 text-xs tabular-nums text-muted-foreground">
                 {{ formatUSD(effectivePrice) }}
                 <span v-if="showPromo && Number(card.price) > 0" class="ml-1.5 line-through">
                   {{ formatUSD(card.price) }}
@@ -486,7 +486,7 @@ const chartData = computed(() => {
             <div class="mt-4 grid grid-cols-1 gap-2 sm:flex sm:flex-row">
               <Button
                 variant="outline"
-                class="h-11 w-full gap-2 rounded-lg sm:h-10 sm:flex-1"
+                class="h-11 w-full gap-2 rounded-xl sm:h-10 sm:flex-1"
                 :class="isWishlisted ? 'border-rose-300 text-rose-600 dark:border-rose-800 dark:text-rose-400' : ''"
                 :aria-pressed="isWishlisted"
                 @click="handleWishlistToggle"
@@ -497,7 +497,7 @@ const chartData = computed(() => {
             </div>
 
             <Button
-              class="mt-2 h-11 w-full gap-2 rounded-lg sm:h-10"
+              class="mt-2 h-11 w-full gap-2 rounded-xl"
               :variant="isInCollection ? 'secondary' : 'default'"
               @click="showAddDialog = true"
             >
@@ -558,7 +558,7 @@ const chartData = computed(() => {
 
           <!-- Price history -->
           <div class="rounded-xl border border-zinc-200 bg-card p-4 dark:border-zinc-800 sm:p-5">
-            <h2 class="text-sm font-semibold text-foreground">{{ t('card.priceHistory') }}</h2>
+            <p class="pc-meta-label">{{ t('card.priceHistory') }}</p>
 
             <div v-if="history.length === 0" class="mt-3 rounded-lg border border-dashed border-zinc-300 px-4 py-8 text-center dark:border-zinc-700">
               <Clock class="mx-auto h-6 w-6 text-zinc-400" aria-hidden="true" />

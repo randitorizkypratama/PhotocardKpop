@@ -130,11 +130,18 @@ async function onWishlist(id: number | string) {
 
     <main>
       <!-- Hero -->
-      <section class="border-b border-zinc-200 dark:border-zinc-800">
+      <section class="border-b border-zinc-200 bg-gradient-to-br from-zinc-50 to-zinc-100 dark:border-zinc-800 dark:from-zinc-900 dark:to-zinc-950">
         <div class="page-shell py-10 sm:py-14 lg:py-16">
           <div class="mx-auto max-w-2xl text-center">
-            <p class="eyebrow">{{ t('home.eyebrow') }}</p>
-            <h1 class="mt-3 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
+            <div class="flex justify-center">
+              <img
+                src="/hibikishop-logo.png"
+                alt="HIBIKISHOP logo"
+                class="h-20 w-20 drop-shadow"
+              />
+            </div>
+            <p class="mt-4 eyebrow">{{ t('home.eyebrow') }}</p>
+            <h1 class="mt-3 text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
               HIBIKISHOP PC
             </h1>
             <p class="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
@@ -171,19 +178,33 @@ async function onWishlist(id: number | string) {
                 v-for="group in groupTabs"
                 :key="group"
                 type="button"
-                class="rounded-lg border px-3.5 py-1.5 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                class="relative rounded-lg border px-3.5 py-1.5 text-sm font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 :class="
                   selectedGroup === group
                     ? groupAccentActive(group)
-                    : 'border-zinc-200 bg-card text-muted-foreground hover:border-zinc-300 hover:text-foreground dark:border-zinc-800 dark:hover:border-zinc-700'
+                    : 'border-zinc-200 bg-card text-muted-foreground hover:border-zinc-300 hover:bg-zinc-50 hover:text-foreground dark:border-zinc-800 dark:hover:border-zinc-700 dark:hover:bg-zinc-900'
                 "
                 :aria-pressed="selectedGroup === group"
                 @click="selectedGroup = group"
               >
                 <span class="inline-flex items-center gap-1.5">
-                  <span class="h-1.5 w-1.5 rounded-full" :class="groupDot(group)" />
+                  <!-- Pulsing dot: always visible for active group, pulses only while loading -->
+                  <span
+                    class="h-1.5 w-1.5 rounded-full"
+                    :class="[
+                      groupDot(group),
+                      selectedGroup === group && loading ? 'animate-pulse' : '',
+                    ]"
+                  />
                   {{ group }}
                 </span>
+                <!-- Bottom border pill indicator for active tab -->
+                <span
+                  v-if="selectedGroup === group"
+                  class="absolute inset-x-3 bottom-0.5 h-0.5 rounded-full opacity-70"
+                  :class="groupDot(group)"
+                  aria-hidden="true"
+                />
               </button>
             </div>
           </div>
@@ -388,17 +409,24 @@ async function onWishlist(id: number | string) {
       <!-- Shop CTA -->
       <section class="border-t border-zinc-200 dark:border-zinc-800">
         <div class="page-shell py-10 sm:py-12">
-          <div class="flex flex-col gap-4 rounded-xl border border-zinc-200 bg-card p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6 dark:border-zinc-800">
-            <div class="min-w-0">
-              <p class="eyebrow">{{ t('shop.eyebrow') }}</p>
-              <h2 class="mt-1 text-lg font-semibold tracking-tight text-foreground sm:text-xl">
-                {{ t('home.shopTitle') }}
-              </h2>
-              <p class="mt-1.5 text-sm text-muted-foreground">
-                {{ t('home.shopDesc') }}
-              </p>
+          <div class="flex flex-col gap-4 rounded-2xl overflow-hidden bg-gradient-to-r from-zinc-900 to-zinc-700 p-5 shadow-lg sm:flex-row sm:items-center sm:justify-between sm:p-6 dark:from-zinc-800 dark:to-zinc-900">
+            <div class="flex items-center gap-4 min-w-0">
+              <img
+                src="/hibikishop-logo.png"
+                alt="HIBIKISHOP logo"
+                class="h-14 w-14 shrink-0 rounded-xl object-contain"
+              />
+              <div class="min-w-0">
+                <p class="eyebrow text-zinc-400">{{ t('shop.eyebrow') }}</p>
+                <h2 class="mt-1 text-lg font-semibold tracking-tight text-white sm:text-xl">
+                  {{ t('home.shopTitle') }}
+                </h2>
+                <p class="mt-1.5 text-sm text-zinc-300">
+                  {{ t('home.shopDesc') }}
+                </p>
+              </div>
             </div>
-            <Button class="h-10 shrink-0 gap-2 rounded-lg" as-child>
+            <Button class="h-10 shrink-0 gap-2 rounded-lg bg-white text-zinc-900 hover:bg-zinc-100" as-child>
               <NuxtLink to="/shop">
                 {{ t('home.shopCta') }}
                 <ArrowRight class="h-4 w-4" />

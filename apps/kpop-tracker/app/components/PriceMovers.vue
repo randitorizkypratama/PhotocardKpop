@@ -18,10 +18,10 @@ const props = defineProps<{ rate?: number }>()
 const { t } = useLocale()
 
 // Fetched during SSR so both panels are in the HTML rather than popping in
-// after mount. The section is v-if="drops.length || risers.length", so a
-// failure simply hides it — the intended behaviour, and why the handler
+// after mount. The section is v-if="drops.length || risers.length || pending",
+// so a failure simply hides it — the intended behaviour, and why the handler
 // resolves to null instead of throwing.
-const { data: moversRes } = await useAsyncData(
+const { data: moversRes, pending } = await useAsyncData(
   'shared:movers',
   () => $fetch<{ success: boolean, data: { drops: MoverRow[], risers: MoverRow[] } }>(
     '/api/movers',
@@ -38,7 +38,7 @@ function pctLabel(value: number) {
 </script>
 
 <template>
-  <section v-if="drops.length || risers.length" class="border-t border-zinc-200 dark:border-zinc-800">
+  <section v-if="pending || drops.length || risers.length" class="border-t border-zinc-200 dark:border-zinc-800">
     <div class="page-shell py-10 sm:py-12">
       <div class="mb-5 flex flex-wrap items-end justify-between gap-3 sm:mb-6">
         <div>
@@ -46,6 +46,7 @@ function pctLabel(value: number) {
           <h2 class="mt-1.5 section-title">{{ t('movers.title') }}</h2>
         </div>
         <NuxtLink
+          v-if="!pending"
           to="/browse"
           class="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
         >
@@ -54,7 +55,33 @@ function pctLabel(value: number) {
         </NuxtLink>
       </div>
 
-      <div class="grid gap-3 sm:gap-4 md:grid-cols-2">
+      <!-- Loading skeleton -->
+      <div v-if="pending" class="grid gap-3 sm:gap-4 md:grid-cols-2">
+        <div v-for="panel in 2" :key="panel" class="min-w-0 rounded-xl border border-zinc-200 bg-card shadow-sm dark:border-zinc-800">
+          <!-- Panel header skeleton -->
+          <div class="flex items-center gap-2 border-b border-zinc-100 px-4 py-3 dark:border-zinc-800/80">
+            <div class="skeleton-block h-2 w-2 rounded-full" />
+            <div class="skeleton-block h-3.5 w-24" />
+          </div>
+          <!-- Row skeletons -->
+          <div class="divide-y divide-zinc-100 dark:divide-zinc-800/80">
+            <div v-for="i in 5" :key="i" class="flex items-center gap-3 px-4 py-2.5">
+              <div class="skeleton-block h-10 w-10 shrink-0 rounded-md" />
+              <div class="min-w-0 flex-1 space-y-1.5">
+                <div class="skeleton-block h-3 w-1/3" />
+                <div class="skeleton-block h-3 w-1/2" />
+              </div>
+              <div class="shrink-0 space-y-1.5 text-right">
+                <div class="skeleton-block h-3.5 w-16" />
+                <div class="skeleton-block h-3 w-10" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loaded content -->
+      <div v-else class="grid gap-3 sm:gap-4 md:grid-cols-2">
           <div
             v-for="panel in [
               { title: 'movers.drops', items: drops, dot: 'bg-emerald-500', delta: 'text-emerald-700 dark:text-emerald-400' },

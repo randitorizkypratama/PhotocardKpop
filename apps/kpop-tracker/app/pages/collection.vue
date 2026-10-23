@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Trash2, BookOpen, LockKeyhole } from 'lucide-vue-next'
+import { Trash2, BookOpen, Heart, LockKeyhole } from 'lucide-vue-next'
 import { GROUPS, groupDot, formatUSD } from '@/lib/catalog'
 import { cardTypeLabel } from '@/lib/cardTypes'
 
@@ -238,34 +238,46 @@ const tabDefs = computed(() => [
       </div>
 
       <template v-else>
-      <!-- Compact summary -->
-      <div class="mb-5 grid grid-cols-2 gap-x-4 gap-y-2.5 rounded-xl border border-border bg-card px-3 py-3 text-sm sm:mb-8 sm:flex sm:flex-wrap sm:items-center sm:gap-x-6 sm:gap-y-2 sm:px-4 sm:py-3.5">
-        <div class="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-2">
-          <span class="text-lg font-semibold tabular-nums text-foreground">{{ items.length }}</span>
-          <span class="truncate text-xs text-muted-foreground sm:text-sm">{{ t('browse.cardCount') }}</span>
+      <!-- Stats summary cards -->
+      <div class="mb-5 grid grid-cols-1 gap-3 sm:mb-8 sm:grid-cols-3">
+        <!-- Owned -->
+        <div class="flex items-center gap-3 rounded-xl border bg-emerald-50 p-4 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800">
+          <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/50">
+            <BookOpen class="h-5 w-5 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+          </div>
+          <div class="min-w-0">
+            <p class="text-2xl font-semibold tabular-nums text-foreground">{{ stats.totalOwned }}</p>
+            <p class="truncate text-xs text-muted-foreground">{{ t('collection.tabOwned') }}</p>
+          </div>
         </div>
-        <div class="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-2">
-          <span class="truncate font-medium tabular-nums text-foreground">
-            {{ formatUSD(stats.totalOwnedCost) }}
-          </span>
-          <span class="truncate text-xs text-muted-foreground sm:text-sm">{{ t('collection.spent') }}</span>
+        <!-- Wishlist -->
+        <div class="flex items-center gap-3 rounded-xl border bg-rose-50 p-4 border-rose-200 dark:bg-rose-950/30 dark:border-rose-800">
+          <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-rose-100 dark:bg-rose-900/50">
+            <Heart class="h-5 w-5 text-rose-500 dark:text-rose-400" aria-hidden="true" />
+          </div>
+          <div class="min-w-0">
+            <p class="text-2xl font-semibold tabular-nums text-foreground">{{ stats.totalWishlist }}</p>
+            <p class="truncate text-xs text-muted-foreground">{{ t('collection.tabWishlist') }}</p>
+          </div>
         </div>
-        <div class="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-2">
-          <span class="truncate font-medium tabular-nums text-foreground">
-            {{ formatUSD(stats.totalOwnedValue) }}
-          </span>
-          <span
-            v-if="gain !== null"
-            class="truncate text-xs font-medium tabular-nums"
-            :class="gain >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'"
-          >
-            {{ (gain >= 0 ? '+' : '−') + formatUSD(Math.abs(gain)) }}
-          </span>
-          <span class="truncate text-xs text-muted-foreground sm:text-sm">{{ t('collection.ownedValue') }}</span>
-        </div>
-        <div class="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-2">
-          <span class="font-medium tabular-nums text-foreground">{{ stats.totalWishlist }}</span>
-          <span class="truncate text-xs text-muted-foreground sm:text-sm">{{ t('collection.wishlist') }}</span>
+        <!-- Total value -->
+        <div class="flex items-center gap-3 rounded-xl border bg-zinc-50 p-4 border-zinc-200 dark:bg-zinc-900 dark:border-zinc-800">
+          <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800">
+            <span class="text-xs font-bold text-zinc-500 dark:text-zinc-400">Rp</span>
+          </div>
+          <div class="min-w-0">
+            <p class="truncate text-xl font-semibold tabular-nums text-foreground">{{ formatUSD(stats.totalOwnedValue) }}</p>
+            <div class="flex flex-wrap items-center gap-1.5">
+              <p class="truncate text-xs text-muted-foreground">{{ t('collection.ownedValue') }}</p>
+              <span
+                v-if="gain !== null"
+                class="truncate text-xs font-medium tabular-nums"
+                :class="gain >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'"
+              >
+                {{ (gain >= 0 ? '+' : '−') + formatUSD(Math.abs(gain)) }}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 

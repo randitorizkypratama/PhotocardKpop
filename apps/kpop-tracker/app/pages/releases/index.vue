@@ -69,6 +69,20 @@ function ensureValidType() {
 watch(selectedGroup, ensureValidType)
 watch(releases, ensureValidType)
 
+type SortOption = 'newest' | 'oldest' | 'most_cards'
+
+const SORT_OPTIONS_RELEASES: { value: SortOption; labelKey: string }[] = [
+  { value: 'newest', labelKey: 'releases.timeline.sortNewest' },
+  { value: 'oldest', labelKey: 'releases.timeline.sortOldest' },
+  { value: 'most_cards', labelKey: 'releases.timeline.sortMostCards' },
+]
+
+const selectedSort = ref<SortOption>(
+  (['newest', 'oldest', 'most_cards'] as SortOption[]).includes(route.query.sort as SortOption)
+    ? (route.query.sort as SortOption)
+    : 'newest',
+)
+
 // Keep the filter + sort state in the URL so a filtered/sorted timeline can be shared.
 watch([selectedGroup, selectedType, selectedSort], ([group, type, sort]) => {
   const query: Record<string, string> = {}
@@ -102,20 +116,6 @@ if (selectedType.value !== 'All') {
   if (match) selectedType.value = match
   else if (releases.value.length) selectedType.value = 'All'
 }
-
-type SortOption = 'newest' | 'oldest' | 'most_cards'
-
-const SORT_OPTIONS_RELEASES: { value: SortOption; labelKey: string }[] = [
-  { value: 'newest', labelKey: 'releases.timeline.sortNewest' },
-  { value: 'oldest', labelKey: 'releases.timeline.sortOldest' },
-  { value: 'most_cards', labelKey: 'releases.timeline.sortMostCards' },
-]
-
-const selectedSort = ref<SortOption>(
-  (['newest', 'oldest', 'most_cards'] as SortOption[]).includes(route.query.sort as SortOption)
-    ? (route.query.sort as SortOption)
-    : 'newest',
-)
 
 /**
  * Apply sort to the filtered releases before bucketing into years.
@@ -282,7 +282,7 @@ function artThumbSrcset(release: { artwork?: string | null, image?: string | nul
 
         <section v-for="group in years" :key="group.year" class="mb-9">
           <div class="mb-1 flex items-baseline gap-3">
-            <h2 class="text-lg font-semibold tracking-tight text-foreground sm:text-xl">{{ group.year }}</h2>
+            <h2 class="border-l-4 border-foreground pl-3 text-2xl font-bold tracking-tight text-foreground">{{ group.year }}</h2>
             <span class="text-xs text-muted-foreground tabular-nums">
               {{ group.items.length }} {{ group.items.length === 1 ? t('releases.timeline.yearOne') : t('releases.timeline.yearMany') }}
             </span>
@@ -300,7 +300,7 @@ function artThumbSrcset(release: { artwork?: string | null, image?: string | nul
                 {{ formatDate(release.release_date) }}
               </span>
 
-              <span class="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-border bg-muted sm:h-14 sm:w-14">
+              <span class="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl ring-1 ring-zinc-200 bg-muted dark:ring-zinc-800 sm:h-14 sm:w-14">
                 <img
                   v-if="release.artwork || release.image"
                   :src="release.artwork || release.image"
@@ -310,7 +310,7 @@ function artThumbSrcset(release: { artwork?: string | null, image?: string | nul
                   loading="lazy"
                   decoding="async"
                   @error="onImageError"
-                  class="h-full w-full object-cover object-top"
+                  class="h-full w-full object-cover object-top transition-transform duration-200 group-hover:scale-[1.03]"
                 />
                 <Music2
                   v-else
@@ -322,7 +322,7 @@ function artThumbSrcset(release: { artwork?: string | null, image?: string | nul
               <span class="min-w-0 flex-1">
                 <span class="flex items-center gap-2">
                   <span class="h-2 w-2 shrink-0 rounded-full" :class="groupDot(release.group_name)" aria-hidden="true" />
-                  <span class="truncate text-sm font-medium text-foreground">{{ release.release_name }}</span>
+                  <span class="truncate text-sm font-semibold text-foreground">{{ release.release_name }}</span>
                 </span>
                 <span class="mt-1 block truncate text-xs text-muted-foreground">
                   {{ release.group_name }}<template v-if="release.release_type"> · {{ release.release_type }}</template>
@@ -340,7 +340,7 @@ function artThumbSrcset(release: { artwork?: string | null, image?: string | nul
         <!-- No date yet -->
         <section v-if="undated.length > 0">
           <div class="mb-1 flex items-baseline gap-3">
-            <h2 class="text-lg font-semibold tracking-tight text-foreground sm:text-xl">{{ t('releases.timeline.datePending') }}</h2>
+            <h2 class="border-l-4 border-foreground pl-3 text-2xl font-bold tracking-tight text-foreground">{{ t('releases.timeline.datePending') }}</h2>
             <span class="text-xs text-muted-foreground tabular-nums">
               {{ undated.length }} {{ undated.length === 1 ? t('releases.timeline.yearOne') : t('releases.timeline.yearMany') }}
             </span>
@@ -356,7 +356,7 @@ function artThumbSrcset(release: { artwork?: string | null, image?: string | nul
             >
               <span class="w-12 shrink-0 text-xs text-muted-foreground sm:w-16">—</span>
 
-              <span class="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-border bg-muted sm:h-14 sm:w-14">
+              <span class="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl ring-1 ring-zinc-200 bg-muted dark:ring-zinc-800 sm:h-14 sm:w-14">
                 <img
                   v-if="release.artwork || release.image"
                   :src="release.artwork || release.image"
@@ -366,7 +366,7 @@ function artThumbSrcset(release: { artwork?: string | null, image?: string | nul
                   loading="lazy"
                   decoding="async"
                   @error="onImageError"
-                  class="h-full w-full object-cover object-top"
+                  class="h-full w-full object-cover object-top transition-transform duration-200 group-hover:scale-[1.03]"
                 />
                 <Music2
                   v-else
@@ -378,7 +378,7 @@ function artThumbSrcset(release: { artwork?: string | null, image?: string | nul
               <span class="min-w-0 flex-1">
                 <span class="flex items-center gap-2">
                   <span class="h-2 w-2 shrink-0 rounded-full" :class="groupDot(release.group_name)" aria-hidden="true" />
-                  <span class="truncate text-sm font-medium text-foreground">{{ release.release_name }}</span>
+                  <span class="truncate text-sm font-semibold text-foreground">{{ release.release_name }}</span>
                 </span>
                 <span class="mt-1 block truncate text-xs text-muted-foreground">
                   {{ release.group_name }}<template v-if="release.release_type"> · {{ release.release_type }}</template>

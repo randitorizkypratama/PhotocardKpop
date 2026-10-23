@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-background text-foreground">
     <NuxtRouteAnnouncer />
-    <NuxtPage />
+    <NuxtPage :transition="{ name: 'page', mode: 'out-in' }" />
     <!-- Rendered only while open so reka-ui Command/Dialog stay out of the
          entry chunk; the Cmd/Ctrl+K listener lives in app.vue below. -->
     <LazyCommandPalette v-if="paletteOpen" />

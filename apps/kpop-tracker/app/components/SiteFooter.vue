@@ -1,8 +1,10 @@
 <template>
   <footer class="border-t border-zinc-200 bg-card dark:border-zinc-800">
     <div class="page-shell flex flex-col gap-6 py-10 sm:py-12">
-      <div class="flex flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
-        <div class="max-w-sm">
+      <!-- Top section: logo+tagline and nav in 2-col on mobile, row on sm+ -->
+      <div class="grid grid-cols-2 gap-6 sm:flex sm:flex-row sm:items-start sm:justify-between">
+        <!-- Logo + tagline (full width on its own row on very small screens) -->
+        <div class="col-span-2 sm:col-span-1 sm:max-w-sm">
           <div class="flex items-center gap-2.5">
             <img src="/hibikishop-logo.png" alt="HIBIKISHOP" class="h-9 w-9 rounded-full object-contain" />
             <div class="leading-tight">
@@ -13,11 +15,14 @@
           <p class="mt-3 text-sm leading-relaxed text-muted-foreground">
             {{ t('footer.tagline') }}
           </p>
-          <div class="mt-4">
-            <SocialLinks size="sm" />
-          </div>
         </div>
 
+        <!-- Social links col (mobile only, shows in col 1 of bottom row) -->
+        <div class="flex flex-col gap-3 sm:hidden">
+          <SocialLinks size="sm" />
+        </div>
+
+        <!-- Nav links col -->
         <nav class="flex flex-col gap-2.5" :aria-label="t('aria.footerNav')">
           <NuxtLink to="/browse" class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">{{ t('footer.browse') }}</NuxtLink>
           <NuxtLink to="/#groups" class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">{{ t('nav.groups') }}</NuxtLink>
@@ -25,15 +30,22 @@
           <NuxtLink to="/collection" class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">{{ t('nav.collection') }}</NuxtLink>
           <NuxtLink v-if="isAdmin" to="/status" class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">{{ t('nav.status') }}</NuxtLink>
         </nav>
+
+        <!-- Social links (sm+ only, inline with logo block) -->
+        <div class="mt-4 hidden sm:block">
+          <SocialLinks size="sm" />
+        </div>
       </div>
 
       <Separator />
 
-      <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <p class="text-xs text-muted-foreground">
+      <!-- Bottom: copyright left, controls right -->
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p class="text-xs leading-relaxed text-muted-foreground">
           © {{ year }} {{ t('footer.copyright') }}
           <span class="font-medium text-foreground">HIBIKISHOP</span>
-          · {{ t('footer.dataBasedOn') }}
+          <span class="mx-1 opacity-40">·</span>
+          {{ t('footer.dataBasedOn') }}
           <a
             href="https://pocamarket.com"
             target="_blank"
@@ -41,8 +53,8 @@
             class="font-medium text-foreground underline-offset-2 hover:underline"
           >POCAMARKET</a>
         </p>
-        <div class="flex flex-col items-start gap-1 sm:items-end">
-          <div class="mb-0.5 flex items-center gap-1" role="group" :aria-label="t('aria.language')">
+        <div class="flex flex-row flex-wrap items-center gap-x-4 gap-y-1.5 sm:flex-col sm:items-end sm:gap-1">
+          <div class="flex items-center gap-1" role="group" :aria-label="t('aria.language')">
             <button
               v-for="option in (['en', 'id'] as const)"
               :key="option"
