@@ -132,9 +132,37 @@ function getIndex() {
  * accuracy without them).
  */
 async function preprocessQueryCrops(file: Blob): Promise<Blob[]> {
-  const img = await createImageBitmap(file)
-  const srcW = img.width
-  const srcH = img.height
+  // Attempt to create an ImageBitmap; fallback to HTMLImageElement for browsers where this fails (e.g., orientation issues)
+  let img: ImageBitmap;
+  try {
+    img = await createImageBitmap(file);
+  } catch (e) {
+    // Fallback: load via an object URL into an Image element
+    const url = URL.createObjectURL(file);
+    img = await new Promise<ImageBitmap>((resolve, reject) => {
+      const image = new Image();
+      image.onload = async () => {
+        try {
+          // OffscreenCanvas may not support drawImage from HTMLImageElement directly; use createImageBitmap on the loaded image
+          const bitmap = await createImageBitmap(image);
+          resolve(bitmap);
+        } catch (err) {
+          reject(err);
+        } finally {
+          URL.revokeObjectURL(url);
+        }
+      };
+      image.onerror = (ev) => {
+        URL.revokeObjectURL(url);
+        reject(new Error('Failed to load image for preprocessing'));
+      };
+      image.src = url;
+    });
+  }
+  const srcW = img.width;
+  const srcH = img.height;
+
+
 
   const render = async (
     sx: number, sy: number, sw: number, sh: number, outW: number, outH: number,
