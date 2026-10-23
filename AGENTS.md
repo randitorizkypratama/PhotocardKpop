@@ -57,3 +57,13 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 - PowerShell: `$home` is read-only; no `Join-String`; prefer `ConvertFrom-Json` for JSON; use the grep tool over complex quoted regex in bash.
 - `bun add` of `@unovis/*` fails (integrity errors) — chart component was abandoned; do not retry without a different approach.
 - Two CI workflows exist: `.github/workflows/security-audit.yml` (monthly `bun audit` + manual dispatch — audit only, never deploys) and `.github/workflows/rebuild-index.yml` (Sunday 00:00 UTC + manual `workflow_dispatch`, `force` input) which **does deploy**: it rebuilds the identify index and commits `public/search/*` to `main`. It resumes from a checkpoint kept in `actions/cache` (saved with `if: always()`, skipped when `force`), and its commit step re-syncs onto `origin/main` with a push retry loop because the rebuild takes hours. No ESLint/Prettier/Biome, no pre-commit hooks in this repo.
+
+## Photo Identify Improvements
+
+- Added EXIF orientation handling via `app/lib/exifUtil.ts` to correctly rotate images before processing.
+- Implemented bitmap fallback in `app/lib/photoSearch.ts` using `createImageBitmap` with HTMLImageElement fallback for Edge compatibility.
+- Updated error handling in `app/pages/identify.vue` to send detailed error reports to `/api/errors`.
+- Commits:
+  - `b8de576` – EXIF handling.
+  - `7d19690` – Detailed error reporting.
+  - `9d2d698` – Bitmap fallback implementation.
