@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowLeft, Heart, LogIn, LogOut, Search, ShoppingBag, User } from 'lucide-vue-next'
+import { ArrowLeft, Heart, LogIn, LogOut, Search } from 'lucide-vue-next'
 
 withDefaults(
   defineProps<{
@@ -21,10 +21,6 @@ const { stats, fetchCollection } = useCollection()
 const { user, ensureChecked, logout } = useAuth()
 
 onMounted(async () => {
-  // One lightweight fetch per session so the heart can show the wishlist count
-  // on pages that don't load the collection themselves. ensureChecked() is a
-  // no-op after the first page — refresh() used to re-hit /api/auth/me on
-  // every navigation.
   await ensureChecked()
   if (user.value) fetchCollection()
 })
@@ -32,11 +28,17 @@ onMounted(async () => {
 const navLinks = [
   { to: '/browse', label: 'nav.browse', key: 'browse', cls: '' },
   { to: '/#groups', label: 'nav.groups', key: 'groups', cls: 'hidden lg:block' },
-  { to: '/#card-types', label: 'nav.cardTypes', key: 'card-types', cls: 'hidden lg:block' },
+  { to: '/#card-types', label: 'nav.cardTypes', key: 'card-types', cls: 'hidden xl:block' },
   { to: '/releases', label: 'nav.releases', key: 'releases', cls: '' },
   { to: '/collection', label: 'nav.collection', key: 'collection', cls: '' },
   { to: '/shop', label: 'nav.shop', key: 'shop', cls: '' },
 ]
+
+/** First 1–2 letters of username for avatar */
+const userInitials = computed(() => {
+  const name = user.value?.username || ''
+  return name.slice(0, 2).toUpperCase()
+})
 
 function submitSearch() {
   const q = headerSearch.value.trim()
@@ -50,42 +52,57 @@ function submitSearch() {
     style="padding-top: env(safe-area-inset-top, 0px)"
   >
     <div class="page-shell flex h-14 items-center gap-2 sm:h-16 sm:gap-3">
+
+      <!-- Logo / back -->
       <div v-if="back" class="flex shrink-0 items-center gap-1 sm:gap-3">
         <Button variant="ghost" size="sm" class="gap-1.5 rounded-lg" @click="router.back()">
           <ArrowLeft class="h-4 w-4" />
           <span class="hidden sm:inline">{{ t('nav.back') }}</span>
         </Button>
         <NuxtLink to="/" class="flex shrink-0 items-center gap-2">
-          <img src="/hibikishop-logo.png" alt="HIBIKISHOP" class="h-8 w-8 rounded-full object-contain" />
+          <img src="/hibikishop-logo.png" alt="HIBIKISHOP" class="h-8 w-8 rounded-full object-contain sm:h-9 sm:w-9" />
         </NuxtLink>
       </div>
 
       <NuxtLink v-else to="/" class="flex min-w-0 shrink-0 items-center gap-2 sm:gap-2.5">
         <img src="/hibikishop-logo.png" alt="HIBIKISHOP" class="h-8 w-8 shrink-0 rounded-full object-contain sm:h-9 sm:w-9" />
         <div class="min-w-0 leading-tight">
-          <span class="block truncate text-sm font-semibold tracking-tight text-foreground sm:text-base">HIBIKISHOP</span>
+          <span class="block truncate text-sm font-bold tracking-tight text-foreground sm:text-base">HIBIKISHOP</span>
           <span class="hidden text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground sm:block">Photocards</span>
         </div>
       </NuxtLink>
 
-      <nav class="ml-2 hidden items-center gap-1 md:flex md:ml-4" :aria-label="t('aria.navPrimary')">
+      <!-- Divider (desktop) -->
+      <div class="hidden h-5 w-px bg-zinc-200 md:block dark:bg-zinc-700" aria-hidden="true" />
+
+      <!-- Desktop nav -->
+      <nav class="hidden items-center gap-0.5 md:flex" :aria-label="t('aria.navPrimary')">
         <NuxtLink
           v-for="link in navLinks"
           :key="link.key"
           :to="link.to"
           :class="[
-            'whitespace-nowrap rounded-lg px-2.5 py-2 text-sm font-medium transition-colors duration-150 md:px-2 xl:px-3',
+            'relative whitespace-nowrap rounded-lg px-2.5 py-2 text-sm font-medium transition-colors duration-150 md:px-2 xl:px-3',
             link.cls,
             active === link.key
-              ? 'bg-zinc-100 text-foreground dark:bg-zinc-800'
+              ? 'text-foreground'
               : 'text-muted-foreground hover:bg-zinc-50 hover:text-foreground dark:hover:bg-zinc-900',
           ]"
         >
           {{ t(link.label) }}
+          <!-- Active underline indicator -->
+          <span
+            v-if="active === link.key"
+            class="absolute inset-x-2 bottom-0.5 h-0.5 rounded-full bg-foreground"
+            aria-hidden="true"
+          />
         </NuxtLink>
       </nav>
 
-      <div class="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1.5">
+      <!-- Right side actions -->
+      <div class="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1">
+
+        <!-- Search bar (xl+) -->
         <form class="hidden xl:block" role="search" @submit.prevent="submitSearch">
           <label for="header-search" class="sr-only">{{ t('search.aria') }}</label>
           <div class="relative">
@@ -95,7 +112,7 @@ function submitSearch() {
               v-model="headerSearch"
               type="search"
               :placeholder="t('search.placeholder')"
-              class="h-9 w-64 rounded-lg border border-zinc-200 bg-card pl-9 pr-14 text-sm text-foreground placeholder:text-muted-foreground focus:border-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 xl:w-72 dark:border-zinc-800 dark:bg-zinc-900/60 dark:focus:border-zinc-600 dark:focus:ring-zinc-600"
+              class="h-9 w-56 rounded-lg border border-zinc-200 bg-card pl-9 pr-14 text-sm text-foreground placeholder:text-muted-foreground focus:border-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 xl:w-64 dark:border-zinc-800 dark:bg-zinc-900/60 dark:focus:border-zinc-600 dark:focus:ring-zinc-600"
             />
             <button
               type="button"
@@ -108,6 +125,7 @@ function submitSearch() {
           </div>
         </form>
 
+        <!-- Search icon (< xl) -->
         <Button
           variant="ghost"
           size="icon-sm"
@@ -120,18 +138,7 @@ function submitSearch() {
           </NuxtLink>
         </Button>
 
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          class="rounded-lg md:hidden"
-          :aria-label="t('nav.shop')"
-          as-child
-        >
-          <NuxtLink to="/shop">
-            <ShoppingBag class="h-4 w-4" />
-          </NuxtLink>
-        </Button>
-
+        <!-- Wishlist heart -->
         <Button
           variant="ghost"
           size="icon-sm"
@@ -148,24 +155,26 @@ function submitSearch() {
           </NuxtLink>
         </Button>
 
+        <!-- Divider -->
+        <div class="mx-0.5 h-5 w-px bg-zinc-200 dark:bg-zinc-700" aria-hidden="true" />
+
+        <!-- User: avatar + logout, or login -->
         <template v-if="user">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            class="rounded-lg"
-            :aria-label="t('auth.logout')"
-            :title="user.username"
+          <button
+            type="button"
+            class="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-900 text-[11px] font-bold text-white transition-opacity hover:opacity-80 dark:bg-zinc-100 dark:text-zinc-900"
+            :aria-label="`${user.username} — ${t('auth.logout')}`"
+            :title="`${user.username} — ${t('auth.logout')}`"
             @click="logout()"
           >
-            <LogOut class="h-4 w-4" />
-          </Button>
-          <span class="hidden max-w-28 truncate text-xs font-medium text-muted-foreground lg:inline">{{ user.username }}</span>
+            {{ userInitials }}
+          </button>
         </template>
         <Button
           v-else
           variant="ghost"
           size="sm"
-          class="rounded-lg gap-1.5"
+          class="gap-1.5 rounded-lg"
           as-child
         >
           <NuxtLink to="/login">
@@ -174,6 +183,7 @@ function submitSearch() {
           </NuxtLink>
         </Button>
 
+        <!-- Language toggle -->
         <Button
           variant="ghost"
           size="icon-sm"
