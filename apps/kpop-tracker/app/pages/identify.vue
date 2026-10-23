@@ -92,6 +92,17 @@ async function triggerSearch(file: File) {
     phase.value = res.topScore >= NOT_FOUND_FLOOR ? 'results' : 'notfound'
   } catch (e) {
     console.error('photo identify failed:', e)
+    // Send detailed error report for debugging
+    if (e instanceof Error) {
+      $fetch('/api/errors', {
+        method: 'POST',
+        body: {
+          message: e.message.slice(0, 500),
+          stack: e.stack?.slice(0, 4000),
+          path: window.location.pathname,
+        },
+      }).catch(() => {})
+    }
     if (seq !== searchSeq) return
     phase.value = 'error'
   }

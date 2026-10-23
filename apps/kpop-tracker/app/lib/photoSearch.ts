@@ -133,7 +133,8 @@ function getIndex() {
  */
 async function preprocessQueryCrops(file: Blob): Promise<Blob[]> {
   // Attempt to create an ImageBitmap; fallback to HTMLImageElement for browsers where this fails (e.g., orientation issues)
-  let img: ImageBitmap;
+  // Use a type that works for both ImageBitmap and HTMLImageElement
+  let img: ImageBitmap | HTMLImageElement;
   try {
     img = await createImageBitmap(file);
   } catch (e) {
