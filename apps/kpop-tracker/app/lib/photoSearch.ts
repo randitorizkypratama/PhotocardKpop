@@ -128,6 +128,54 @@ function getIndex() {
 }
 
 /**
+ * Per-channel histogram stretch (equivalent to sharp().normalize()).
+ * Reads the canvas pixels, finds the min/max for each of R, G, B independently,
+ * then linearly remaps each channel so its darkest pixel becomes 0 and its
+ * brightest becomes 255. Alpha is left untouched.
+ *
+ * This matches the `.normalize()` call in `scripts/rebuild-index.mjs` that was
+ * applied to every index image. Without it, query crops from real-world photos
+ * (dark sleeve background, low ambient light) sit in a very different region of
+ * pixel-value space from the blurred CDN thumbnails in the index, depressing
+ * cosine similarity even when the visual content is identical.
+ *
+ * Operates in-place on the canvas context. Skips channels where min === max
+ * (flat plane, e.g. fully transparent crops) to avoid division by zero.
+ */
+function normalizeImageData(
+  ctx: OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D,
+  w: number,
+  h: number,
+): void {
+  const imageData = ctx.getImageData(0, 0, w, h)
+  const d = imageData.data  // Uint8ClampedArray, layout: R G B A R G B A …
+
+  let rMin = 255, rMax = 0
+  let gMin = 255, gMax = 0
+  let bMin = 255, bMax = 0
+
+  for (let i = 0; i < d.length; i += 4) {
+    const r = d[i]!, g = d[i + 1]!, b = d[i + 2]!
+    if (r < rMin) rMin = r; if (r > rMax) rMax = r
+    if (g < gMin) gMin = g; if (g > gMax) gMax = g
+    if (b < bMin) bMin = b; if (b > bMax) bMax = b
+  }
+
+  const rRange = rMax - rMin || 1
+  const gRange = gMax - gMin || 1
+  const bRange = bMax - bMin || 1
+
+  for (let i = 0; i < d.length; i += 4) {
+    d[i]     = Math.round(((d[i]!     - rMin) / rRange) * 255)
+    d[i + 1] = Math.round(((d[i + 1]! - gMin) / gRange) * 255)
+    d[i + 2] = Math.round(((d[i + 2]! - bMin) / bRange) * 255)
+    // d[i + 3] = alpha — untouched
+  }
+
+  ctx.putImageData(imageData, 0, 0)
+}
+
+/**
  * Render the query crops used for embedding:
  *  1. Center-crop to 2:3 (photocard proportions) → 149×224
  *  2. Center square at 75% and 55% of the shorter edge → 224×224
@@ -242,6 +290,16 @@ async function preprocessQueryCrops(file: Blob): Promise<Blob[]> {
       ctx.drawImage(img as CanvasImageSource, sx, sy, sw, sh, -outW / 2, -outH / 2, outW, outH)
     }
     ctx.restore()
+
+    // Auto-normalize: stretch per-channel histogram to [0, 255], matching the
+    // `sharp().normalize()` step used when building the index. Without this,
+    // real-world photos with large dark backgrounds (table, sleeve) have a very
+    // different pixel-value distribution from the index images (blurred CDN
+    // thumbnails with auto-contrast applied), which pushes cosine scores down
+    // regardless of visual similarity. Doing it on the final outW×outH crop
+    // (after draw) is equivalent to doing it on the source and avoids a second
+    // canvas allocation.
+    normalizeImageData(ctx, outW, outH)
 
     if (canvas instanceof OffscreenCanvas) {
       return canvas.convertToBlob({ type: 'image/jpeg', quality: 0.80 })
