@@ -99,9 +99,16 @@ export default defineNuxtConfig({
       // (status.vue forwards the session cookie) is excluded below. 600s: card
       // and release data only changes on the 17:00 UTC cron, so this trades at
       // most 10 minutes of freshness for not paying the render (measured TTFB
-      // 304-586 ms) or a serverless invocation per view. Query strings are
-      // distinct cache entries, so /releases?group= filters stay correct.
+      // 304-586 ms) or a serverless invocation per view.
       //
+      // NB: query strings are NOT separate renders. The prerender happens once
+      // for the bare path and every query string is served that same body —
+      // measured: /browse?page=2, ?min_price=50000 and a never-seen ?bust= all
+      // returned byte-identical HTML reading "Page 1", even on a cache MISS.
+      // Anything these pages display from route.query is therefore restored on
+      // the client and must not assume the payload behind it matches: /browse
+      // keys its cards fetch on the filters for exactly that reason, and
+      // /releases filters the full unfiltered timeline in computed state.
       // tests/cache-safety.test.ts asserts that /status and /collection never
       // join this list — their HTML carries the admin error log and per-user
       // collections, so a cached copy would leak one visitor's data to the next.

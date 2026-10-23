@@ -134,14 +134,42 @@ const { data: ratesRes } = ratesAsync
 // Cards are fetched during SSR, so the first page of results (and its images)
 // ships in the HTML instead of a skeleton.
 //
-// The handler reads the filter refs at call time, which keeps refetches driven
-// by the existing debounced watchers below — a reactive key would fire on every
-// keystroke and throw that debounce away.
+// The key names the *request*, not the page. /browse is ISR (nuxt.config.ts),
+// so its HTML and payload are rendered once — for bare /browse — and then served
+// for every query string alike; measured, /browse?page=2, ?min_price=50000 and
+// a never-seen ?bust= all returned byte-identical HTML reading "Page 1", even on
+// a cache MISS, because nothing re-renders per query. A payload therefore always
+// describes the bare URL, whatever URL it is handed to.
 //
-// getCachedData limits payload reuse to hydration: arriving here client-side
-// must re-read the current filters rather than reuse the previous page.
+// With a static key that fact was invisible: ?group=aespa looked up 'browse:cards',
+// found the prerendered IVE results, and reused them — so the chips and paginator
+// advertised the restored filters while the grid kept showing IVE, with no request
+// in between (verified in production: 0 /api/cards calls during hydration, first
+// card /card/115072, an IVE card). Naming the key after the filters makes a
+// filtered URL miss the bare payload and fetch for itself, while bare /browse
+// still hits it and keeps its no-skeleton first paint.
+//
+// Computed once from the refs and deliberately NOT reactive: a reactive key
+// would fire on every keystroke and throw away the debounced watchers below,
+// which still drive refetches by reading the refs at call time.
+function cardsKey(): string {
+  return [
+    'browse:cards',
+    selectedGroup.value,
+    String(currentPage.value),
+    selectedSort.value,
+    selectedMember.value,
+    selectedCardType.value,
+    selectedRelease.value,
+    selectedStore.value,
+    searchQuery.value.trim(),
+    minPriceIDR.value,
+    maxPriceIDR.value,
+    String(pageSize),
+  ].join('|')
+}
 const cardsAsync = useAsyncData(
-  'browse:cards',
+  cardsKey(),
   async () => {
     const params = new URLSearchParams({
       group: selectedGroup.value,
