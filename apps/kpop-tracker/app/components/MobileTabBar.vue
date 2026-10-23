@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Home, LayoutGrid, Users, Heart } from 'lucide-vue-next'
+import { Home, LayoutGrid, Music2, ShoppingBag, Heart } from 'lucide-vue-next'
 
 const route = useRoute()
 const { t } = useLocale()
@@ -7,13 +7,13 @@ const { t } = useLocale()
 const tabs = [
   { to: '/', label: 'tab.home', icon: Home },
   { to: '/browse', label: 'tab.catalog', icon: LayoutGrid },
-  { to: '/#groups', label: 'tab.groups', icon: Users },
+  { to: '/releases', label: 'tab.releases', icon: Music2 },
+  { to: '/shop', label: 'tab.shop', icon: ShoppingBag },
   { to: '/collection', label: 'tab.collection', icon: Heart },
 ]
 
 function isActive(to: string) {
   if (to === '/') return route.path === '/' && !route.hash
-  if (to === '/#groups') return route.path === '/' && route.hash === '#groups'
   if (to === '/browse') {
     return (
       route.path.startsWith('/browse') ||
@@ -21,6 +21,8 @@ function isActive(to: string) {
       route.path.startsWith('/groups')
     )
   }
+  if (to === '/releases') return route.path.startsWith('/releases')
+  if (to === '/shop') return route.path.startsWith('/shop')
   return route.path.startsWith(to)
 }
 </script>
@@ -45,10 +47,10 @@ function isActive(to: string) {
         :aria-current="isActive(tab.to) ? 'page' : undefined"
       >
         <component :is="tab.icon" class="h-5 w-5" :stroke-width="isActive(tab.to) ? 2.25 : 1.75" />
-        <span class="text-[10px] font-medium">{{ t(tab.label) }}</span>
+        <span class="text-[9px] font-medium">{{ t(tab.label) }}</span>
         <span
           v-if="isActive(tab.to)"
-          class="absolute top-0 h-0.5 w-8 rounded-full bg-foreground"
+          class="absolute top-0 h-0.5 w-6 rounded-full bg-foreground"
         />
       </NuxtLink>
     </div>
