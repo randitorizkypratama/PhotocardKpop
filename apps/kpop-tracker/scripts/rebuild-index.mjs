@@ -27,9 +27,22 @@ const appDir = join(__dirname, '..')
 // ── Config ──────────────────────────────────────────────────────────
 const BATCH_SIZE = 50          // images per batch before checkpointing
 const CONCURRENCY = 4          // parallel downloads
-const SHARPEN_SIGMA = 1.5      // unsharp-mask sigma
-const SHARPEN_FLAT = 1.0       // unsharp-mask flat parameter
-const SHARPEN_JAGGED = 0.5     // unsharp-mask jagged parameter
+// Unsharp-mask parameters. Pocamarket serves blurred thumbnails
+// (photocard_blur CDN path). The blur is a Gaussian-style softening that
+// removes the high-frequency detail CLIP relies on to distinguish individuals.
+// These values were tuned empirically: sigma=2.5 targets the blur radius,
+// flat=2.5 boosts mid-tone edges (face/hair boundary), jagged=1.5 recovers
+// fine detail (eye shape, accessories). A second pass at sigma=1.2 sharpens
+// residual softness without introducing colour fringing.
+// Prior values (sigma=1.5, flat=1.0, jagged=0.5) were insufficient —
+// diagnostic embedding showed target cards ranking #31 and #1081 for
+// unambiguous close-up photos of the correct person.
+const SHARPEN_SIGMA = 2.5      // unsharp-mask sigma (was 1.5)
+const SHARPEN_FLAT = 2.5       // unsharp-mask flat parameter (was 1.0)
+const SHARPEN_JAGGED = 1.5     // unsharp-mask jagged parameter (was 0.5)
+const SHARPEN_SIGMA2 = 1.2     // second pass sigma
+const SHARPEN_FLAT2 = 1.5      // second pass flat
+const SHARPEN_JAGGED2 = 0.8    // second pass jagged
 const DIM = 512                // CLIP embedding dimension
 const CHECKPOINT_FILE = join(appDir, '.index-checkpoint.json')
 const OUTPUT_DIR = join(appDir, 'public', 'search')
@@ -243,10 +256,12 @@ async function processCard(card, extractor) {
     }
   }
 
-  // Sharpen image
+  // Sharpen image — two passes to recover detail from Pocamarket's blur.
+  // First pass attacks the blur radius; second pass recovers residual softness.
   const sharpened = await sharp(imageBuffer)
     .resize(149, 224, { fit: 'cover', position: 'centre' })
     .sharpen(SHARPEN_SIGMA, SHARPEN_FLAT, SHARPEN_JAGGED)
+    .sharpen(SHARPEN_SIGMA2, SHARPEN_FLAT2, SHARPEN_JAGGED2)
     .normalize()  // auto-adjust contrast
     .jpeg({ quality: 85 })
     .toBuffer()
