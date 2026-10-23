@@ -25,6 +25,7 @@ Track K-pop photocard prices from Pocamarket for IVE, aespa, and Hearts2Hearts.
 - **ID/EN language toggle** across navigation, filters, forms and all key pages
 - SEO: sitemap (`/sitemap.xml`), robots.txt, Open Graph / Twitter cards
 - Daily auto-sync from Pocamarket at 00:00 WIB, dark mode UI
+- **Shop page** (`/shop`) — HIBIKISHOP storefront with hero section, how-to-order guide, and direct contact buttons for TikTok DM and Shopee chat
 
 ## How releases are labeled
 

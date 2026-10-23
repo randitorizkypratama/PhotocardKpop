@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ExternalLink, Play, Link2, RefreshCw, Video, PackageOpen } from 'lucide-vue-next'
+import { ExternalLink, Play, Link2, RefreshCw, Video, MessageCircle, ShoppingBag, Package, CreditCard, Truck } from 'lucide-vue-next'
 import { SHOP_URLS, shopProducts } from '@/lib/shop'
 import { safeExternalUrl } from '@/lib/url'
 
@@ -66,9 +66,7 @@ const tiktokStatus = ref<{ configured: boolean; connected: boolean }>({ configur
 const videos = ref<any[]>([])
 const videosLoading = ref(false)
 const videosError = ref('')
-const products = ref<any[]>([])
-const productsLoading = ref(false)
-const productsNote = ref('')
+
 
 onMounted(() => {
   loadEmbedScript()
@@ -103,10 +101,7 @@ const statusAsync = useAsyncData('shop:status', () =>
 const videosAsync = useAsyncData('shop:videos', () =>
   $fetch<any>('/api/tiktok/videos', { headers: SSR_HEADERS }).catch(() => null),
 )
-const productsAsync = useAsyncData('shop:products', () =>
-  $fetch<any>('/api/tiktok/products', { headers: SSR_HEADERS }).catch(() => null),
-)
-await Promise.all([statusAsync, videosAsync, productsAsync])
+await Promise.all([statusAsync, videosAsync])
 
 // Refs rather than computeds, and assigned here rather than derived: the refresh
 // button calls loadVideos(true) / loadProducts() later and must be able to
@@ -117,15 +112,6 @@ tiktokStatus.value = {
 }
 videos.value = videosAsync.data.value?.videos || []
 videosError.value = ''
-products.value = productsAsync.data.value?.products || []
-const productsRes = productsAsync.data.value
-productsNote.value = !productsRes
-  ? ''
-  : !productsRes.configured
-    ? t('shop.productsNoteConfig')
-    : (productsRes.products || []).length === 0
-      ? t('shop.productsNoteNone')
-      : ''
 
 // loadStatus is gone: connection status arrives with the SSR payload above and
 // there is no button that re-checks it, so a manual reload was its only refresh.
@@ -144,24 +130,6 @@ async function loadVideos(force = false) {
   }
 }
 
-async function loadProducts() {
-  productsLoading.value = true
-  productsNote.value = ''
-  try {
-    const res = await $fetch<any>('/api/tiktok/products')
-    products.value = res.products || []
-    if (!res.configured) {
-      productsNote.value = t('shop.productsNoteConfig')
-    } else if (products.value.length === 0) {
-      productsNote.value = t('shop.productsNoteNone')
-    }
-  } catch (e: any) {
-    products.value = []
-    productsNote.value = e?.data?.statusMessage || t('shop.productsNoteError')
-  } finally {
-    productsLoading.value = false
-  }
-}
 
 function formatDuration(sec?: number) {
   if (!sec && sec !== 0) return ''
@@ -209,40 +177,67 @@ function loadEmbedScript() {
     <AppHeader back active="shop" />
 
     <main>
+      <!-- Hero -->
       <section class="border-b border-zinc-200 dark:border-zinc-800">
-        <div class="page-shell py-8 sm:py-10">
-          <p class="eyebrow">{{ t('shop.eyebrow') }}</p>
-          <h1 class="mt-2 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-            {{ t('shop.title') }}
-          </h1>
-          <p class="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-            {{ t('shop.desc') }}
-          </p>
+        <div class="page-shell py-10 sm:py-14">
+          <div class="flex flex-col items-center gap-6 text-center sm:gap-8">
+            <!-- Logo -->
+            <img
+              src="/hibikishop-logo.png"
+              alt="HIBIKISHOP"
+              class="h-28 w-28 drop-shadow-md sm:h-36 sm:w-36"
+            />
 
-          <div class="mt-5 flex flex-wrap gap-2">
-            <Button class="h-10 rounded-lg" as-child>
-              <a :href="SHOP_URLS.shopee" target="_blank" rel="noopener noreferrer">
-                <img src="/social/shopee.svg" alt="" class="h-4 w-4" aria-hidden="true" />
-                Shopee
-              </a>
-            </Button>
-            <Button variant="outline" class="h-10 rounded-lg" as-child>
-              <a :href="SHOP_URLS.tokopedia" target="_blank" rel="noopener noreferrer">
-                <img src="/social/tokopedia.png" alt="" class="h-4 w-4" aria-hidden="true" />
-                Tokopedia
-              </a>
-            </Button>
-            <Button variant="outline" class="h-10 rounded-lg" as-child>
-              <a :href="SHOP_URLS.tiktok" target="_blank" rel="noopener noreferrer">
-                <img src="/social/tiktok.svg" alt="" class="h-4 w-4" aria-hidden="true" />
-                TikTok
-              </a>
-            </Button>
+            <!-- Eyebrow + title -->
+            <div>
+              <p class="eyebrow">{{ t('shop.eyebrow') }}</p>
+              <h1 class="mt-2 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+                {{ t('shop.title') }}
+              </h1>
+              <p class="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted-foreground sm:text-base">
+                {{ t('shop.tagline') }}
+              </p>
+            </div>
+
+            <!-- Marketplace buttons -->
+            <div class="flex flex-wrap justify-center gap-3">
+              <Button
+                size="lg"
+                class="h-12 gap-2.5 rounded-xl bg-[#EE4D2D] px-6 text-white hover:bg-[#d94429] dark:bg-[#EE4D2D] dark:hover:bg-[#d94429]"
+                as-child
+              >
+                <a :href="SHOP_URLS.shopee" target="_blank" rel="noopener noreferrer">
+                  <img src="/social/shopee.svg" alt="" class="h-5 w-5 brightness-0 invert" aria-hidden="true" />
+                  {{ t('shop.heroShopee') }}
+                </a>
+              </Button>
+              <Button
+                size="lg"
+                class="h-12 gap-2.5 rounded-xl bg-[#42B549] px-6 text-white hover:bg-[#379e3f] dark:bg-[#42B549] dark:hover:bg-[#379e3f]"
+                as-child
+              >
+                <a :href="SHOP_URLS.tokopedia" target="_blank" rel="noopener noreferrer">
+                  <img src="/social/tokopedia.png" alt="" class="h-5 w-5 brightness-0 invert" aria-hidden="true" />
+                  {{ t('shop.heroTokopedia') }}
+                </a>
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                class="h-12 gap-2.5 rounded-xl px-6"
+                as-child
+              >
+                <a :href="SHOP_URLS.tiktok" target="_blank" rel="noopener noreferrer">
+                  <img src="/social/tiktok.svg" alt="" class="h-5 w-5" aria-hidden="true" />
+                  {{ t('shop.heroTiktok') }}
+                </a>
+              </Button>
+            </div>
           </div>
 
           <p
             v-if="connectedNotice"
-            class="mt-4 rounded-lg border px-3 py-2 text-sm"
+            class="mt-6 rounded-lg border px-3 py-2 text-sm text-center"
             :class="route.query.tiktok_error
               ? 'border-red-200 bg-red-50 text-red-800 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200'
               : 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-200'"
@@ -252,78 +247,84 @@ function loadEmbedScript() {
         </div>
       </section>
 
-      <!-- TikTok Shop products (Seller API) -->
-      <section class="page-shell py-10 sm:py-12">
-        <div class="mb-5 flex flex-wrap items-end justify-between gap-3 sm:mb-6">
-          <div>
-            <p class="eyebrow">TikTok Shop</p>
-            <h2 class="mt-1 text-lg font-semibold tracking-tight text-foreground sm:text-xl">
-              {{ t('shop.productsTitle') }}
+      <!-- How to Order (C) -->
+      <section class="border-t border-zinc-200 dark:border-zinc-800">
+        <div class="page-shell py-10 sm:py-12">
+          <div class="mb-8 text-center">
+            <p class="eyebrow">{{ t('shop.howEyebrow') }}</p>
+            <h2 class="mt-2 text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+              {{ t('shop.howTitle') }}
             </h2>
           </div>
-          <Button
-            v-if="products.length > 0"
-            variant="ghost"
-            size="sm"
-            class="gap-1.5 rounded-lg text-muted-foreground"
-            :disabled="productsLoading"
-            @click="loadProducts()"
-          >
-            <RefreshCw class="h-3.5 w-3.5" :class="productsLoading ? 'animate-spin' : ''" />
-            {{ t('shop.refresh') }}
-          </Button>
-        </div>
 
-        <div v-if="productsLoading && products.length === 0" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <div v-for="i in 3" :key="i" class="pc-skeleton rounded-xl">
-            <div class="skeleton-block aspect-square" />
-            <div class="space-y-2.5 p-4">
-              <div class="skeleton-block h-3.5 w-3/4" />
-              <div class="skeleton-block h-4 w-1/3" />
+          <div class="grid gap-6 sm:grid-cols-3">
+            <!-- Step 1 -->
+            <div class="flex flex-col items-center gap-3 rounded-xl border border-zinc-200 bg-card p-6 text-center shadow-sm dark:border-zinc-800">
+              <div class="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
+                <ShoppingBag class="h-5 w-5 text-foreground" />
+              </div>
+              <div class="flex h-6 w-6 items-center justify-center rounded-full bg-foreground text-[11px] font-bold text-background">1</div>
+              <h3 class="font-semibold text-foreground">{{ t('shop.howStep1Title') }}</h3>
+              <p class="text-sm leading-relaxed text-muted-foreground">{{ t('shop.howStep1Desc') }}</p>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="flex flex-col items-center gap-3 rounded-xl border border-zinc-200 bg-card p-6 text-center shadow-sm dark:border-zinc-800">
+              <div class="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
+                <MessageCircle class="h-5 w-5 text-foreground" />
+              </div>
+              <div class="flex h-6 w-6 items-center justify-center rounded-full bg-foreground text-[11px] font-bold text-background">2</div>
+              <h3 class="font-semibold text-foreground">{{ t('shop.howStep2Title') }}</h3>
+              <p class="text-sm leading-relaxed text-muted-foreground">{{ t('shop.howStep2Desc') }}</p>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="flex flex-col items-center gap-3 rounded-xl border border-zinc-200 bg-card p-6 text-center shadow-sm dark:border-zinc-800">
+              <div class="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
+                <Truck class="h-5 w-5 text-foreground" />
+              </div>
+              <div class="flex h-6 w-6 items-center justify-center rounded-full bg-foreground text-[11px] font-bold text-background">3</div>
+              <h3 class="font-semibold text-foreground">{{ t('shop.howStep3Title') }}</h3>
+              <p class="text-sm leading-relaxed text-muted-foreground">{{ t('shop.howStep3Desc') }}</p>
             </div>
           </div>
         </div>
+      </section>
 
-        <div
-          v-else-if="products.length === 0"
-          class="rounded-xl border border-dashed border-zinc-300 px-6 py-10 text-center dark:border-zinc-700"
-        >
-          <PackageOpen class="mx-auto h-7 w-7 text-zinc-400" aria-hidden="true" />
-          <p class="mt-3 text-sm font-medium text-foreground">{{ t('shop.productsEmpty') }}</p>
-          <p class="mt-1 text-sm text-muted-foreground">{{ productsNote || t('shop.productsEmptyHint') }}</p>
-        </div>
-
-        <div v-else class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <article
-            v-for="p in products"
-            :key="p.id"
-            class="group flex flex-col overflow-hidden rounded-xl border border-zinc-200 bg-card shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-zinc-800"
-          >
-            <div class="aspect-square bg-zinc-100 dark:bg-zinc-900">
-              <img
-                v-if="p.image"
-                :src="p.image"
-                :alt="p.title"
-                class="h-full w-full object-cover"
-                loading="lazy"
-              />
-              <div v-else class="flex h-full items-center justify-center text-zinc-400">
-                <PackageOpen class="h-8 w-8" aria-hidden="true" />
-              </div>
-            </div>
-            <div class="flex flex-1 flex-col p-4">
-              <h3 class="line-clamp-2 text-sm font-semibold text-foreground">{{ p.title }}</h3>
-              <p v-if="p.price != null" class="mt-1 text-sm font-medium tabular-nums text-muted-foreground">
-                {{ p.currency || '' }} {{ p.price }}
-              </p>
-              <Button class="mt-3 h-9 w-full gap-2 rounded-lg" as-child>
-                <a :href="safeExternalUrl(p.url, SHOP_URLS.tiktok)" target="_blank" rel="noopener noreferrer">
-                  {{ t('shop.buy') }}
-                  <ExternalLink class="h-4 w-4" />
+      <!-- Order / Contact (D) -->
+      <section class="border-t border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/40">
+        <div class="page-shell py-10 sm:py-12">
+          <div class="flex flex-col items-center gap-4 text-center">
+            <p class="eyebrow">{{ t('shop.orderEyebrow') }}</p>
+            <h2 class="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+              {{ t('shop.orderTitle') }}
+            </h2>
+            <p class="max-w-sm text-sm leading-relaxed text-muted-foreground">
+              {{ t('shop.orderDesc') }}
+            </p>
+            <div class="mt-2 flex flex-wrap justify-center gap-3">
+              <Button
+                size="lg"
+                class="h-12 gap-2.5 rounded-xl px-6"
+                as-child
+              >
+                <a :href="SHOP_URLS.tiktok" target="_blank" rel="noopener noreferrer">
+                  <img src="/social/tiktok.svg" alt="" class="h-5 w-5 brightness-0 invert dark:brightness-100 dark:invert-0" aria-hidden="true" />
+                  {{ t('shop.orderDmTiktok') }}
+                </a>
+              </Button>
+              <Button
+                size="lg"
+                class="h-12 gap-2.5 rounded-xl bg-[#EE4D2D] px-6 text-white hover:bg-[#d94429] dark:bg-[#EE4D2D] dark:hover:bg-[#d94429]"
+                as-child
+              >
+                <a :href="SHOP_URLS.shopee" target="_blank" rel="noopener noreferrer">
+                  <img src="/social/shopee.svg" alt="" class="h-5 w-5 brightness-0 invert" aria-hidden="true" />
+                  {{ t('shop.orderChatShopee') }}
                 </a>
               </Button>
             </div>
-          </article>
+          </div>
         </div>
       </section>
 
