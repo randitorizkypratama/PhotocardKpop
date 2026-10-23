@@ -273,10 +273,20 @@ async function preprocessQueryCrops(file: Blob): Promise<Blob[]> {
     await render(Math.round((logicalW - cropW) / 2), Math.round((logicalH - cropH) / 2), cropW, cropH, outW, outH),
   ]
 
-  // zoomed centre squares (exact 224×224 so the CLIP processor's own
-  // resize+centre-crop becomes a no-op and each zoom reaches the model)
+  // Zoomed centre squares. Real-world photocard photos typically frame the
+  // card inside a larger background (table, sleeve, hand). Five zoom levels
+  // cover the range from "card fills ~80% of frame" down to "card is small in
+  // the centre" — at least one crop should land squarely on the card itself
+  // regardless of how close the camera was. Each crop is embedded separately
+  // (see embedImage) so a well-targeted crop is not diluted by wider views
+  // that still carry background texture.
+  //
+  // 0.75 → card fills most of frame (close-up shot)
+  // 0.55 → moderate distance
+  // 0.40 → card is mid-size in frame (like these WhatsApp photos)
+  // 0.25 → card is small, lots of background — very aggressive zoom to face
   const base = Math.max(1, Math.min(logicalW, logicalH))
-  for (const frac of [0.75, 0.55]) {
+  for (const frac of [0.75, 0.55, 0.40, 0.25]) {
     const s = Math.max(1, Math.round(base * frac))
     const lx = Math.max(0, Math.round((logicalW - s) / 2))
     const ly = Math.max(0, Math.round((logicalH - s) / 2))
@@ -299,23 +309,71 @@ function l2normalize(v: Float32Array): Float32Array {
   return out
 }
 
-/** Embed the query as the average of its crops (each crop embedded alone —
- *  transformers.js batch>1 changes per-image output, which flips near-tie
- *  rankings). The pipeline may return a pooled [1, 512] tensor or a full
- *  sequence [1, seq_len, 512]; in the latter case we take the first token
- *  (CLS), CLIP's image representation. */
-async function embedImage(file: Blob, onProgress?: SearchStageListener): Promise<Float32Array> {
+/** Embed a single blob as a normalised 512-d CLIP vector. */
+async function embedOne(
+  blob: Blob,
+  extractor: any,
+): Promise<Float32Array> {
+  const out = await extractor([blob], {})
+  const dim = out.dims[out.dims.length - 1]
+  return l2normalize(Float32Array.from(out.data.subarray(0, dim)))
+}
+
+/**
+ * Search strategy: embed every crop independently, run top-K cosine on each,
+ * then keep the *best score seen per card* across all crops (max-pool).
+ *
+ * Why not average the crop embeddings?
+ *   Averaging worked when the card filled most of the frame. For photos where
+ *   the card is small — surrounded by table/sleeve background — the 2:3 and
+ *   wider square crops are dominated by background texture, so averaging pulls
+ *   the query vector away from any card in the index. With max-pool, whichever
+ *   crop landed squarely on the card wins; the crops that missed contribute
+ *   nothing (their lower scores for that card are ignored).
+ *
+ * The extractor must be called with batch=1 per crop. transformers.js changes
+ * per-image output for batch>1 (batch-dependent resize), which flips near-tie
+ * rankings — this constraint existed before and is preserved here.
+ */
+async function embedAndSearch(
+  file: Blob,
+  extractor: any,
+  index: ReturnType<typeof parseIndexBin>,
+  cards: IndexCard[],
+  k: number,
+  groupFilter?: string | null,
+): Promise<SearchHit[]> {
   const crops = await preprocessQueryCrops(file)
-  const extractor = await getExtractor(onProgress)
-  let acc: Float64Array | null = null
+
+  // Pre-build id → row index map so accumulation is O(1) per hit instead of O(n).
+  const idToRow = new Map<string, number>(cards.map((c, i) => [c.id, i]))
+
+  // Score accumulator: card row index → best cosine score across all crops.
+  const best = new Float64Array(index.n)
+
   for (const crop of crops) {
-    const out = await extractor([crop], {})
-    const dim = out.dims[out.dims.length - 1]
-    const vec = l2normalize(Float32Array.from(out.data.subarray(0, dim)))
-    if (!acc) acc = new Float64Array(dim)
-    for (let d = 0; d < dim; d++) acc[d] = (acc[d] ?? 0) + vec[d]!
+    const vec = await embedOne(crop, extractor)
+    const hits = searchTopK(vec, index, cards, k, groupFilter)
+    for (const hit of hits) {
+      const row = idToRow.get(hit.id)
+      if (row !== undefined && hit.score > best[row]!) best[row] = hit.score
+    }
   }
-  return l2normalize(Float32Array.from(acc!))
+
+  // Rebuild top-K from the accumulated best scores.
+  const order: Array<{ idx: number; score: number }> = []
+  for (let i = 0; i < index.n; i++) {
+    if (!best[i]) continue
+    if (order.length < k) {
+      order.push({ idx: i, score: best[i]! })
+      order.sort((a, b) => b.score - a.score)
+    } else if (best[i]! > order[order.length - 1]!.score) {
+      order[order.length - 1] = { idx: i, score: best[i]! }
+      order.sort((a, b) => b.score - a.score)
+    }
+  }
+
+  return order.map(({ idx, score }) => ({ ...cards[idx]!, score }))
 }
 
 export async function searchByPhoto(
@@ -324,13 +382,12 @@ export async function searchByPhoto(
   groupFilter?: string | null,
 ): Promise<PhotoSearchResult> {
   const indexLoaded = getIndex()
-  await getExtractor(onProgress)
+  const extractor = await getExtractor(onProgress)
   onProgress?.({ stage: 'index' })
   const { cards, index } = await indexLoaded
 
   onProgress?.({ stage: 'analyze' })
-  const query = await embedImage(file, onProgress)
-  const hits = searchTopK(query, index, cards, TOP_K, groupFilter)
+  const hits = await embedAndSearch(file, extractor, index, cards, TOP_K, groupFilter)
   const first = hits[0]
   if (!first) throw new Error('empty index')
   return { hits, topScore: first.score }
