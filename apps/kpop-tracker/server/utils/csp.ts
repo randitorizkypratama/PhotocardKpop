@@ -87,7 +87,17 @@ export function withCsp(html: string, path: string, nonce: string): { body: stri
           // without support for the source (Chromium <97, Firefox <115) simply
           // keep blocking wasm, so the feature degrades rather than the policy
           // widening.
-          `script-src 'self' 'nonce-${nonce}' 'wasm-unsafe-eval' https://va.vercel-scripts.com`,
+          //
+          // blob: is required by transformers.js (@huggingface/transformers).
+          // The library spawns a Web Worker by creating a blob: URL from the
+          // serialised worker source and calling new Worker(blobUrl). script-src
+          // governs that call, so without blob: the dynamic import of the blob
+          // module throws "Failed to fetch dynamically imported module: blob:…"
+          // and the entire pipeline never starts. The blob is constructed
+          // entirely from the already-loaded 'self' bundle — no external code is
+          // fetched — so the surface increase is limited to scripts already on
+          // the page.
+          `script-src 'self' blob: 'nonce-${nonce}' 'wasm-unsafe-eval' https://va.vercel-scripts.com`,
         ]),
     'upgrade-insecure-requests',
   ]

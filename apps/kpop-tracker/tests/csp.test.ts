@@ -87,6 +87,13 @@ describe('withCsp', () => {
     // bytes. The leading quote is part of the match so this fails if anyone
     // "simplifies" the directive to plain 'unsafe-eval'.
     expect(csp).not.toContain("'unsafe-eval'")
+
+    // transformers.js spawns its Web Worker via a blob: URL constructed from
+    // the already-loaded 'self' bundle. script-src governs new Worker(blobUrl),
+    // so without this the dynamic import of that blob throws at runtime —
+    // silently from a violation-count perspective because it only fires once a
+    // visitor actually uploads a photo. The blob carries no external code.
+    expect(csp).toContain('blob:')
   })
 
   it('generates a distinct policy per call', () => {
