@@ -31,13 +31,43 @@ const selectedMember = ref<string | null>(initialMember || null)
 const selectedCardType = ref<string | null>(initialCardType || null)
 const selectedRelease = ref<string | null>(initialRelease || null)
 const selectedStore = ref<string | null>(initialStore || null)
-const selectedSort = ref('popular')
+/**
+ * Filter state restored from the URL before the cards request runs — that
+ * request reads these refs at call time, so a restore applied afterwards would
+ * take effect one render too late.
+ *
+ * sort/min_price/page were parsed nowhere: selectedSort stayed 'popular', the
+ * price inputs stayed empty and currentPage stayed 1, while syncFilterQuery
+ * spread ...route.query and therefore *kept* those very params in place. So a
+ * shared link advertised filters the page had thrown away, and ?page=2 came
+ * back as page 1 with the address bar unchanged — quietly unshareable.
+ *
+ * Prices travel in IDR, the unit of the input and of the chip. The request is
+ * built in USD exactly as before; reading a USD value back out instead would
+ * need the exchange rate, which does not arrive until after that request has
+ * already been issued (the two are awaited together below).
+ */
+function restoredPrice(name: string): string {
+  const value = Number(route.query[name])
+  return Number.isFinite(value) && value > 0 ? String(Math.round(value)) : ''
+}
+
+/** Floored and >= 1, so ?page=0 or ?page=x can never reach the request builder. */
+function restoredPage(): number {
+  const value = Math.floor(Number(route.query.page))
+  return Number.isFinite(value) && value >= 1 ? value : 1
+}
+
+const restoredSort = String(route.query.sort || '')
+const selectedSort = ref<string>(
+  SORT_OPTIONS.some(option => option.value === restoredSort) ? restoredSort : 'popular',
+)
 const searchQuery = ref(String(route.query.q || ''))
-const minPriceIDR = ref<string>('')
-const maxPriceIDR = ref<string>('')
+const minPriceIDR = ref<string>(restoredPrice('min_price'))
+const maxPriceIDR = ref<string>(restoredPrice('max_price'))
 const showFilters = ref(false)
 const mobileFiltersOpen = ref(false)
-const currentPage = ref(1)
+const currentPage = ref(restoredPage())
 const pageSize = 20
 
 const cardTypeChips = computed(() => ['All', ...CARD_TYPES])
@@ -143,7 +173,33 @@ const loadError = computed(() => cardsRes.value == null)
 const exchangeRates = computed(() => ratesRes.value?.data || null)
 const rate = computed(() => ratesRes.value?.data?.usd?.rate || 17800)
 
+/**
+ * What the price chip says about the range actually in force.
+ *
+ * It was built as `Rp {min||0} – Rp {max||0}`, so setting only a minimum printed
+ * a maximum nobody had chosen: "Rp 50.000 – Rp 0" reads as an upper bound of
+ * zero — a limit that does not exist, offered as if it did. Only the sides that
+ * are set are shown now.
+ */
+const priceChipLabel = computed(() => {
+  const lo = minPriceIDR.value ? Number(minPriceIDR.value) : null
+  const hi = maxPriceIDR.value ? Number(maxPriceIDR.value) : null
+  const fmt = (value: number) => `Rp ${value.toLocaleString('id-ID')}`
+  if (lo != null && hi != null) return `${fmt(lo)} – ${fmt(hi)}`
+  if (lo != null) return `≥ ${fmt(lo)}`
+  return `≤ ${fmt(hi as number)}`
+})
+
 await Promise.all([ratesAsync, cardsAsync])
+
+// A shared URL can point past the last page: the API answers with no rows
+// there, which leaves an empty grid beneath a paginator advertising a page the
+// grid cannot show. Clamped once against the real total — every filter change
+// resets to page 1 anyway, so this converges instead of oscillating.
+if (totalPages.value > 0 && currentPage.value > totalPages.value) {
+  currentPage.value = totalPages.value
+  await refreshCards()
+}
 
 // Facet counts and the static store map are sidebar metadata — they can land
 // after the cards without shifting the LCP, so they stay client-side and keep
@@ -229,6 +285,10 @@ watch([minPriceIDR, maxPriceIDR], () => {
   if (priceTimer) clearTimeout(priceTimer)
   priceTimer = setTimeout(() => {
     currentPage.value = 1
+    // Synced here too: this watcher never called it, so a price filter set in
+    // the UI left the URL free of min_price/max_price and the shared link came
+    // back unfiltered.
+    syncFilterQuery()
     loadCards()
   }, 400)
 })
@@ -313,6 +373,18 @@ function syncFilterQuery() {
   else delete query.release
   if (selectedStore.value) query.store = selectedStore.value
   else delete query.store
+  // The four params the address bar used to keep without honouring: they
+  // survived via the spread above while the page silently ignored them. Written
+  // from the same refs that build the request, so the link can no longer
+  // describe a filter the page is not applying.
+  if (selectedSort.value !== 'popular') query.sort = selectedSort.value
+  else delete query.sort
+  if (minPriceIDR.value) query.min_price = minPriceIDR.value
+  else delete query.min_price
+  if (maxPriceIDR.value) query.max_price = maxPriceIDR.value
+  else delete query.max_price
+  if (currentPage.value > 1) query.page = String(currentPage.value)
+  else delete query.page
   router.replace({ query })
 }
 
@@ -340,6 +412,9 @@ function clearFilters() {
 
 function goToPage(page: number) {
   currentPage.value = page
+  // Without this the URL never carried `page`, so a paginated result set could
+  // not be linked to the page being looked at — the reader always landed on 1.
+  syncFilterQuery()
   loadCards(false)
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
@@ -720,7 +795,7 @@ const visiblePages = computed(() => {
                 v-if="minPriceIDR || maxPriceIDR"
                 class="chip max-w-full min-w-0"
               >
-                <span class="truncate">Rp {{ Number(minPriceIDR || 0).toLocaleString('id-ID') }} – Rp {{ Number(maxPriceIDR || 0).toLocaleString('id-ID') }}</span>
+                <span class="truncate">{{ priceChipLabel }}</span>
                 <button type="button" class="shrink-0 text-muted-foreground hover:text-foreground" :aria-label="t('browse.price.aria')" @click="minPriceIDR = ''; maxPriceIDR = ''">
                   <X class="h-3 w-3" />
                 </button>

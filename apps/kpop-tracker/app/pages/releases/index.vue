@@ -77,6 +77,31 @@ watch([selectedGroup, selectedType], ([group, type]) => {
   router.replace({ query })
 })
 
+// Neither watcher above runs on its own during setup, so `?type=` was never
+// validated on first paint: /releases?type=album (wrong case, or a type this
+// group has no releases for) filtered everything out and rendered an empty
+// timeline while the type chips beside it still displayed their counts — two
+// halves of the same page disagreeing about what was selected. A hard load is
+// exactly how a shared link arrives, which is the case the watchers could not
+// reach.
+//
+// Placed after the watchers exist so a corrected value is written back into the
+// URL too, and matched case-insensitively before giving up: a hand-typed
+// lowercase type still selects the real one rather than widening to everything.
+//
+// Deliberately left alone when the timeline is empty because the fetch failed.
+// Releases would be blank then, and resetting on that would discard the filter
+// the link asked for while the error state — not a filter mismatch — is what is
+// actually on screen.
+if (selectedType.value !== 'All') {
+  const available = releasesInGroup.value
+    .map(release => release.release_type)
+    .filter(Boolean) as string[]
+  const match = available.find(type => type.toLowerCase() === selectedType.value.toLowerCase())
+  if (match) selectedType.value = match
+  else if (releases.value.length) selectedType.value = 'All'
+}
+
 const years = computed(() => {
   const buckets = new Map<string, any[]>()
   for (const release of filtered.value) {
