@@ -3,7 +3,7 @@
  * runs fully in the browser) + cosine search over the prebuilt index in
  * /search/. Everything is lazy — nothing loads until the first search.
  */
-import { getOrientation } from '@/lib/exifUtil'
+import {
   parseIndexBin,
   searchTopK,
   type IndexCard,
@@ -132,46 +132,58 @@ function getIndex() {
  * accuracy without them).
  */
 async function preprocessQueryCrops(file: Blob): Promise<Blob[]> {
-  // Attempt to create an ImageBitmap; fallback to HTMLImageElement for browsers where this fails (e.g., orientation issues)
-  // Use a type that works for both ImageBitmap and HTMLImageElement
-  let img: ImageBitmap | HTMLImageElement;
+  // Attempt to create an ImageBitmap; fallback to HTMLImageElement for browsers
+  // where createImageBitmap fails (e.g., certain JPEGs with EXIF orientation in Edge)
+  let img: ImageBitmap | HTMLImageElement
+  let isBitmap = false
   try {
-    img = await createImageBitmap(file);
-  } catch (e) {
-    // Fallback: load via an object URL into an Image element
-    const url = URL.createObjectURL(file);
-    img = await new Promise<ImageBitmap>((resolve, reject) => {
-      const image = new Image();
-      image.onload = async () => {
-        try {
-          // OffscreenCanvas may not support drawImage from HTMLImageElement directly; use createImageBitmap on the loaded image
-          const bitmap = await createImageBitmap(image);
-          resolve(bitmap);
-        } catch (err) {
-          reject(err);
-        } finally {
-          URL.revokeObjectURL(url);
-        }
-      };
-      image.onerror = (ev) => {
-        URL.revokeObjectURL(url);
-        reject(new Error('Failed to load image for preprocessing'));
-      };
-      image.src = url;
-    });
+    img = await createImageBitmap(file)
+    isBitmap = true
+  } catch {
+    // Fallback: load via an object URL into an HTMLImageElement
+    const url = URL.createObjectURL(file)
+    try {
+      img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const image = new Image()
+        image.onload = () => resolve(image)
+        image.onerror = () => reject(new Error('Failed to load image for preprocessing'))
+        image.src = url
+      })
+    } finally {
+      URL.revokeObjectURL(url)
+    }
   }
-  const srcW = img.width;
-  const srcH = img.height;
 
-
+  const srcW = img.width || (img as HTMLImageElement).naturalWidth || 1
+  const srcH = img.height || (img as HTMLImageElement).naturalHeight || 1
 
   const render = async (
     sx: number, sy: number, sw: number, sh: number, outW: number, outH: number,
   ): Promise<Blob> => {
-    const canvas = new OffscreenCanvas(outW, outH)
-    const ctx = canvas.getContext('2d')!
-    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, outW, outH)
-    return canvas.convertToBlob({ type: 'image/jpeg', quality: 0.80 })
+    // Use OffscreenCanvas when available, fall back to regular <canvas>
+    let canvas: OffscreenCanvas | HTMLCanvasElement
+    let ctx: OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D
+    if (typeof OffscreenCanvas !== 'undefined') {
+      canvas = new OffscreenCanvas(outW, outH)
+      ctx = canvas.getContext('2d')!
+    } else {
+      canvas = document.createElement('canvas')
+      canvas.width = outW
+      canvas.height = outH
+      ctx = canvas.getContext('2d')!
+    }
+    ctx.drawImage(img as CanvasImageSource, sx, sy, sw, sh, 0, 0, outW, outH)
+    if (canvas instanceof OffscreenCanvas) {
+      return canvas.convertToBlob({ type: 'image/jpeg', quality: 0.80 })
+    }
+    // HTMLCanvasElement fallback — toBlob is callback-based
+    return new Promise<Blob>((resolve, reject) => {
+      ;(canvas as HTMLCanvasElement).toBlob(
+        (b) => (b ? resolve(b) : reject(new Error('canvas toBlob failed'))),
+        'image/jpeg',
+        0.80,
+      )
+    })
   }
 
   // 2:3 view
@@ -201,7 +213,10 @@ async function preprocessQueryCrops(file: Blob): Promise<Blob[]> {
     crops.push(await render(sx, sy, Math.min(s, srcW - sx), Math.min(s, srcH - sy), 224, 224))
   }
 
-  img.close()
+  // Only ImageBitmap has .close(); HTMLImageElement does not
+  if (isBitmap && 'close' in img) {
+    ;(img as ImageBitmap).close()
+  }
   return crops
 }
 
