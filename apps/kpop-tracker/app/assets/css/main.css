@@ -214,6 +214,29 @@ body {
   100% { background-position: -200% 0; }
 }
 
+/* Wishlist heart: a quick pop so the tap registers as more than a colour
+   swap. Runs via arbitrary `animate-[heart-pop_…]` on the icon. */
+@keyframes heart-pop {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.35); }
+  60% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+
+/* Accessibility: honour the OS "reduce motion" setting. Kills decorative
+   animation (shimmer, heart pop, hover lifts via transition) while leaving
+   state changes instant — nothing here is motion-dependent for meaning. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Page transitions */
 .page-enter-active,
 .page-leave-active {

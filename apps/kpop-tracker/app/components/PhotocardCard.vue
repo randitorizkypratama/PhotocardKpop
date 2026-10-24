@@ -87,7 +87,7 @@ const metaLine = computed(() => {
   <article class="group pc-card min-w-0">
     <NuxtLink
       :to="`/card/${card.id}`"
-      class="flex h-full flex-col focus-visible:outline-none"
+      class="flex h-full flex-col focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring focus-visible:ring-offset-0"
       :aria-label="`${typeLabel ? `${typeLabel}. ` : ''}${card.name} — ${card.member_name}, ${card.group_name}`"
     >
       <div class="pc-card-image">
@@ -157,7 +157,11 @@ const metaLine = computed(() => {
       :aria-pressed="wishlisted"
       @click.prevent.stop="emit('wishlist', card.id)"
     >
-      <Heart class="h-4 w-4" :fill="wishlisted ? 'currentColor' : 'none'" />
+      <Heart
+        class="h-4 w-4"
+        :class="wishlisted ? 'text-rose-500 animate-[heart-pop_0.4s_ease-out]' : ''"
+        :fill="wishlisted ? 'currentColor' : 'none'"
+      />
     </button>
   </article>
 </template>

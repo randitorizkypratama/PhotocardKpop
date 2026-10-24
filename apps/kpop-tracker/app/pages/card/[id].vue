@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {
   TrendingUp, TrendingDown, Minus,
-  Heart, Tag, Check, Clock, AlertCircle
+  Heart, Tag, Check, Clock, AlertCircle, X
 } from 'lucide-vue-next'
 import { groupAccent, groupDot, formatIDR, formatUSD } from '@/lib/catalog'
 import { cardTypeBlurb, cardTypeLabel } from '@/lib/cardTypes'
@@ -22,6 +22,35 @@ const boughtPrice = ref<string | number>('')
 const adding = ref(false)
 const release = ref<any>(null)
 const releaseLoading = ref(false)
+
+/**
+ * Click-to-zoom for the main image. Collectors inspect corners, edges and
+ * surface texture before buying, and the contained grid-size image cannot
+ * show that — the overlay renders the same src unclamped at 100dvh.
+ * Scroll is locked while open (iOS Safari ignores overflow on body without
+ * the fixed-position trick), and Esc mirrors the click-outside close.
+ */
+const zoomOpen = ref(false)
+
+watch(zoomOpen, (open) => {
+  if (import.meta.server) return
+  document.documentElement.style.overflow = open ? 'hidden' : ''
+  // The overlay div cannot receive keydown without focus, so Esc is bound
+  // at window level for as long as the overlay exists.
+  if (open) window.addEventListener('keydown', onZoomKey)
+  else window.removeEventListener('keydown', onZoomKey)
+})
+
+onBeforeUnmount(() => {
+  if (import.meta.client) {
+    document.documentElement.style.overflow = ''
+    window.removeEventListener('keydown', onZoomKey)
+  }
+})
+
+function onZoomKey(event: KeyboardEvent) {
+  if (event.key === 'Escape') zoomOpen.value = false
+}
 
 // The card and the rate are fetched during SSR so the detail page (image,
 // name, price) ships in the HTML instead of a skeleton. Neither handler throws:
@@ -281,7 +310,7 @@ const chartData = computed(() => {
       <!-- Loading skeleton -->
       <div v-if="loading" class="grid gap-6 lg:grid-cols-2 lg:gap-10">
         <div class="pc-skeleton mx-auto w-full max-w-md">
-          <div class="skeleton-block aspect-square rounded-none" />
+          <div class="skeleton-block aspect-[2/3] rounded-none" />
         </div>
         <div class="space-y-4">
           <div class="skeleton-block h-4 w-24" />
@@ -326,20 +355,54 @@ const chartData = computed(() => {
         <!-- Left: image -->
         <div class="lg:sticky lg:top-20 lg:self-start">
           <div class="mx-auto w-full max-w-md overflow-hidden rounded-xl border border-zinc-200 bg-card shadow-lg dark:border-zinc-800 lg:max-w-none">
-            <div class="relative aspect-[2/3] bg-zinc-100 dark:bg-zinc-900">
+            <button
+              type="button"
+              class="relative block aspect-[2/3] w-full cursor-zoom-in bg-zinc-100 dark:bg-zinc-900"
+              :aria-label="t('card.zoomAria')"
+              @click="zoomOpen = true"
+            >
               <img
                 :src="card.image"
                 :alt="`${card.name} photocard`"
                 class="h-full w-full object-contain"
               />
+              <span class="absolute bottom-2 right-2 rounded-md bg-black/55 px-2 py-1 text-[10px] font-medium text-white backdrop-blur-sm">
+                {{ t('card.zoomHint') }}
+              </span>
               <div v-if="showPromo && promoRate" class="absolute left-3 top-3">
                 <span class="pc-status-badge text-emerald-700 dark:text-emerald-400">
                   −{{ promoRate }}%
                 </span>
               </div>
-            </div>
+            </button>
           </div>
         </div>
+
+        <!-- Zoom overlay: click anywhere or Esc to close -->
+        <Teleport to="body">
+          <div
+            v-if="zoomOpen"
+            class="fixed inset-0 z-[100] flex cursor-zoom-out items-center justify-center bg-black/90 p-4 sm:p-8"
+            role="dialog"
+            aria-modal="true"
+            :aria-label="t('card.zoomAria')"
+            @click="zoomOpen = false"
+          >
+            <img
+              :src="card.image"
+              :alt="`${card.name} photocard`"
+              class="max-h-full max-w-full rounded-lg object-contain shadow-2xl"
+            />
+            <button
+              type="button"
+              class="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+              :aria-label="t('card.zoomClose')"
+              @click="zoomOpen = false"
+            >
+              <X class="h-5 w-5" />
+            </button>
+          </div>
+        </Teleport>
 
         <!-- Right: details -->
         <div class="space-y-6">

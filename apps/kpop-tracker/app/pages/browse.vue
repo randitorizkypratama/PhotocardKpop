@@ -861,7 +861,7 @@ const visiblePages = computed(() => {
           <!-- Loading skeletons -->
           <div v-if="loading" class="grid min-w-0 grid-cols-3 gap-2 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
             <div v-for="i in pageSize" :key="i" class="pc-skeleton min-w-0">
-              <div class="skeleton-block aspect-square rounded-none" />
+              <div class="skeleton-block aspect-[2/3] rounded-none" />
               <div class="space-y-2.5 p-3">
                 <div class="skeleton-block h-3 w-1/3" />
                 <div class="skeleton-block h-3.5 w-full" />
@@ -1128,6 +1128,7 @@ const visiblePages = computed(() => {
     </div>
 
     <SiteFooter />
+    <BackToTop />
     <MobileTabBar />
   </div>
 </template>

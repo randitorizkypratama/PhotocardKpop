@@ -344,7 +344,7 @@ async function onWishlist(id: number | string) {
 
           <div v-if="cardsLoading && cards.length === 0" class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
             <div v-for="i in 10" :key="i" class="pc-skeleton">
-              <div class="skeleton-block aspect-square rounded-none" />
+              <div class="skeleton-block aspect-[2/3] rounded-none" />
               <div class="space-y-2.5 p-3">
                 <div class="skeleton-block h-3 w-1/3" />
                 <div class="skeleton-block h-3.5 w-full" />
@@ -381,6 +381,7 @@ async function onWishlist(id: number | string) {
     </main>
 
     <SiteFooter />
+    <BackToTop />
     <MobileTabBar />
   </div>
 </template>

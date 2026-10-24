@@ -403,6 +403,7 @@ function artThumbSrcset(release: { artwork?: string | null, image?: string | nul
     </main>
 
     <SiteFooter />
+    <BackToTop />
     <MobileTabBar />
   </div>
 </template>

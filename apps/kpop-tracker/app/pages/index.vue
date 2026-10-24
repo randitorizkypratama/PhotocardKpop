@@ -271,7 +271,7 @@ async function onWishlist(id: number | string) {
 
           <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-6">
             <NuxtLink
-              v-for="release in releases"
+              v-for="(release, index) in releases"
               :key="release.release_name"
               :to="`/releases/${encodeURIComponent(release.group_name || 'IVE')}/${release.slug}`"
               class="group min-w-0"
@@ -283,7 +283,8 @@ async function onWishlist(id: number | string) {
                   :srcset="artSrcset(release)"
                   sizes="(min-width: 1536px) 190px, (min-width: 1024px) 160px, (min-width: 640px) 31vw, 45vw"
                   :alt="`${release.release_name} release`"
-                  loading="lazy"
+                  :loading="index < 6 ? 'eager' : 'lazy'"
+                  :fetchpriority="index < 6 ? 'high' : 'auto'"
                   decoding="async"
                   @error="onImageError"
                   class="h-full w-full object-cover object-top transition-transform duration-200 group-hover:scale-[1.02]"
@@ -331,7 +332,7 @@ async function onWishlist(id: number | string) {
 
           <div v-if="loading" class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
             <div v-for="i in 10" :key="i" class="pc-skeleton">
-              <div class="skeleton-block aspect-square rounded-none" />
+              <div class="skeleton-block aspect-[2/3] rounded-none" />
               <div class="space-y-2.5 p-3">
                 <div class="skeleton-block h-3 w-1/3" />
                 <div class="skeleton-block h-3.5 w-full" />
@@ -443,6 +444,7 @@ async function onWishlist(id: number | string) {
     </main>
 
     <SiteFooter />
+    <BackToTop />
     <MobileTabBar />
   </div>
 </template>
