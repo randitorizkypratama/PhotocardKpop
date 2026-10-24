@@ -13,6 +13,11 @@ export default defineEventHandler(async (event) => {
   const db = getTursoClient()
   const now = new Date().toISOString()
   const releaseIndex = await loadReleaseIndex(group, { refresh: true })
+  if (releaseIndex.length === 0) {
+    // Same guard as the cron: without a discography index the token fallback
+    // would overwrite good labels with raw tokens / NULL — prices still sync.
+    console.warn(`[sync] ${group}: empty release index — syncing prices, keeping existing release labels`)
+  }
 
   // Get total count first
   const firstPage = await fetchPocamarketCards(group, 1)
@@ -70,7 +75,11 @@ function mapCards(results: any[], releaseIndex: ReleaseMatchEntry[]) {
     group_image: card.group_image,
     member_image: card.member_image,
     card_type: inferCardType(card.name_en),
-    release_name: resolveCardReleaseSync(card.name_en, card.group_name_en, releaseIndex),
+    // NULL when the index is empty → the upsert's COALESCE keeps the stored
+    // label (see cron/sync.ts for the full reasoning).
+    release_name: releaseIndex.length > 0
+      ? resolveCardReleaseSync(card.name_en, card.group_name_en, releaseIndex)
+      : null,
     price: parseFloat(card.price),
     discounted_price: parseFloat(card.discounted_price),
     wish_count: card.wish_count,
@@ -89,7 +98,8 @@ async function batchUpsert(db: any, cards: any[], now: string) {
       ON CONFLICT(id) DO UPDATE SET
         name = excluded.name, image = excluded.image, member_name = excluded.member_name,
         group_image = excluded.group_image, member_image = excluded.member_image,
-        card_type = excluded.card_type, release_name = excluded.release_name,
+        card_type = excluded.card_type,
+        release_name = COALESCE(excluded.release_name, release_name),
         last_price = excluded.last_price,
         last_discounted_price = excluded.last_discounted_price, last_wish_count = excluded.last_wish_count,
         last_sales_volume = excluded.last_sales_volume, last_stocked_count = excluded.last_stocked_count,

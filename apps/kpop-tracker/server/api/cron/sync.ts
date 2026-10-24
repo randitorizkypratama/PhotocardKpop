@@ -25,6 +25,12 @@ export default defineEventHandler(async (event) => {
         // Refresh the discography (3 MusicBrainz requests) so this week's
         // comeback shows up on the timeline tomorrow, not in 30 days.
         const releaseIndex = await loadReleaseIndex(group, { refresh: true })
+        if (releaseIndex.length === 0) {
+          // MB + cache both failed: prices still sync, but release labels must
+          // not — writing the token fallback would overwrite good labels with
+          // raw tokens / NULL (the upsert keeps the old value, see COALESCE).
+          console.warn(`[sync] ${group}: empty release index — syncing prices, keeping existing release labels`)
+        }
         const firstMapped = mapCards(firstPage.data.results, releaseIndex)
         await batchUpsert(db, firstMapped, now)
         totalSynced += firstMapped.length
@@ -83,7 +89,12 @@ function mapCards(results: any[], releaseIndex: ReleaseMatchEntry[]) {
     group_image: card.group_image,
     member_image: card.member_image,
     card_type: inferCardType(card.name_en),
-    release_name: resolveCardReleaseSync(card.name_en, card.group_name_en, releaseIndex),
+    // Empty index = the discography couldn't be loaded; pass NULL so the
+    // upsert's COALESCE keeps the label already stored instead of replacing
+    // it with the raw legacy token (or nothing) the fallback would produce.
+    release_name: releaseIndex.length > 0
+      ? resolveCardReleaseSync(card.name_en, card.group_name_en, releaseIndex)
+      : null,
     price: parseFloat(card.price),
     discounted_price: parseFloat(card.discounted_price),
     wish_count: card.wish_count,
@@ -102,7 +113,8 @@ async function batchUpsert(db: any, cards: any[], now: string) {
       ON CONFLICT(id) DO UPDATE SET
         name = excluded.name, image = excluded.image, member_name = excluded.member_name,
         group_image = excluded.group_image, member_image = excluded.member_image,
-        card_type = excluded.card_type, release_name = excluded.release_name,
+        card_type = excluded.card_type,
+        release_name = COALESCE(excluded.release_name, release_name),
         last_price = excluded.last_price,
         last_discounted_price = excluded.last_discounted_price, last_wish_count = excluded.last_wish_count,
         last_sales_volume = excluded.last_sales_volume, last_stocked_count = excluded.last_stocked_count,

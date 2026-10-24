@@ -425,9 +425,12 @@ export async function loadReleaseIndex(
 ): Promise<ReleaseMatchEntry[]> {
   try {
     return buildReleaseMatchIndex(group, await getGroupDiscography(group, options))
-  } catch {
-    // Sync must keep working when MusicBrainz and the cache are both down —
-    // the token fallback then labels cards the way it always has.
+  } catch (error) {
+    // Sync must keep working when MusicBrainz and the cache are both down.
+    // Callers check for an empty result and keep the labels already stored
+    // (the token fallback is destructive on an empty index — see the COALESCE
+    // in batchUpsert), so returning [] here only skips relabeling.
+    console.error(`[discography] ${group}: release index unavailable, falling back`, error)
     return []
   }
 }
