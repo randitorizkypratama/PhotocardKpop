@@ -395,8 +395,11 @@ function artThumbSrcset(release: { artwork?: string | null, image?: string | nul
 
       <!-- Empty -->
       <div v-else class="page-shell py-10">
-        <div class="rounded-xl border border-dashed border-zinc-300 py-12 text-center dark:border-zinc-700">
-          <p class="text-sm font-medium text-foreground">{{ t('releases.timeline.empty') }}</p>
+        <div class="rounded-xl border border-dashed border-zinc-300 px-6 py-12 text-center dark:border-zinc-700">
+          <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+            <Music2 class="h-8 w-8 text-muted-foreground" aria-hidden="true" />
+          </div>
+          <p class="mt-4 text-sm font-medium text-foreground">{{ t('releases.timeline.empty') }}</p>
           <p class="mt-1 text-sm text-muted-foreground">{{ t('empty.hint') }}</p>
         </div>
       </div>

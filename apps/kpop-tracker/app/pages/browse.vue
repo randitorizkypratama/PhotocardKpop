@@ -859,7 +859,7 @@ const visiblePages = computed(() => {
           </div>
 
           <!-- Loading skeletons -->
-          <div v-if="loading" class="grid min-w-0 grid-cols-3 gap-2 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
+          <div v-if="loading" class="grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
             <div v-for="i in pageSize" :key="i" class="pc-skeleton min-w-0">
               <div class="skeleton-block aspect-[2/3] rounded-none" />
               <div class="space-y-2.5 p-3">
@@ -876,7 +876,10 @@ const visiblePages = computed(() => {
             v-else-if="cards.length === 0 && !loadError"
             class="rounded-xl border border-dashed border-zinc-300 px-6 py-14 text-center dark:border-zinc-700"
           >
-            <p class="eyebrow">{{ t('empty.noCards') }}</p>
+            <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+              <SearchX class="h-8 w-8 text-muted-foreground" aria-hidden="true" />
+            </div>
+            <p class="eyebrow mt-4">{{ t('empty.noCards') }}</p>
             <p class="mt-3 text-sm font-medium text-foreground">{{ t('browse.empty.title') }}</p>
             <p class="mt-1 text-sm text-muted-foreground">{{ t('browse.empty.hint') }}</p>
             <Button variant="outline" class="mt-4 rounded-lg" @click="clearFilters">{{ t('browse.clear') }}</Button>
@@ -885,7 +888,7 @@ const visiblePages = computed(() => {
           <!-- Cards -->
           <div
             v-else
-            class="grid min-w-0 grid-cols-3 gap-2 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5"
+            class="grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5"
           >
             <PhotocardCard
               v-for="(card, index) in cards"

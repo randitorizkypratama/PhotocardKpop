@@ -356,7 +356,10 @@ async function onWishlist(id: number | string) {
           </div>
 
           <div v-else-if="cards.length === 0" class="rounded-xl border border-dashed border-zinc-300 py-12 text-center dark:border-zinc-700">
-            <p class="text-sm font-medium text-foreground">{{ t('empty.noCards') }}</p>
+            <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-background">
+              <Search class="mx-auto h-8 w-8 text-zinc-400 dark:text-zinc-500" aria-hidden="true" />
+            </div>
+            <p class="mt-4 text-sm font-medium text-foreground">{{ t('empty.noCards') }}</p>
             <p class="mt-1 text-sm text-muted-foreground">{{ t('empty.hint') }}</p>
             <Button variant="outline" class="mt-4 rounded-lg" as-child>
               <NuxtLink to="/browse">{{ t('empty.browseAll') }}</NuxtLink>

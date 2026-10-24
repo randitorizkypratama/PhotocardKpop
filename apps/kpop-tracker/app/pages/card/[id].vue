@@ -300,6 +300,36 @@ const chartData = computed(() => {
     },
   }
 })
+
+/**
+ * Interactive readout for the price chart: hover (desktop) or tap (mobile)
+ * a point and a floating label shows that date's exact price. The SVG uses
+ * preserveAspectRatio="none" (viewBox 600×160 stretched to the container),
+ * so the label is positioned in percentages of the same viewBox space —
+ * no getBoundingClientRect math, correct even under the horizontal stretch.
+ */
+const activePoint = ref<number | null>(null)
+
+/** Resolved once so the template never repeats a possibly-undefined index. */
+const activePointData = computed(() => {
+  if (activePoint.value == null) return null
+  return chartData.value?.points[activePoint.value] ?? null
+})
+
+function pointLeft(point: { x: number }) {
+  return `${(point.x / 600) * 100}%`
+}
+
+function pointTop(point: { y: number }) {
+  return `${(point.y / 160) * 100}%`
+}
+
+/** -1 = shift right of the point, 0 = centered, 1 = shift left (edge points). */
+function pointAlignX(point: { x: number }) {
+  if (point.x < 60) return 'translate-x-0'
+  if (point.x > 540) return '-translate-x-full'
+  return '-translate-x-1/2'
+}
 </script>
 
 <template>
@@ -640,37 +670,84 @@ const chartData = computed(() => {
                   </span>
                   <span>{{ chartData.labels.last }}</span>
                 </div>
-                <svg viewBox="0 0 600 160" class="w-full" preserveAspectRatio="none" style="height: 140px" role="img" aria-label="Price history chart">
-                  <defs>
-                    <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stop-color="currentColor" stop-opacity="0.15" />
-                      <stop offset="100%" stop-color="currentColor" stop-opacity="0" />
-                    </linearGradient>
-                  </defs>
-                  <path :d="chartData.areaPath" fill="url(#chartFill)" class="text-zinc-400 dark:text-zinc-500" />
-                  <path
-                    :d="chartData.path"
-                    fill="none"
-                    class="text-zinc-700 dark:text-zinc-300"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  />
-                  <circle
-                    v-for="(p, i) in chartData.points"
-                    :key="i"
-                    :cx="p.x"
-                    :cy="p.y"
-                    r="3.5"
-                    fill="white"
-                    class="text-zinc-700 dark:text-zinc-300"
-                    stroke="currentColor"
-                    stroke-width="2"
+                <div class="relative" @mouseleave="activePoint = null">
+                  <svg viewBox="0 0 600 160" class="w-full" preserveAspectRatio="none" style="height: 140px" role="img" aria-label="Price history chart">
+                    <defs>
+                      <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="currentColor" stop-opacity="0.15" />
+                        <stop offset="100%" stop-color="currentColor" stop-opacity="0" />
+                      </linearGradient>
+                    </defs>
+                    <path :d="chartData.areaPath" fill="url(#chartFill)" class="text-zinc-400 dark:text-zinc-500" />
+                    <path
+                      :d="chartData.path"
+                      fill="none"
+                      class="text-zinc-700 dark:text-zinc-300"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                    <!-- Active point guide -->
+                    <line
+                      v-if="activePointData"
+                      :x1="activePointData.x"
+                      :x2="activePointData.x"
+                      y1="0"
+                      y2="160"
+                      stroke="currentColor"
+                      stroke-width="1"
+                      stroke-dasharray="3 4"
+                      class="text-zinc-400 dark:text-zinc-500"
+                      vector-effect="non-scaling-stroke"
+                    />
+                    <g
+                      v-for="(p, i) in chartData.points"
+                      :key="i"
+                      class="cursor-pointer"
+                      @mouseenter="activePoint = i"
+                      @click="activePoint = activePoint === i ? null : i"
+                    >
+                      <!-- Enlarged transparent hit target (visible dot is r=3.5,
+                           far below the 44px touch guideline) -->
+                      <circle :cx="p.x" :cy="p.y" r="14" fill="transparent" />
+                      <circle
+                        :cx="p.x"
+                        :cy="p.y"
+                        :r="activePoint === i ? 6 : 3.5"
+                        fill="white"
+                        class="text-zinc-700 transition-all dark:text-zinc-300"
+                        stroke="currentColor"
+                        :stroke-width="activePoint === i ? 3 : 2"
+                      >
+                        <title>${{ p.price }} — {{ formatDate(p.date) }}</title>
+                      </circle>
+                    </g>
+                  </svg>
+                  <!-- Floating readout, positioned in the same stretched
+                       viewBox space as the points. Flips below the point when
+                       the point sits high, so it never covers the min/max row. -->
+                  <div
+                    v-if="activePointData"
+                    class="pointer-events-none absolute z-10 rounded-lg border border-zinc-200 bg-card px-2.5 py-1.5 text-center shadow-md dark:border-zinc-700"
+                    :class="[
+                      pointAlignX(activePointData),
+                      activePointData.y < 45 ? 'translate-y-0' : '-translate-y-full',
+                    ]"
+                    :style="{
+                      left: pointLeft(activePointData),
+                      top: pointTop(activePointData),
+                      marginTop: activePointData.y < 45 ? '10px' : '-10px',
+                    }"
                   >
-                    <title>${{ p.price }} — {{ formatDate(p.date) }}</title>
-                  </circle>
-                </svg>
+                    <p class="whitespace-nowrap text-xs font-bold tabular-nums text-foreground">
+                      ${{ activePointData.price }}
+                    </p>
+                    <p class="whitespace-nowrap text-[10px] text-muted-foreground">
+                      {{ formatDate(activePointData.date) }}
+                    </p>
+                  </div>
+                </div>
               </div>
 
               <ul class="mt-3 space-y-2">

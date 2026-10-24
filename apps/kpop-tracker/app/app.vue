@@ -5,6 +5,7 @@
     <!-- Rendered only while open so reka-ui Command/Dialog stay out of the
          entry chunk; the Cmd/Ctrl+K listener lives in app.vue below. -->
     <LazyCommandPalette v-if="paletteOpen" />
+    <AppToast />
   </div>
 </template>
 

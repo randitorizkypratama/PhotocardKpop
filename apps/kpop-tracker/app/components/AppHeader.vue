@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowLeft, Heart, LogIn, LogOut, Search } from 'lucide-vue-next'
+import { Activity, ArrowLeft, Heart, LogIn, LogOut, Search } from 'lucide-vue-next'
 
 withDefaults(
   defineProps<{
@@ -158,17 +158,50 @@ function submitSearch() {
         <!-- Divider -->
         <div class="mx-0.5 h-5 w-px bg-zinc-200 dark:bg-zinc-700" aria-hidden="true" />
 
-        <!-- User: avatar + logout, or login -->
+        <!-- User: avatar → menu (logout lives in here deliberately: the old
+             bare button signed the visitor out on a single mis-tap) -->
         <template v-if="user">
-          <button
-            type="button"
-            class="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-900 text-[11px] font-bold text-white transition-opacity hover:opacity-80 dark:bg-zinc-100 dark:text-zinc-900"
-            :aria-label="`${user.username} — ${t('auth.logout')}`"
-            :title="`${user.username} — ${t('auth.logout')}`"
-            @click="logout()"
-          >
-            {{ userInitials }}
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger as-child>
+              <button
+                type="button"
+                class="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-900 text-[11px] font-bold text-white transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:bg-zinc-100 dark:text-zinc-900"
+                :aria-label="`${user.username} — ${t('auth.menu')}`"
+              >
+                {{ userInitials }}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" class="w-52">
+              <DropdownMenuLabel class="min-w-0">
+                <span class="block truncate text-sm font-semibold">{{ user.username }}</span>
+                <span v-if="user.role === 'admin'" class="mt-0.5 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Admin</span>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem as-child>
+                <NuxtLink to="/collection">
+                  <Heart class="mr-2 h-4 w-4" />
+                  {{ t('nav.collection') }}
+                </NuxtLink>
+              </DropdownMenuItem>
+              <DropdownMenuItem as-child>
+                <NuxtLink to="/collection?tab=wishlist">
+                  <Heart class="mr-2 h-4 w-4" />
+                  {{ t('palette.nav.wishlist') }}
+                </NuxtLink>
+              </DropdownMenuItem>
+              <DropdownMenuItem v-if="user.role === 'admin'" as-child>
+                <NuxtLink to="/status">
+                  <Activity class="mr-2 h-4 w-4" />
+                  {{ t('nav.status') }}
+                </NuxtLink>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem class="text-red-600 focus:text-red-600 dark:text-red-400" @select="logout()">
+                <LogOut class="mr-2 h-4 w-4" />
+                {{ t('auth.logout') }}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </template>
         <Button
           v-else

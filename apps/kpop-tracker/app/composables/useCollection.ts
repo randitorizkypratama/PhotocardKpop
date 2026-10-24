@@ -49,6 +49,8 @@ export function useCollection() {
   const checked = useState<boolean>('collection-checked', () => false)
   const pendingCardIds = useState<Set<number>>('collection-pending', () => new Set())
   const { user, ensureChecked } = useAuth()
+  const { push: toast } = useToast()
+  const { t } = useLocale()
 
   // Switching account (login or logout) invalidates whatever was cached for
   // the previous one — otherwise a fresh login keeps showing the logged-out
@@ -140,9 +142,13 @@ export function useCollection() {
         },
       })
       await fetchCollection(true)
+      toast(t('toast.saved'))
       return true
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Failed to add to collection'
+      // A redirect to /login (requireLogin above) never reaches this catch,
+      // so what lands here is genuinely a failed write worth surfacing.
+      toast(t('toast.failed'), 'error')
       return false
     } finally {
       pendingCardIds.value.delete(cardId)
@@ -157,9 +163,11 @@ export function useCollection() {
         method: 'DELETE',
       })
       await fetchCollection(true)
+      toast(t('toast.removed'))
       return true
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Failed to remove from collection'
+      toast(t('toast.failed'), 'error')
       return false
     }
   }
