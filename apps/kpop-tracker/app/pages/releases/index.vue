@@ -195,7 +195,7 @@ function artThumbSrcset(release: { artwork?: string | null, image?: string | nul
 
     <main>
       <!-- Header -->
-      <section class="border-b border-zinc-200 dark:border-zinc-800">
+      <section class="border-b border-border">
         <div class="page-shell py-8 sm:py-10">
           <p class="eyebrow">{{ t('releases.timeline.eyebrow') }}</p>
           <h1 class="mt-2 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{{ t('nav.releases') }}</h1>
@@ -213,7 +213,7 @@ function artThumbSrcset(release: { artwork?: string | null, image?: string | nul
                 :class="
                   selectedGroup === tab
                     ? 'border-border bg-muted text-foreground'
-                    : 'border-zinc-200 bg-card text-muted-foreground hover:border-zinc-300 hover:text-foreground dark:border-zinc-800 dark:hover:border-zinc-700'
+                    : 'border-border bg-card text-muted-foreground hover:border-border-strong hover:text-foreground'
                 "
                 :aria-pressed="selectedGroup === tab"
                 @click="selectedGroup = tab"
@@ -235,7 +235,7 @@ function artThumbSrcset(release: { artwork?: string | null, image?: string | nul
                 :class="
                   selectedType === tab.type
                     ? 'border-border bg-muted text-foreground'
-                    : 'border-zinc-200 bg-card text-muted-foreground hover:border-zinc-300 hover:text-foreground dark:border-zinc-800 dark:hover:border-zinc-700'
+                    : 'border-border bg-card text-muted-foreground hover:border-border-strong hover:text-foreground'
                 "
                 :aria-pressed="selectedType === tab.type"
                 @click="selectedType = tab.type"
@@ -300,7 +300,7 @@ function artThumbSrcset(release: { artwork?: string | null, image?: string | nul
                 {{ formatDate(release.release_date) }}
               </span>
 
-              <span class="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl ring-1 ring-zinc-200 bg-muted dark:ring-zinc-800 sm:h-14 sm:w-14">
+              <span class="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl ring-1 ring-border bg-muted sm:h-14 sm:w-14">
                 <img
                   v-if="release.artwork || release.image"
                   :src="release.artwork || release.image"
@@ -356,7 +356,7 @@ function artThumbSrcset(release: { artwork?: string | null, image?: string | nul
             >
               <span class="w-12 shrink-0 text-xs text-muted-foreground sm:w-16">—</span>
 
-              <span class="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl ring-1 ring-zinc-200 bg-muted dark:ring-zinc-800 sm:h-14 sm:w-14">
+              <span class="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl ring-1 ring-border bg-muted sm:h-14 sm:w-14">
                 <img
                   v-if="release.artwork || release.image"
                   :src="release.artwork || release.image"
@@ -395,7 +395,7 @@ function artThumbSrcset(release: { artwork?: string | null, image?: string | nul
 
       <!-- Empty -->
       <div v-else class="page-shell py-10">
-        <div class="rounded-xl border border-dashed border-zinc-300 px-6 py-12 text-center dark:border-zinc-700">
+        <div class="rounded-xl border border-dashed border-border px-6 py-12 text-center">
           <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-muted">
             <Music2 class="h-8 w-8 text-muted-foreground" aria-hidden="true" />
           </div>

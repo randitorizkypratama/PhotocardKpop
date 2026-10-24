@@ -476,12 +476,12 @@ const visiblePages = computed(() => {
     <AppHeader active="browse" />
 
     <!-- Exchange Rate Bar -->
-    <div v-if="exchangeRates" class="border-b border-zinc-200 bg-card dark:border-zinc-800">
+    <div v-if="exchangeRates" class="border-b border-border bg-card">
       <div class="page-shell flex flex-col items-center justify-center gap-0.5 py-2 text-xs sm:flex-row sm:flex-wrap sm:gap-x-4 sm:gap-y-1">
         <span class="max-w-full truncate text-center text-muted-foreground sm:max-w-none">
           Kurs BI · 1 USD = <span class="font-medium tabular-nums text-foreground">{{ Math.round(exchangeRates.usd?.rate)?.toLocaleString('id-ID') }}</span> IDR
         </span>
-        <span class="hidden text-zinc-300 dark:text-zinc-700 sm:inline" aria-hidden="true">|</span>
+        <span class="hidden text-border dark:text-muted-foreground sm:inline" aria-hidden="true">|</span>
         <span class="max-w-full truncate text-center text-muted-foreground sm:max-w-none">
           1 MYR = <span class="font-medium tabular-nums text-foreground">{{ Math.round(exchangeRates.myr?.rate)?.toLocaleString('id-ID') }}</span> IDR
         </span>
@@ -853,7 +853,7 @@ const visiblePages = computed(() => {
                 <p class="text-sm text-red-700/90 dark:text-red-300/90">{{ t('browse.error.hint') }}</p>
               </div>
             </div>
-            <Button variant="outline" size="sm" class="rounded-lg border-red-300 bg-white dark:border-red-800 dark:bg-zinc-900" @click="loadCards()">
+            <Button variant="outline" size="sm" class="rounded-lg border-red-300 bg-white dark:border-red-800 dark:bg-card" @click="loadCards()">
               {{ t('browse.error.retry') }}
             </Button>
           </div>
@@ -874,7 +874,7 @@ const visiblePages = computed(() => {
           <!-- Empty -->
           <div
             v-else-if="cards.length === 0 && !loadError"
-            class="rounded-xl border border-dashed border-zinc-300 px-6 py-14 text-center dark:border-zinc-700"
+            class="rounded-xl border border-dashed border-border px-6 py-14 text-center"
           >
             <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-muted">
               <SearchX class="h-8 w-8 text-muted-foreground" aria-hidden="true" />
@@ -978,7 +978,7 @@ const visiblePages = computed(() => {
 
     <!-- Drawer panel -->
     <div
-      class="fixed inset-x-0 bottom-0 z-50 flex flex-col rounded-t-2xl border-t border-zinc-200 bg-card transition-transform duration-300 lg:hidden dark:border-zinc-800"
+      class="fixed inset-x-0 bottom-0 z-50 flex flex-col rounded-t-2xl border-t border-border bg-card transition-transform duration-300 lg:hidden"
       :class="mobileFiltersOpen ? 'translate-y-0' : 'translate-y-full'"
       style="max-height: 85vh"
       role="dialog"
@@ -987,18 +987,18 @@ const visiblePages = computed(() => {
     >
       <!-- Drag handle -->
       <div class="flex shrink-0 justify-center pb-1 pt-3" aria-hidden="true">
-        <span class="h-1 w-10 rounded-full bg-zinc-300 dark:bg-zinc-600" />
+        <span class="h-1 w-10 rounded-full bg-border dark:bg-border-strong" />
       </div>
 
       <!-- Header -->
-      <div class="flex shrink-0 items-center justify-between border-b border-zinc-200 px-4 pb-3 pt-1 dark:border-zinc-800">
+      <div class="flex shrink-0 items-center justify-between border-b border-border px-4 pb-3 pt-1">
         <div>
           <h2 class="text-base font-semibold text-foreground">{{ t('browse.filters') }}</h2>
           <p class="text-sm text-muted-foreground">{{ t('browse.filtersDesc') }}</p>
         </div>
         <button
           type="button"
-          class="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-zinc-100 hover:text-foreground dark:hover:bg-zinc-800"
+          class="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           :aria-label="t('browse.close')"
           @click="mobileFiltersOpen = false"
         >
@@ -1124,7 +1124,7 @@ const visiblePages = computed(() => {
       </div>
 
       <!-- Footer -->
-      <div class="flex shrink-0 gap-2 border-t border-zinc-200 px-4 py-4 dark:border-zinc-800">
+      <div class="flex shrink-0 gap-2 border-t border-border px-4 py-4">
         <Button variant="outline" class="flex-1 rounded-lg" @click="clearFilters">{{ t('browse.clearMobile') }}</Button>
         <Button class="flex-1 rounded-lg" @click="mobileFiltersOpen = false">{{ t('browse.showResults') }}</Button>
       </div>

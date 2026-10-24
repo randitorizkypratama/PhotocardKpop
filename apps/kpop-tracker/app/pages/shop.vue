@@ -178,7 +178,7 @@ function loadEmbedScript() {
 
     <main>
       <!-- Hero -->
-      <section class="border-b border-zinc-200 dark:border-zinc-800">
+      <section class="border-b border-border">
         <div class="page-shell py-10 sm:py-14">
           <div class="flex flex-col items-center gap-6 text-center sm:gap-8">
             <!-- Logo -->
@@ -248,7 +248,7 @@ function loadEmbedScript() {
       </section>
 
       <!-- How to Order (C) -->
-      <section class="border-t border-zinc-200 dark:border-zinc-800">
+      <section class="border-t border-border">
         <div class="page-shell py-10 sm:py-12">
           <div class="mb-8 text-center">
             <p class="eyebrow">{{ t('shop.howEyebrow') }}</p>
@@ -259,8 +259,8 @@ function loadEmbedScript() {
 
           <div class="grid gap-6 sm:grid-cols-3">
             <!-- Step 1 -->
-            <div class="flex flex-col items-center gap-3 rounded-xl border border-zinc-200 bg-card p-6 text-center shadow-sm dark:border-zinc-800">
-              <div class="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
+            <div class="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-6 text-center shadow-sm">
+              <div class="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
                 <ShoppingBag class="h-5 w-5 text-foreground" />
               </div>
               <div class="flex h-6 w-6 items-center justify-center rounded-full bg-foreground text-[11px] font-bold text-background">1</div>
@@ -269,8 +269,8 @@ function loadEmbedScript() {
             </div>
 
             <!-- Step 2 -->
-            <div class="flex flex-col items-center gap-3 rounded-xl border border-zinc-200 bg-card p-6 text-center shadow-sm dark:border-zinc-800">
-              <div class="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
+            <div class="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-6 text-center shadow-sm">
+              <div class="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
                 <MessageCircle class="h-5 w-5 text-foreground" />
               </div>
               <div class="flex h-6 w-6 items-center justify-center rounded-full bg-foreground text-[11px] font-bold text-background">2</div>
@@ -279,8 +279,8 @@ function loadEmbedScript() {
             </div>
 
             <!-- Step 3 -->
-            <div class="flex flex-col items-center gap-3 rounded-xl border border-zinc-200 bg-card p-6 text-center shadow-sm dark:border-zinc-800">
-              <div class="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
+            <div class="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-6 text-center shadow-sm">
+              <div class="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
                 <Truck class="h-5 w-5 text-foreground" />
               </div>
               <div class="flex h-6 w-6 items-center justify-center rounded-full bg-foreground text-[11px] font-bold text-background">3</div>
@@ -292,7 +292,7 @@ function loadEmbedScript() {
       </section>
 
       <!-- Order / Contact (D) -->
-      <section class="border-t border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/40">
+      <section class="border-t border-border bg-muted dark:bg-muted/40">
         <div class="page-shell py-10 sm:py-12">
           <div class="flex flex-col items-center gap-4 text-center">
             <p class="eyebrow">{{ t('shop.orderEyebrow') }}</p>
@@ -329,7 +329,7 @@ function loadEmbedScript() {
       </section>
 
       <!-- Featured collections (manual fallback) -->
-      <section class="border-t border-zinc-200 dark:border-zinc-800">
+      <section class="border-t border-border">
         <div class="page-shell py-10 sm:py-12">
           <div class="mb-5 sm:mb-6">
             <p class="eyebrow">{{ t('shop.featuredEyebrow') }}</p>
@@ -352,7 +352,7 @@ function loadEmbedScript() {
                 </div>
                 <span
                   v-if="product.badgeKey"
-                  class="shrink-0 rounded-md border border-zinc-200 bg-white/90 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/90 dark:text-zinc-200"
+                  class="shrink-0 rounded-md border border-border bg-white/90 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground dark:border-border-strong dark:bg-card/90"
                 >
                   {{ t(product.badgeKey) }}
                 </span>
@@ -374,7 +374,7 @@ function loadEmbedScript() {
       </section>
 
       <!-- TikTok videos via Display API -->
-      <section class="border-t border-zinc-200 dark:border-zinc-800">
+      <section class="border-t border-border">
         <div class="page-shell py-10 sm:py-12">
           <div class="mb-5 flex flex-wrap items-end justify-between gap-3 sm:mb-6">
             <div>
@@ -410,7 +410,7 @@ function loadEmbedScript() {
           <!-- Connect prompt -->
           <div
             v-if="isAdmin && tiktokStatus.configured && !tiktokStatus.connected"
-            class="rounded-xl border border-zinc-200 bg-card p-5 shadow-sm dark:border-zinc-800 sm:p-6"
+            class="rounded-xl border border-border bg-card p-5 shadow-sm sm:p-6"
           >
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div class="min-w-0">
@@ -444,9 +444,9 @@ function loadEmbedScript() {
 
           <div
             v-else-if="videos.length === 0"
-            class="rounded-xl border border-dashed border-zinc-300 px-6 py-10 text-center dark:border-zinc-700"
+            class="rounded-xl border border-dashed border-border px-6 py-10 text-center"
           >
-            <Video class="mx-auto h-7 w-7 text-zinc-400" aria-hidden="true" />
+            <Video class="mx-auto h-7 w-7 text-muted-foreground" aria-hidden="true" />
             <p class="mt-3 text-sm font-medium text-foreground">{{ t('shop.videosEmpty') }}</p>
             <p class="mt-1 text-sm text-muted-foreground">{{ videosError || t('shop.videosEmptyHint') }}</p>
             <Button v-if="isAdmin && tiktokStatus.configured" class="mt-4 h-10 gap-2 rounded-lg" as-child>
@@ -464,9 +464,9 @@ function loadEmbedScript() {
               :href="safeExternalUrl(video.share_url || video.embed_link, SHOP_URLS.tiktok)"
               target="_blank"
               rel="noopener noreferrer"
-              class="group overflow-hidden rounded-xl border border-zinc-200 bg-card shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-zinc-800"
+              class="group overflow-hidden rounded-xl border border-border bg-card shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
             >
-              <div class="relative aspect-[9/14] bg-zinc-100 dark:bg-zinc-900">
+              <div class="relative aspect-[9/14] bg-muted">
                 <img
                   v-if="video.cover_image_url"
                   :src="video.cover_image_url"
@@ -497,7 +497,7 @@ function loadEmbedScript() {
           </div>
 
           <!-- Official profile embed fallback -->
-          <div class="mt-6 rounded-xl border border-zinc-200 bg-card p-4 shadow-sm dark:border-zinc-800 sm:p-6">
+          <div class="mt-6 rounded-xl border border-border bg-card p-4 shadow-sm sm:p-6">
             <p class="mb-3 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
               {{ t('shop.liveEmbed') }}
             </p>
@@ -522,7 +522,7 @@ function loadEmbedScript() {
                    instead of a 280px box containing one 24px link. -->
               <div
                 v-else
-                class="flex min-h-[280px] flex-col items-center justify-center gap-4 rounded-lg border border-dashed border-zinc-300 p-6 text-center dark:border-zinc-700"
+                class="flex min-h-[280px] flex-col items-center justify-center gap-4 rounded-lg border border-dashed border-border p-6 text-center"
               >
                 <img src="/social/tiktok.svg" alt="" class="h-8 w-8" aria-hidden="true" />
                 <p class="max-w-sm text-sm leading-relaxed text-muted-foreground">
@@ -536,7 +536,7 @@ function loadEmbedScript() {
                 </Button>
               </div>
               <template #fallback>
-                <div class="flex min-h-[280px] items-center justify-center rounded-lg border border-dashed border-zinc-300 text-sm text-muted-foreground dark:border-zinc-700">
+                <div class="flex min-h-[280px] items-center justify-center rounded-lg border border-dashed border-border text-sm text-muted-foreground">
                   {{ t('shop.loading') }}
                 </div>
               </template>

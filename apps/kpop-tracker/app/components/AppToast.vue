@@ -28,7 +28,7 @@ const { toasts, dismiss } = useToast()
           class="pointer-events-auto flex w-full max-w-sm items-start gap-2.5 rounded-xl border bg-card px-4 py-3 text-left shadow-lg"
           :class="toast.variant === 'error'
             ? 'border-red-200 dark:border-red-900/60'
-            : 'border-zinc-200 dark:border-zinc-800'"
+            : 'border-border'"
           @click="dismiss(toast.id)"
         >
           <Check

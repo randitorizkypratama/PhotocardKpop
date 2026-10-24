@@ -21,6 +21,9 @@
   --destructive: 0 72% 51%;
   --destructive-foreground: 0 0% 98%;
   --border: 36 8% 88%;
+  /* One step stronger than --border: hover/active borders and kbd chips.
+     Exists so hover states stop reaching for raw zinc-300. */
+  --border-strong: 36 8% 78%;
   --input: 36 8% 88%;
   --ring: 24 10% 10%;
   --radius: 0.5rem;
@@ -48,6 +51,7 @@
   --destructive: 0 63% 31%;
   --destructive-foreground: 0 0% 98%;
   --border: 24 5% 19%;
+  --border-strong: 24 5% 30%;
   --input: 24 5% 19%;
   --ring: 36 15% 97%;
   --brand: 252 30% 72%;
@@ -130,20 +134,20 @@ body {
 
   /* #2 Card hover: lift effect */
   .pc-card {
-    @apply relative flex flex-col overflow-hidden rounded-xl border border-border bg-card transition-all duration-200 ease-out hover:-translate-y-1 hover:border-zinc-300 hover:shadow-md dark:hover:border-zinc-600;
+    @apply relative flex flex-col overflow-hidden rounded-xl border border-border bg-card transition-all duration-200 ease-out hover:-translate-y-1 hover:border-border-strong hover:shadow-md;
   }
 
   /* #3 Portrait aspect ratio 2:3 */
   .pc-card-image {
-    @apply relative aspect-[2/3] overflow-hidden bg-zinc-100 dark:bg-zinc-900;
+    @apply relative aspect-[2/3] overflow-hidden bg-muted;
   }
 
   .pc-type-badge {
-    @apply inline-flex items-center whitespace-nowrap rounded-md border border-zinc-300/90 bg-white/95 px-1.5 py-[3px] text-[10px] font-semibold uppercase tracking-[0.09em] text-zinc-800 backdrop-blur-[2px] dark:border-zinc-600 dark:bg-zinc-950/90 dark:text-zinc-100;
+    @apply inline-flex items-center whitespace-nowrap rounded-md border border-border-strong/90 bg-white/95 px-1.5 py-[3px] text-[10px] font-semibold uppercase tracking-[0.09em] text-zinc-800 backdrop-blur-[2px] dark:bg-zinc-950/90 dark:text-zinc-100;
   }
 
   .pc-status-badge {
-    @apply inline-flex items-center rounded-md border border-zinc-300/90 bg-white/95 px-1.5 py-[3px] text-[10px] font-medium text-zinc-700 backdrop-blur-[2px] dark:border-zinc-600 dark:bg-zinc-950/90 dark:text-zinc-200;
+    @apply inline-flex items-center rounded-md border border-border-strong/90 bg-white/95 px-1.5 py-[3px] text-[10px] font-medium text-zinc-700 backdrop-blur-[2px] dark:bg-zinc-950/90 dark:text-zinc-200;
   }
 
   .pc-meta-label {
@@ -151,11 +155,11 @@ body {
   }
 
   .chip {
-    @apply inline-flex max-w-full shrink-0 items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors duration-150 hover:border-zinc-300 hover:text-foreground dark:hover:border-zinc-700;
+    @apply inline-flex max-w-full shrink-0 items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors duration-150 hover:border-border-strong hover:text-foreground;
   }
 
   .chip-active {
-    @apply border-foreground bg-foreground text-background hover:border-foreground hover:text-background dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-950 dark:hover:border-zinc-100 dark:hover:text-zinc-950;
+    @apply border-foreground bg-foreground text-background hover:border-foreground hover:text-background;
   }
 
   .chip-quiet {
@@ -171,7 +175,7 @@ body {
   }
 
   .text-link {
-    @apply underline decoration-zinc-300 underline-offset-4 transition-colors hover:decoration-foreground dark:decoration-zinc-700;
+    @apply underline decoration-border underline-offset-4 transition-colors hover:decoration-foreground;
   }
 
   /* #4 Shimmer skeleton animation */
@@ -180,7 +184,7 @@ body {
   }
 
   .skeleton-block {
-    @apply relative overflow-hidden rounded-md bg-zinc-200/80 dark:bg-zinc-800/80;
+    @apply relative overflow-hidden rounded-md bg-muted/80;
   }
 
   .skeleton-block::after {

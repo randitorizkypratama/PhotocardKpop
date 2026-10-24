@@ -153,7 +153,7 @@ async function onWishlist(id: number | string) {
 
       <!-- Not found -->
       <div v-else-if="notFound" class="page-shell py-12">
-        <div class="rounded-xl border border-dashed border-zinc-300 py-12 text-center dark:border-zinc-700">
+        <div class="rounded-xl border border-dashed border-border py-12 text-center">
           <p class="text-sm font-medium text-foreground">{{ t('releaseDetail.notFound') }}</p>
           <p class="mt-1 text-sm text-muted-foreground">{{ t('releaseDetail.notFoundHint') }}</p>
           <div class="mt-4 flex flex-wrap justify-center gap-2">
@@ -180,7 +180,7 @@ async function onWishlist(id: number | string) {
 
       <template v-else-if="detail">
         <!-- Release header -->
-        <section class="border-b border-zinc-200 dark:border-zinc-800">
+        <section class="border-b border-border">
           <div class="page-shell py-8 sm:py-10">
             <p class="eyebrow">{{ t('releaseDetail.eyebrow') }}</p>
 
@@ -265,7 +265,7 @@ async function onWishlist(id: number | string) {
         </section>
 
         <!-- Facts -->
-        <section class="border-b border-zinc-200 dark:border-zinc-800">
+        <section class="border-b border-border">
           <div class="page-shell grid gap-6 py-7 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3">
             <div v-if="typeRows.length > 0">
               <p class="pc-meta-label mb-2.5">{{ t('releaseDetail.cardTypes') }}</p>
@@ -353,7 +353,7 @@ async function onWishlist(id: number | string) {
             </div>
           </div>
 
-          <div v-else-if="cards.length === 0" class="rounded-xl border border-dashed border-zinc-300 py-12 text-center dark:border-zinc-700">
+          <div v-else-if="cards.length === 0" class="rounded-xl border border-dashed border-border py-12 text-center">
             <p class="text-sm font-medium text-foreground">{{ t('releaseDetail.empty') }}</p>
             <p class="mt-1 text-sm text-muted-foreground">{{ t('releaseDetail.emptyHint') }}</p>
           </div>

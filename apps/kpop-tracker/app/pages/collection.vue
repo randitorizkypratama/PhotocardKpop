@@ -218,9 +218,9 @@ const tabDefs = computed(() => [
       <!-- Not logged in -->
       <div
         v-else-if="!user"
-        class="rounded-xl border border-dashed border-zinc-300 px-6 py-14 text-center dark:border-zinc-700"
+        class="rounded-xl border border-dashed border-border px-6 py-14 text-center"
       >
-        <LockKeyhole class="mx-auto h-7 w-7 text-zinc-400 dark:text-zinc-500" aria-hidden="true" />
+        <LockKeyhole class="mx-auto h-7 w-7 text-muted-foreground" aria-hidden="true" />
         <p class="eyebrow mt-4">{{ t('auth.collectionLocked') }}</p>
         <p class="mt-3 text-sm text-muted-foreground">{{ t('auth.collectionLockedDesc') }}</p>
         <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
@@ -261,9 +261,9 @@ const tabDefs = computed(() => [
           </div>
         </div>
         <!-- Total value -->
-        <div class="flex items-center gap-3 rounded-xl border bg-zinc-50 p-4 border-zinc-200 dark:bg-zinc-900 dark:border-zinc-800">
-          <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800">
-            <span class="text-xs font-bold text-zinc-500 dark:text-zinc-400">Rp</span>
+        <div class="flex items-center gap-3 rounded-xl border bg-muted p-4 border-border">
+          <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-border">
+            <span class="text-xs font-bold text-muted-foreground">Rp</span>
           </div>
           <div class="min-w-0">
             <p class="truncate text-xl font-semibold tabular-nums text-foreground">{{ formatUSD(stats.totalOwnedValue) }}</p>
@@ -346,9 +346,9 @@ const tabDefs = computed(() => [
       <!-- Empty -->
       <div
         v-else-if="filteredItems.length === 0 && !error"
-        class="rounded-xl border border-dashed border-zinc-300 px-6 py-14 text-center dark:border-zinc-700"
+        class="rounded-xl border border-dashed border-border px-6 py-14 text-center"
       >
-        <BookOpen class="mx-auto h-7 w-7 text-zinc-400 dark:text-zinc-500" aria-hidden="true" />
+        <BookOpen class="mx-auto h-7 w-7 text-muted-foreground" aria-hidden="true" />
         <p class="eyebrow mt-4">
           <template v-if="selectedType">{{ t('collection.emptyType', { type: selectedType }) }}</template>
           <template v-else-if="activeTab === 'wishlist'">{{ t('collection.emptyWishlist') }}</template>
@@ -385,7 +385,7 @@ const tabDefs = computed(() => [
               <span v-else class="shrink-0 tabular-nums">{{ section.ownedCount }} {{ t('collection.ownedLabel') }}</span>
               <div
                 v-if="section.hasProgress"
-                class="h-1.5 w-16 shrink-0 overflow-hidden rounded-full bg-zinc-100 sm:w-24 dark:bg-zinc-800"
+                class="h-1.5 w-16 shrink-0 overflow-hidden rounded-full bg-muted sm:w-24"
                 role="progressbar"
                 :aria-valuenow="section.ownedCount"
                 :aria-valuemin="0"
@@ -419,7 +419,7 @@ const tabDefs = computed(() => [
                   />
                   <button
                     type="button"
-                    class="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white/95 text-zinc-500 shadow-sm backdrop-blur-sm transition duration-150 hover:border-red-200 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 dark:border-zinc-700 dark:bg-zinc-950/90 dark:text-zinc-400"
+                    class="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white/95 text-muted-foreground shadow-sm backdrop-blur-sm transition duration-150 hover:border-red-200 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 dark:border-border-strong dark:bg-zinc-950/90"
                     :aria-label="item.status === 'owned' ? t('collection.removeAria', { name: item.name }) : t('collection.removeAriaWishlist', { name: item.name })"
                     @click.stop="removeById(item)"
                   >
@@ -446,7 +446,7 @@ const tabDefs = computed(() => [
               />
               <button
                 type="button"
-                class="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white/95 text-zinc-500 shadow-sm backdrop-blur-sm transition duration-150 hover:border-red-200 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 dark:border-zinc-700 dark:bg-zinc-950/90 dark:text-zinc-400"
+                class="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white/95 text-muted-foreground shadow-sm backdrop-blur-sm transition duration-150 hover:border-red-200 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 dark:border-border-strong dark:bg-zinc-950/90"
                 :aria-label="item.status === 'owned' ? t('collection.removeAria', { name: item.name }) : t('collection.removeAriaWishlist', { name: item.name })"
                 @click.stop="removeById(item)"
               >

@@ -92,7 +92,7 @@ function go(path: string) {
               v-if="card.image"
               :src="card.image"
               :alt="card.name"
-              class="h-8 w-8 shrink-0 rounded-md border border-zinc-200 object-cover object-top dark:border-zinc-700"
+              class="h-8 w-8 shrink-0 rounded-md border border-border object-cover object-top dark:border-border-strong"
             />
             <span class="min-w-0 flex-1">
               <span class="block truncate text-sm font-medium">{{ card.name }}</span>
@@ -119,12 +119,12 @@ function go(path: string) {
       </template>
 
       <div class="border-t px-3 py-2 text-[11px] text-muted-foreground">
-        <kbd class="rounded border border-zinc-300 px-1 py-0.5 font-sans dark:border-zinc-600">↑</kbd>
-        <kbd class="ml-0.5 rounded border border-zinc-300 px-1 py-0.5 font-sans dark:border-zinc-600">↓</kbd>
+        <kbd class="rounded border border-border-strong px-1 py-0.5 font-sans">↑</kbd>
+        <kbd class="ml-0.5 rounded border border-border-strong px-1 py-0.5 font-sans">↓</kbd>
         {{ t('palette.navigate') }} ·
-        <kbd class="ml-1 rounded border border-zinc-300 px-1 py-0.5 font-sans dark:border-zinc-600">↵</kbd>
+        <kbd class="ml-1 rounded border border-border-strong px-1 py-0.5 font-sans">↵</kbd>
         {{ t('palette.open') }} ·
-        <kbd class="ml-1 rounded border border-zinc-300 px-1 py-0.5 font-sans dark:border-zinc-600">esc</kbd>
+        <kbd class="ml-1 rounded border border-border-strong px-1 py-0.5 font-sans">esc</kbd>
         {{ t('palette.close') }}
       </div>
     </CommandList>

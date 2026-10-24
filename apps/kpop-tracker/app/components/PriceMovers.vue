@@ -38,7 +38,7 @@ function pctLabel(value: number) {
 </script>
 
 <template>
-  <section v-if="pending || drops.length || risers.length" class="border-t border-zinc-200 dark:border-zinc-800">
+  <section v-if="pending || drops.length || risers.length" class="border-t border-border">
     <div class="page-shell py-10 sm:py-12">
       <div class="mb-5 flex flex-wrap items-end justify-between gap-3 sm:mb-6">
         <div>
@@ -57,14 +57,14 @@ function pctLabel(value: number) {
 
       <!-- Loading skeleton -->
       <div v-if="pending" class="grid gap-3 sm:gap-4 md:grid-cols-2">
-        <div v-for="panel in 2" :key="panel" class="min-w-0 rounded-xl border border-zinc-200 bg-card shadow-sm dark:border-zinc-800">
+        <div v-for="panel in 2" :key="panel" class="min-w-0 rounded-xl border border-border bg-card shadow-sm">
           <!-- Panel header skeleton -->
-          <div class="flex items-center gap-2 border-b border-zinc-100 px-4 py-3 dark:border-zinc-800/80">
+          <div class="flex items-center gap-2 border-b border-border px-4 py-3">
             <div class="skeleton-block h-2 w-2 rounded-full" />
             <div class="skeleton-block h-3.5 w-24" />
           </div>
           <!-- Row skeletons -->
-          <div class="divide-y divide-zinc-100 dark:divide-zinc-800/80">
+          <div class="divide-y divide-border">
             <div v-for="i in 5" :key="i" class="flex items-center gap-3 px-4 py-2.5">
               <div class="skeleton-block h-10 w-10 shrink-0 rounded-md" />
               <div class="min-w-0 flex-1 space-y-1.5">
@@ -88,22 +88,22 @@ function pctLabel(value: number) {
               { title: 'movers.risers', items: risers, dot: 'bg-rose-500', delta: 'text-rose-700 dark:text-rose-400' },
             ]"
           :key="panel.title"
-          class="min-w-0 rounded-xl border border-zinc-200 bg-card shadow-sm dark:border-zinc-800"
+          class="min-w-0 rounded-xl border border-border bg-card shadow-sm"
         >
-          <div class="flex items-center gap-2 border-b border-zinc-100 px-4 py-3 dark:border-zinc-800/80">
+          <div class="flex items-center gap-2 border-b border-border px-4 py-3">
             <span class="h-2 w-2 rounded-full" :class="panel.dot" aria-hidden="true" />
             <span class="text-sm font-medium text-foreground">{{ t(panel.title) }}</span>
             <span class="text-xs text-muted-foreground">{{ t('movers.vs') }}</span>
           </div>
 
-          <div class="divide-y divide-zinc-100 dark:divide-zinc-800/80">
+          <div class="divide-y divide-border">
             <NuxtLink
               v-for="item in panel.items"
               :key="`${panel.title}-${item.id}`"
               :to="`/card/${item.id}`"
-              class="flex items-center gap-3 px-4 py-2.5 transition-colors duration-150 hover:bg-zinc-50 dark:hover:bg-zinc-900"
+              class="flex items-center gap-3 px-4 py-2.5 transition-colors duration-150 hover:bg-muted"
             >
-              <span class="h-10 w-10 shrink-0 overflow-hidden rounded-md border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900">
+              <span class="h-10 w-10 shrink-0 overflow-hidden rounded-md border border-border bg-muted">
                 <img
                   v-if="item.image"
                   :src="item.image"

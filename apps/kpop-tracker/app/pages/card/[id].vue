@@ -369,12 +369,12 @@ function pointAlignX(point: { x: number }) {
           <Button
             v-if="!notFound"
             variant="outline"
-            class="rounded-lg border-red-300 bg-white dark:border-red-800 dark:bg-zinc-900"
+            class="rounded-lg border-red-300 bg-white dark:border-red-800 dark:bg-card"
             @click="reloadCard"
           >
             {{ t('card.error.retry') }}
           </Button>
-          <Button variant="outline" class="rounded-lg border-red-300 bg-white dark:border-red-800 dark:bg-zinc-900" as-child>
+          <Button variant="outline" class="rounded-lg border-red-300 bg-white dark:border-red-800 dark:bg-card" as-child>
             <NuxtLink to="/browse">{{ t('card.error.back') }}</NuxtLink>
           </Button>
         </div>
@@ -384,10 +384,10 @@ function pointAlignX(point: { x: number }) {
       <div v-else-if="card" class="grid gap-6 lg:grid-cols-2 lg:gap-10 xl:gap-14">
         <!-- Left: image -->
         <div class="lg:sticky lg:top-20 lg:self-start">
-          <div class="mx-auto w-full max-w-md overflow-hidden rounded-xl border border-zinc-200 bg-card shadow-lg dark:border-zinc-800 lg:max-w-none">
+          <div class="mx-auto w-full max-w-md overflow-hidden rounded-xl border border-border bg-card shadow-lg lg:max-w-none">
             <button
               type="button"
-              class="relative block aspect-[2/3] w-full cursor-zoom-in bg-zinc-100 dark:bg-zinc-900"
+              class="relative block aspect-[2/3] w-full cursor-zoom-in bg-muted"
               :aria-label="t('card.zoomAria')"
               @click="zoomOpen = true"
             >
@@ -606,7 +606,7 @@ function pointAlignX(point: { x: number }) {
                   :href="SHOP_URLS.tokopedia"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="flex flex-col items-center justify-center gap-1.5 rounded-lg border border-border bg-zinc-50 px-2 py-3 text-xs font-medium text-muted-foreground transition-colors hover:border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900/60 dark:hover:border-zinc-600 dark:hover:bg-zinc-800/60"
+                  class="flex flex-col items-center justify-center gap-1.5 rounded-lg border border-border bg-muted px-2 py-3 text-xs font-medium text-muted-foreground transition-colors hover:border-border-strong hover:bg-muted dark:bg-muted/60"
                 >
                   <img src="/social/tokopedia.png" alt="Tokopedia" class="h-5 w-5 object-contain" loading="lazy" />
                   Tokopedia
@@ -615,7 +615,7 @@ function pointAlignX(point: { x: number }) {
                   :href="SHOP_URLS.shopee"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="flex flex-col items-center justify-center gap-1.5 rounded-lg border border-border bg-zinc-50 px-2 py-3 text-xs font-medium text-muted-foreground transition-colors hover:border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900/60 dark:hover:border-zinc-600 dark:hover:bg-zinc-800/60"
+                  class="flex flex-col items-center justify-center gap-1.5 rounded-lg border border-border bg-muted px-2 py-3 text-xs font-medium text-muted-foreground transition-colors hover:border-border-strong hover:bg-muted dark:bg-muted/60"
                 >
                   <img src="/social/shopee.svg" alt="Shopee" class="h-5 w-5 object-contain" loading="lazy" />
                   Shopee
@@ -624,7 +624,7 @@ function pointAlignX(point: { x: number }) {
                   :href="SHOP_URLS.tiktok"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="flex flex-col items-center justify-center gap-1.5 rounded-lg border border-border bg-zinc-50 px-2 py-3 text-xs font-medium text-muted-foreground transition-colors hover:border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900/60 dark:hover:border-zinc-600 dark:hover:bg-zinc-800/60"
+                  class="flex flex-col items-center justify-center gap-1.5 rounded-lg border border-border bg-muted px-2 py-3 text-xs font-medium text-muted-foreground transition-colors hover:border-border-strong hover:bg-muted dark:bg-muted/60"
                 >
                   <img src="/social/tiktok.svg" alt="TikTok Shop" class="h-5 w-5 object-contain" loading="lazy" />
                   TikTok Shop
@@ -643,25 +643,25 @@ function pointAlignX(point: { x: number }) {
             <NuxtLink
               v-if="typeLabel"
               :to="{ path: '/browse', query: { card_type: card.card_type, group: card.group_name } }"
-              class="mt-3 inline-block text-sm font-medium text-foreground underline decoration-zinc-300 underline-offset-4 hover:decoration-foreground dark:decoration-zinc-700"
+              class="mt-3 inline-block text-sm font-medium text-foreground underline decoration-border underline-offset-4 hover:decoration-foreground"
             >
               {{ t('card.browseMore', { type: typeLabel }) }}
             </NuxtLink>
           </div>
 
           <!-- Price history -->
-          <div class="rounded-xl border border-zinc-200 bg-card p-4 dark:border-zinc-800 sm:p-5">
+          <div class="rounded-xl border border-border bg-card p-4 sm:p-5">
             <p class="pc-meta-label">{{ t('card.priceHistory') }}</p>
 
-            <div v-if="history.length === 0" class="mt-3 rounded-lg border border-dashed border-zinc-300 px-4 py-8 text-center dark:border-zinc-700">
-              <Clock class="mx-auto h-6 w-6 text-zinc-400" aria-hidden="true" />
+            <div v-if="history.length === 0" class="mt-3 rounded-lg border border-dashed border-border px-4 py-8 text-center">
+              <Clock class="mx-auto h-6 w-6 text-muted-foreground" aria-hidden="true" />
               <p class="mt-2 text-sm text-muted-foreground">
                 {{ t('card.priceHistoryEmpty') }}
               </p>
             </div>
 
             <template v-else>
-              <div v-if="chartData" class="mt-3 rounded-lg bg-zinc-50 p-3 dark:bg-zinc-900/60">
+              <div v-if="chartData" class="mt-3 rounded-lg bg-muted p-3 dark:bg-muted/60">
                 <div class="mb-2 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
                   <span>{{ chartData.labels.first }}</span>
                   <span class="flex items-center gap-3">
@@ -729,7 +729,7 @@ function pointAlignX(point: { x: number }) {
                        the point sits high, so it never covers the min/max row. -->
                   <div
                     v-if="activePointData"
-                    class="pointer-events-none absolute z-10 rounded-lg border border-zinc-200 bg-card px-2.5 py-1.5 text-center shadow-md dark:border-zinc-700"
+                    class="pointer-events-none absolute z-10 rounded-lg border border-border bg-card px-2.5 py-1.5 text-center shadow-md dark:border-border-strong"
                     :class="[
                       pointAlignX(activePointData),
                       activePointData.y < 45 ? 'translate-y-0' : '-translate-y-full',
@@ -754,7 +754,7 @@ function pointAlignX(point: { x: number }) {
                 <li
                   v-for="entry in history.slice(0, 8)"
                   :key="entry.id"
-                  class="flex items-center justify-between rounded-lg bg-zinc-50 px-3 py-2.5 dark:bg-zinc-900/60"
+                  class="flex items-center justify-between rounded-lg bg-muted px-3 py-2.5 dark:bg-muted/60"
                 >
                   <span class="text-sm font-medium tabular-nums text-foreground">${{ entry.price }}</span>
                   <span class="flex items-center gap-1.5 text-xs text-muted-foreground">

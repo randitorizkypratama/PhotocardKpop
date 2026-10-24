@@ -129,7 +129,7 @@ const STATUS_STYLES: Record<string, { label: string, chip: string, dot: string }
 }
 
 function statusStyle(status: string) {
-  return STATUS_STYLES[status] || { label: status, chip: 'bg-zinc-500/10 text-zinc-600 ring-zinc-500/30 dark:text-zinc-400', dot: 'bg-zinc-400' }
+  return STATUS_STYLES[status] || { label: status, chip: 'bg-muted-foreground/10 text-muted-foreground ring-zinc-500/30', dot: 'bg-muted-foreground' }
 }
 
 function fmt(value: string | null) {
@@ -168,7 +168,7 @@ function duration(run: { started_at: string, finished_at: string | null }) {
 
     <main>
       <template v-if="gate === 'admin'">
-      <section class="border-b border-zinc-200 dark:border-zinc-800">
+      <section class="border-b border-border">
         <div class="page-shell py-8 sm:py-10">
           <p class="eyebrow">{{ t('status.systemEyebrow') }}</p>
           <h1 class="mt-1.5 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{{ t('palette.nav.status') }}</h1>
@@ -177,21 +177,21 @@ function duration(run: { started_at: string, finished_at: string | null }) {
           </p>
 
           <div class="mt-6 grid gap-3 sm:grid-cols-3">
-            <div class="rounded-xl border border-zinc-200 bg-card p-4 shadow-sm dark:border-zinc-800">
+            <div class="rounded-xl border border-border bg-card p-4 shadow-sm">
               <p class="text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground">{{ t('nav.browse') }}</p>
               <p class="mt-1.5 text-lg font-semibold tabular-nums text-foreground">
                 {{ summary ? fmtCount(summary.total) : '—' }}
               </p>
               <p class="text-xs text-muted-foreground">{{ t('status.tracked') }}</p>
             </div>
-            <div class="rounded-xl border border-zinc-200 bg-card p-4 shadow-sm dark:border-zinc-800">
+            <div class="rounded-xl border border-border bg-card p-4 shadow-sm">
               <p class="text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground">{{ t('status.lastDataUpdate') }}</p>
               <p class="mt-1.5 text-lg font-semibold tabular-nums text-foreground">
                 {{ fmtShort(summary?.last_synced || null) }}
               </p>
               <p class="text-xs text-muted-foreground">{{ t('status.latestRefresh') }}</p>
             </div>
-            <div class="rounded-xl border border-zinc-200 bg-card p-4 shadow-sm dark:border-zinc-800">
+            <div class="rounded-xl border border-border bg-card p-4 shadow-sm">
               <p class="text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground">{{ t('status.lastRun') }}</p>
               <div class="mt-1.5 flex items-center gap-2">
                 <span
@@ -226,7 +226,7 @@ function duration(run: { started_at: string, finished_at: string | null }) {
           <div v-for="i in 3" :key="i" class="skeleton-block h-20 rounded-xl" />
         </div>
 
-        <div v-else-if="runs.length === 0" class="rounded-xl border border-dashed border-zinc-300 py-12 text-center dark:border-zinc-700">
+        <div v-else-if="runs.length === 0" class="rounded-xl border border-dashed border-border py-12 text-center">
           <RefreshCw class="mx-auto h-5 w-5 text-muted-foreground" aria-hidden="true" />
           <p class="mt-3 text-sm font-medium text-foreground">{{ t('status.emptyTitle') }}</p>
           <p class="mt-1 text-sm text-muted-foreground">{{ t('status.emptyHint') }}</p>
@@ -241,7 +241,7 @@ function duration(run: { started_at: string, finished_at: string | null }) {
           <li
             v-for="run in runs"
             :key="run.id"
-            class="rounded-xl border border-zinc-200 bg-card p-4 shadow-sm dark:border-zinc-800"
+            class="rounded-xl border border-border bg-card p-4 shadow-sm"
           >
             <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
               <div class="flex min-w-0 items-center gap-2.5">
@@ -269,7 +269,7 @@ function duration(run: { started_at: string, finished_at: string | null }) {
                 :key="group.group"
                 class="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium"
                 :class="group.success
-                  ? 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300'
+                  ? 'bg-muted text-muted-foreground'
                   : 'bg-red-500/10 text-red-700 dark:text-red-400'"
                 :title="group.success
                   ? t('status.groupChipCards', { group: group.group, count: fmtCount(Number(group.totalSynced || 0)) })
@@ -299,14 +299,14 @@ function duration(run: { started_at: string, finished_at: string | null }) {
           <div v-for="i in 2" :key="i" class="skeleton-block h-16 rounded-xl" />
         </div>
 
-        <div v-else-if="!user" class="rounded-xl border border-dashed border-zinc-300 py-8 text-center dark:border-zinc-700">
+        <div v-else-if="!user" class="rounded-xl border border-dashed border-border py-8 text-center">
           <p class="text-sm text-muted-foreground">{{ t('status.loginForErrors') }}</p>
           <Button variant="outline" class="mt-3 rounded-lg" as-child>
             <NuxtLink to="/login">{{ t('auth.login') }}</NuxtLink>
           </Button>
         </div>
 
-        <div v-else-if="errors.length === 0" class="rounded-xl border border-dashed border-zinc-300 py-8 text-center dark:border-zinc-700">
+        <div v-else-if="errors.length === 0" class="rounded-xl border border-dashed border-border py-8 text-center">
           <p class="text-sm text-muted-foreground">{{ t('status.errorsEmpty') }}</p>
         </div>
 
@@ -319,7 +319,7 @@ function duration(run: { started_at: string, finished_at: string | null }) {
           <li
             v-for="row in errors"
             :key="row.id"
-            class="rounded-xl border border-zinc-200 bg-card p-4 shadow-sm dark:border-zinc-800"
+            class="rounded-xl border border-border bg-card p-4 shadow-sm"
           >
             <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
               <div class="flex min-w-0 items-center gap-2">
@@ -338,7 +338,7 @@ function duration(run: { started_at: string, finished_at: string | null }) {
             <p v-if="row.path" class="mt-1 truncate text-xs text-muted-foreground">{{ row.path }}</p>
             <details v-if="row.stack" class="mt-2">
               <summary class="cursor-pointer text-xs text-muted-foreground">{{ t('status.stack') }}</summary>
-              <pre class="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-all rounded-lg bg-zinc-50 p-3 text-[11px] leading-relaxed text-zinc-600 dark:bg-zinc-900/60 dark:text-zinc-400">{{ row.stack }}</pre>
+              <pre class="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-all rounded-lg bg-muted p-3 text-[11px] leading-relaxed text-muted-foreground dark:bg-muted/60">{{ row.stack }}</pre>
             </details>
           </li>
         </ul>

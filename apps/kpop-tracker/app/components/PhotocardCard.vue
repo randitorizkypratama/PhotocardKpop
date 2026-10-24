@@ -151,7 +151,7 @@ const metaLine = computed(() => {
     <button
       v-if="showWishlist"
       type="button"
-      class="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white/95 text-zinc-500 shadow-sm backdrop-blur-sm transition duration-150 hover:text-rose-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 dark:border-zinc-700 dark:bg-zinc-950/90 dark:text-zinc-400"
+      class="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white/95 text-muted-foreground shadow-sm backdrop-blur-sm transition duration-150 hover:text-rose-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 dark:border-border-strong dark:bg-zinc-950/90"
       :class="wishlisted ? 'text-rose-500 sm:opacity-100' : ''"
       :aria-label="wishlisted ? t('card.wishRemoveAria') : t('card.wishAddAria')"
       :aria-pressed="wishlisted"

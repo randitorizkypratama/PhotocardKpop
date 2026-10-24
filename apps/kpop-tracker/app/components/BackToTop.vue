@@ -39,7 +39,7 @@ function toTop() {
     <button
       v-if="visible"
       type="button"
-      class="fixed bottom-20 right-4 z-40 flex h-10 w-10 items-center justify-center rounded-full border border-zinc-200 bg-card/95 text-muted-foreground shadow-md backdrop-blur-sm transition-colors duration-150 hover:text-foreground md:bottom-6 md:right-6"
+      class="fixed bottom-20 right-4 z-40 flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card/95 text-muted-foreground shadow-md backdrop-blur-sm transition-colors duration-150 hover:text-foreground md:bottom-6 md:right-6"
       :aria-label="'Back to top'"
       @click="toTop"
     >

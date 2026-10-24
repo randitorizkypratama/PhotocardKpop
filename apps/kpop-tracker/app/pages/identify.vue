@@ -172,13 +172,13 @@ function reset() {
             <Filter class="h-3.5 w-3.5" />
             {{ t('identify.filterGroupLabel') }}:
           </span>
-          <div class="inline-flex rounded-lg border border-zinc-200 bg-card p-1 shadow-sm dark:border-zinc-800">
+          <div class="inline-flex rounded-lg border border-border bg-card p-1 shadow-sm">
             <button
               type="button"
               class="rounded-md px-3 py-1 text-xs font-medium transition-colors"
               :class="
                 selectedGroup === null
-                  ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
+                  ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:text-foreground'
               "
               @click="selectGroupFilter(null)"
@@ -192,7 +192,7 @@ function reset() {
               class="flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-medium transition-colors"
               :class="
                 selectedGroup === g
-                  ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
+                  ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:text-foreground'
               "
               @click="selectGroupFilter(g)"
@@ -208,8 +208,8 @@ function reset() {
           class="mt-6 min-h-[280px] rounded-2xl border-2 border-dashed transition-colors duration-200"
           :class="
             dragging
-              ? 'border-zinc-500 bg-zinc-50 dark:border-zinc-400 dark:bg-zinc-900/60'
-              : 'border-zinc-300 bg-card hover:border-zinc-500 dark:border-zinc-700 dark:hover:border-zinc-400'
+              ? 'border-border-strong bg-muted dark:bg-muted/60'
+              : 'border-border bg-card hover:border-border-strong'
           "
           @dragover.prevent="dragging = true"
           @dragleave.prevent="dragging = false"
@@ -217,7 +217,7 @@ function reset() {
         >
           <!-- Empty state -->
           <div v-if="!previewUrl" class="px-6 py-10 text-center sm:py-14">
-            <div class="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
+            <div class="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-muted">
               <Camera class="h-12 w-12 text-muted-foreground" />
             </div>
             <p class="mt-4 text-sm font-medium text-foreground sm:text-base">
@@ -240,7 +240,7 @@ function reset() {
           <div v-else class="p-4 sm:p-5">
             <div class="flex items-start gap-4">
               <!-- Framed Preview -->
-              <div class="relative h-28 w-[73px] shrink-0 overflow-hidden rounded-lg border-2 border-zinc-300 bg-zinc-950 sm:h-36 sm:w-[95px] dark:border-zinc-700">
+              <div class="relative h-28 w-[73px] shrink-0 overflow-hidden rounded-lg border-2 border-border-strong bg-zinc-950 sm:h-36 sm:w-[95px]">
                 <img
                   :src="previewUrl!"
                   :alt="t('identify.ownPhoto')"
@@ -259,9 +259,9 @@ function reset() {
                       {{ progressPercent }}%
                     </span>
                   </div>
-                  <div class="h-2 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+                  <div class="h-2 w-full overflow-hidden rounded-full bg-muted">
                     <div
-                      class="h-full rounded-full bg-zinc-500 transition-all duration-300 ease-in-out dark:bg-zinc-400"
+                      class="h-full rounded-full bg-muted-foreground transition-all duration-300 ease-in-out"
                       :style="{ width: progressWidth + '%' }"
                     />
                   </div>
@@ -325,9 +325,9 @@ function reset() {
               v-for="(hit, i) in result.hits"
               :key="hit.id + '-' + i"
               :to="`/card/${hit.id}`"
-              class="group block overflow-hidden rounded-xl border border-zinc-200 bg-card transition-shadow duration-150 hover:shadow-md dark:border-zinc-800"
+              class="group block overflow-hidden rounded-xl border border-border bg-card transition-shadow duration-150 hover:shadow-md"
             >
-              <div class="relative aspect-[2/3] overflow-hidden bg-zinc-100 dark:bg-zinc-900">
+              <div class="relative aspect-[2/3] overflow-hidden bg-muted">
                 <img
                   :src="hit.image"
                   :alt="hit.name"
@@ -336,7 +336,7 @@ function reset() {
                 />
                 <span
                   v-if="i === 0"
-                  class="absolute left-2 top-2 rounded-full bg-zinc-900/85 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white dark:bg-zinc-100/90 dark:text-zinc-900"
+                  class="absolute left-2 top-2 rounded-full bg-zinc-900/85 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary-foreground dark:bg-primary/90"
                 >
                   {{ t('identify.bestMatch') }}
                 </span>
@@ -350,9 +350,9 @@ function reset() {
                   {{ hit.name }}
                 </p>
                 <div class="mt-2.5 flex items-center gap-2">
-                  <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+                  <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
                     <div
-                      class="h-full rounded-full bg-zinc-700 dark:bg-zinc-300"
+                      class="h-full rounded-full bg-muted-foreground dark:bg-zinc-300"
                       :style="{ width: Math.round(hit.score * 100) + '%' }"
                     />
                   </div>
@@ -368,7 +368,7 @@ function reset() {
         <!-- Not found -->
         <section
           v-else-if="phase === 'notfound'"
-          class="mt-6 rounded-xl border border-zinc-200 bg-card px-5 py-6 text-center dark:border-zinc-800"
+          class="mt-6 rounded-xl border border-border bg-card px-5 py-6 text-center"
           role="status"
         >
           <SearchX class="mx-auto h-8 w-8 text-muted-foreground" />
@@ -393,16 +393,16 @@ function reset() {
         </section>
 
         <!-- Tips -->
-        <section class="mt-8 rounded-xl border border-zinc-200 bg-card p-5 dark:border-zinc-800">
+        <section class="mt-8 rounded-xl border border-border bg-card p-5">
           <h2 class="flex items-center gap-2 text-sm font-semibold text-foreground">
             <Lightbulb class="h-4 w-4 text-muted-foreground" />
             {{ t('identify.tipsTitle') }}
           </h2>
           <ul class="mt-3 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
-            <li class="flex gap-2"><span class="text-zinc-400">•</span>{{ t('identify.tipFill') }}</li>
-            <li class="flex gap-2"><span class="text-zinc-400">•</span>{{ t('identify.tipLight') }}</li>
-            <li class="flex gap-2"><span class="text-zinc-400">•</span>{{ t('identify.tipGlare') }}</li>
-            <li class="flex gap-2"><span class="text-zinc-400">•</span>{{ t('identify.tipStraight') }}</li>
+            <li class="flex gap-2"><span class="text-muted-foreground">•</span>{{ t('identify.tipFill') }}</li>
+            <li class="flex gap-2"><span class="text-muted-foreground">•</span>{{ t('identify.tipLight') }}</li>
+            <li class="flex gap-2"><span class="text-muted-foreground">•</span>{{ t('identify.tipGlare') }}</li>
+            <li class="flex gap-2"><span class="text-muted-foreground">•</span>{{ t('identify.tipStraight') }}</li>
           </ul>
           <NuxtLink
             to="/browse"

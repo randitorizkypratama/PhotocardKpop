@@ -48,7 +48,7 @@ function submitSearch() {
 
 <template>
   <header
-    class="sticky top-0 z-50 border-b border-zinc-200/80 bg-background/90 backdrop-blur-md dark:border-zinc-800/80"
+    class="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur-md"
     style="padding-top: env(safe-area-inset-top, 0px)"
   >
     <div class="page-shell flex h-14 items-center gap-2 sm:h-16 sm:gap-3">
@@ -73,7 +73,7 @@ function submitSearch() {
       </NuxtLink>
 
       <!-- Divider (desktop) -->
-      <div class="hidden h-5 w-px bg-zinc-200 md:block dark:bg-zinc-700" aria-hidden="true" />
+      <div class="hidden h-5 w-px bg-border md:block dark:bg-border-strong" aria-hidden="true" />
 
       <!-- Desktop nav -->
       <nav class="hidden items-center gap-0.5 md:flex" :aria-label="t('aria.navPrimary')">
@@ -86,7 +86,7 @@ function submitSearch() {
             link.cls,
             active === link.key
               ? 'text-foreground'
-              : 'text-muted-foreground hover:bg-zinc-50 hover:text-foreground dark:hover:bg-zinc-900',
+              : 'text-muted-foreground hover:bg-muted hover:text-foreground',
           ]"
         >
           {{ t(link.label) }}
@@ -112,11 +112,11 @@ function submitSearch() {
               v-model="headerSearch"
               type="search"
               :placeholder="t('search.placeholder')"
-              class="h-9 w-56 rounded-lg border border-zinc-200 bg-card pl-9 pr-14 text-sm text-foreground placeholder:text-muted-foreground focus:border-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 xl:w-64 dark:border-zinc-800 dark:bg-zinc-900/60 dark:focus:border-zinc-600 dark:focus:ring-zinc-600"
+              class="h-9 w-56 rounded-lg border border-border bg-card pl-9 pr-14 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring xl:w-64 dark:bg-muted/60"
             />
             <button
               type="button"
-              class="absolute right-2 top-1/2 flex -translate-y-1/2 items-center rounded border border-zinc-300 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground transition-colors hover:text-foreground dark:border-zinc-600"
+              class="absolute right-2 top-1/2 flex -translate-y-1/2 items-center rounded border border-border-strong px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground transition-colors hover:text-foreground"
               :aria-label="t('aria.openPalette')"
               @click="paletteOpen = true"
             >
@@ -156,7 +156,7 @@ function submitSearch() {
         </Button>
 
         <!-- Divider -->
-        <div class="mx-0.5 h-5 w-px bg-zinc-200 dark:bg-zinc-700" aria-hidden="true" />
+        <div class="mx-0.5 h-5 w-px bg-border dark:bg-border-strong" aria-hidden="true" />
 
         <!-- User: avatar → menu (logout lives in here deliberately: the old
              bare button signed the visitor out on a single mis-tap) -->
@@ -165,7 +165,7 @@ function submitSearch() {
             <DropdownMenuTrigger as-child>
               <button
                 type="button"
-                class="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-900 text-[11px] font-bold text-white transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:bg-zinc-100 dark:text-zinc-900"
+                class="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 :aria-label="`${user.username} — ${t('auth.menu')}`"
               >
                 {{ userInitials }}

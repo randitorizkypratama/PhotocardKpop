@@ -60,7 +60,7 @@ async function onWishlist(id: number | string) {
 
     <main>
       <!-- Group header -->
-      <section class="border-b border-zinc-200 dark:border-zinc-800">
+      <section class="border-b border-border">
         <div class="page-shell py-8 sm:py-10">
           <p class="eyebrow">{{ t('groupDetail.eyebrow') }}</p>
           <div class="mt-2 flex items-center gap-2.5">
@@ -162,7 +162,7 @@ async function onWishlist(id: number | string) {
                 </div>
               </div>
 
-              <div v-else-if="info.latest.length === 0" class="rounded-xl border border-dashed border-zinc-300 px-6 py-12 text-center dark:border-zinc-700">
+              <div v-else-if="info.latest.length === 0" class="rounded-xl border border-dashed border-border px-6 py-12 text-center">
                 <p class="text-sm text-muted-foreground">{{ t('groupDetail.latestEmpty') }}</p>
               </div>
 
@@ -185,11 +185,11 @@ async function onWishlist(id: number | string) {
               <p class="eyebrow">{{ t('groupDetail.releasesEyebrow') }}</p>
               <h2 class="mt-1 mb-4 section-title">{{ t('groupDetail.releasesTitle') }}</h2>
 
-              <div class="grid gap-px overflow-hidden rounded-xl border border-zinc-200 bg-zinc-200 sm:grid-cols-2 lg:grid-cols-3 dark:border-zinc-800 dark:bg-zinc-800">
+              <div class="grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-2 lg:grid-cols-3 dark:bg-muted">
                 <NuxtLink
                   v-for="release in info.releases"
                   :key="release.release_name"
-                  class="flex items-center justify-between gap-3 bg-card px-4 py-3 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                  class="flex items-center justify-between gap-3 bg-card px-4 py-3 transition-colors hover:bg-muted"
                   :to="
                     release.count > 0
                       ? { path: '/browse', query: { group, release: release.release_name } }

@@ -130,7 +130,7 @@ async function onWishlist(id: number | string) {
 
     <main>
       <!-- Hero -->
-      <section class="border-b border-zinc-200 bg-gradient-to-br from-zinc-50 to-zinc-100 dark:border-zinc-800 dark:from-zinc-900 dark:to-zinc-950">
+      <section class="border-b border-border bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-950">
         <div class="page-shell py-10 sm:py-14 lg:py-16">
           <div class="mx-auto max-w-2xl text-center">
             <div class="flex justify-center">
@@ -158,7 +158,7 @@ async function onWishlist(id: number | string) {
                   v-model="searchQuery"
                   type="search"
                   :placeholder="t('home.searchPlaceholder')"
-                  class="h-12 w-full rounded-xl border border-zinc-300 bg-card pl-11 pr-4 text-sm text-foreground shadow-sm placeholder:text-muted-foreground focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900/60 dark:focus:border-zinc-500 dark:focus:ring-zinc-500"
+                  class="h-12 w-full rounded-xl border border-border-strong bg-card pl-11 pr-4 text-sm text-foreground shadow-sm placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring dark:bg-muted/60"
                 />
               </div>
             </form>
@@ -166,7 +166,7 @@ async function onWishlist(id: number | string) {
             <div class="mt-3.5 flex justify-center">
               <NuxtLink
                 to="/identify"
-                class="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-card px-3.5 py-2 text-sm font-medium text-muted-foreground transition-colors duration-150 hover:border-zinc-300 hover:text-foreground dark:border-zinc-800 dark:hover:border-zinc-700"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3.5 py-2 text-sm font-medium text-muted-foreground transition-colors duration-150 hover:border-border-strong hover:text-foreground"
               >
                 <Camera class="h-4 w-4" />
                 {{ t('home.photoSearch') }}
@@ -182,7 +182,7 @@ async function onWishlist(id: number | string) {
                 :class="
                   selectedGroup === group
                     ? groupAccentActive(group)
-                    : 'border-zinc-200 bg-card text-muted-foreground hover:border-zinc-300 hover:bg-zinc-50 hover:text-foreground dark:border-zinc-800 dark:hover:border-zinc-700 dark:hover:bg-zinc-900'
+                    : 'border-border bg-card text-muted-foreground hover:border-border-strong hover:bg-muted hover:text-foreground'
                 "
                 :aria-pressed="selectedGroup === group"
                 @click="selectedGroup = group"
@@ -213,7 +213,7 @@ async function onWishlist(id: number | string) {
 
       <!-- Explore by card type — tinted band, alternating with the default
            background of the releases section below. -->
-      <section id="card-types" class="scroll-mt-20 border-b border-zinc-200 bg-muted dark:border-zinc-800">
+      <section id="card-types" class="scroll-mt-20 border-b border-border bg-muted">
         <div class="page-shell py-10 sm:py-12">
           <div class="mb-5 flex flex-wrap items-end justify-between gap-3 sm:mb-6">
             <div>
@@ -229,12 +229,12 @@ async function onWishlist(id: number | string) {
             </NuxtLink>
           </div>
 
-          <div class="grid gap-px overflow-hidden rounded-xl border border-zinc-200 bg-zinc-200 sm:grid-cols-2 lg:grid-cols-3 dark:border-zinc-800 dark:bg-zinc-800">
+          <div class="grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-2 lg:grid-cols-3 dark:bg-muted">
             <NuxtLink
               v-for="type in cardTypeTabs"
               :key="type"
               :to="{ path: '/browse', query: { card_type: type } }"
-              class="group flex items-start justify-between gap-3 bg-card p-4 transition-colors duration-150 hover:bg-zinc-50 sm:p-5 dark:hover:bg-zinc-900"
+              class="group flex items-start justify-between gap-3 bg-card p-4 transition-colors duration-150 hover:bg-muted sm:p-5"
             >
               <span class="min-w-0">
                 <span class="block text-sm font-medium text-foreground">{{ type }}</span>
@@ -252,7 +252,7 @@ async function onWishlist(id: number | string) {
       <section
         v-if="releases.length > 0"
         id="releases"
-        class="scroll-mt-20 border-b border-zinc-200 dark:border-zinc-800"
+        class="scroll-mt-20 border-b border-border"
       >
         <div class="page-shell py-10 sm:py-12">
           <div class="mb-5 flex flex-wrap items-end justify-between gap-3 sm:mb-6">
@@ -276,7 +276,7 @@ async function onWishlist(id: number | string) {
               :to="`/releases/${encodeURIComponent(release.group_name || 'IVE')}/${release.slug}`"
               class="group min-w-0"
             >
-              <span class="relative block aspect-square overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900">
+              <span class="relative block aspect-square overflow-hidden rounded-lg border border-border bg-muted">
                 <img
                   v-if="release.artwork || release.image"
                   :src="release.artwork || release.image"
@@ -291,7 +291,7 @@ async function onWishlist(id: number | string) {
                 />
                 <Music2
                   v-else
-                  class="absolute left-1/2 top-1/2 h-6 w-6 -translate-x-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-600"
+                  class="absolute left-1/2 top-1/2 h-6 w-6 -translate-x-1/2 -translate-y-1/2 text-muted-foreground"
                   aria-hidden="true"
                 />
               </span>
@@ -355,9 +355,9 @@ async function onWishlist(id: number | string) {
             </Button>
           </div>
 
-          <div v-else-if="cards.length === 0" class="rounded-xl border border-dashed border-zinc-300 py-12 text-center dark:border-zinc-700">
+          <div v-else-if="cards.length === 0" class="rounded-xl border border-dashed border-border py-12 text-center">
             <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-background">
-              <Search class="mx-auto h-8 w-8 text-zinc-400 dark:text-zinc-500" aria-hidden="true" />
+              <Search class="mx-auto h-8 w-8 text-muted-foreground" aria-hidden="true" />
             </div>
             <p class="mt-4 text-sm font-medium text-foreground">{{ t('empty.noCards') }}</p>
             <p class="mt-1 text-sm text-muted-foreground">{{ t('empty.hint') }}</p>
@@ -386,7 +386,7 @@ async function onWishlist(id: number | string) {
 
       <!-- Explore Groups — tinted band, alternating with the default-background
            PriceMovers section above and the shop CTA below. -->
-      <section id="groups" class="scroll-mt-20 border-t border-zinc-200 bg-muted dark:border-zinc-800">
+      <section id="groups" class="scroll-mt-20 border-t border-border bg-muted">
         <div class="page-shell py-10 sm:py-12">
           <div class="mb-5 sm:mb-6">
             <p class="eyebrow">{{ t('groups.eyebrow') }}</p>
@@ -416,7 +416,7 @@ async function onWishlist(id: number | string) {
       </section>
 
       <!-- Shop CTA -->
-      <section class="border-t border-zinc-200 dark:border-zinc-800">
+      <section class="border-t border-border">
         <div class="page-shell py-10 sm:py-12">
           <div class="flex flex-col gap-4 rounded-2xl overflow-hidden bg-gradient-to-r from-zinc-900 to-zinc-700 p-5 shadow-lg sm:flex-row sm:items-center sm:justify-between sm:p-6 dark:from-zinc-800 dark:to-zinc-900">
             <div class="flex items-center gap-4 min-w-0">
