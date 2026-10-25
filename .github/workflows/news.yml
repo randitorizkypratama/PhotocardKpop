@@ -1,65 +1,109 @@
 name: News Verification Run
 
-# Triggers the news pipeline on the deployed app instead of Vercel Cron.
-# The endpoint itself does all the work (fetch → verify → publish VERIFIED
-# only); this workflow is just the clock, so schedule and retries live in one
-# reviewable file.
+# Runs the full fetch → normalize → deduplicate → verify → store pipeline
+# directly on the GitHub Actions runner, with no HTTP call to the Vercel
+# deployment.  The pipeline writes verified articles straight to the Turso
+# database; the Vercel-deployed website reads from the same database, so new
+# articles appear immediately after the run.
+#
+# Previous approach (curl POST → Vercel /api/cron/news) failed with HTTP 429
+# because Vercel's in-process rate-limiter (ratelimit.ts) counts POST requests
+# per IP: 60 writes/min per instance.  GitHub Actions' shared NAT IP could
+# exhaust that bucket before the request was ever processed.
+#
+# The new approach eliminates the HTTP round-trip entirely.
 
 on:
   schedule:
     # 10:00 UTC = 17:00 WIB
     - cron: '0 10 * * *'
   workflow_dispatch:
+    inputs:
+      max_articles:
+        description: 'Override NEWS_MAX_ARTICLES_PER_RUN (default: 9)'
+        required: false
+        default: ''
+      budget_ms:
+        description: 'Override NEWS_RUN_BUDGET_MS in ms (default: 120000)'
+        required: false
+        default: ''
 
 permissions:
   contents: read
 
+# Only one scheduled run may execute at a time.  A concurrent manual trigger
+# (workflow_dispatch) is allowed to proceed in parallel.
 concurrency:
-  group: news-verification
+  group: news-verification-${{ github.event_name }}
   cancel-in-progress: false
 
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
-      - name: Trigger /api/cron/news
-        env:
-          # Optional repository variable to target a preview deployment.
-          BASE_URL: ${{ vars.NEWS_BASE_URL }}
-          # Repository secret — the same value as CRON_SECRET on Vercel.
-          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          # Pin to a specific version that satisfies `engines.bun >= 1.1.0`.
+          bun-version: '1.1.38'
+
+      - name: Install dependencies
+        # Honour the existing lockfile so the runner uses the same package
+        # versions as local development and the Vercel build.
+        run: bun install --frozen-lockfile
+        working-directory: apps/kpop-tracker
+
+      - name: Validate required secrets
         run: |
-          set -euo pipefail
-          base="${BASE_URL:-https://kpop-tracker-six.vercel.app}"
-
-          if [ -z "${CRON_SECRET:-}" ]; then
-            echo "::error::CRON_SECRET repository secret is not set — add it under Settings → Secrets and variables → Actions"
+          if [ -z "${TURSO_DATABASE_URL:-}" ]; then
+            echo "::error::TURSO_DATABASE_URL secret is not set."
+            echo "::error::Add it under Settings → Secrets and variables → Actions."
             exit 1
           fi
-
-          code="$(curl -sS -o /tmp/news-run.json -w '%{http_code}' \
-            --retry 3 --retry-delay 15 --retry-all-errors --max-time 540 \
-            -X POST "$base/api/cron/news" \
-            -H "Authorization: Bearer $CRON_SECRET")"
-
-          echo "HTTP $code"
-          cat /tmp/news-run.json
-          echo
-
-          if [ "$code" != "200" ]; then
-            echo "::error::news pipeline returned HTTP $code"
+          if [ -z "${TURSO_AUTH_TOKEN:-}" ]; then
+            echo "::error::TURSO_AUTH_TOKEN secret is not set."
+            echo "::error::Add it under Settings → Secrets and variables → Actions."
             exit 1
           fi
+          echo "Secrets present — proceeding."
+        env:
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
 
-          if command -v jq >/dev/null 2>&1; then
-            {
-              echo "### News run"
-              echo "| field | value |"
-              echo "| --- | --- |"
-              for key in status discovered verified pending fetch_failed rechecked; do
-                echo "| $key | $(jq -r --arg k "$key" '.[$k] // "—"' /tmp/news-run.json) |"
-              done
-            } >> "$GITHUB_STEP_SUMMARY"
-          fi
+      - name: Run news pipeline
+        working-directory: apps/kpop-tracker
+        env:
+          # ── Required database credentials ──────────────────────────────────
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+
+          # ── Optional: YouTube Data API key for official-channel discovery ──
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+
+          # ── Optional: manually-overridable knobs (workflow_dispatch) ───────
+          NEWS_MAX_ARTICLES_PER_RUN: ${{ inputs.max_articles || '9' }}
+          NEWS_RUN_BUDGET_MS: ${{ inputs.budget_ms || '120000' }}
+
+          # ── Pipeline behaviour — kept in sync with .env.example defaults ──
+          NEWS_FETCH_TIMEOUT: '6000'
+          NEWS_MAX_RETRIES: '1'
+          NEWS_MAX_RESPONSE_BYTES: '1048576'
+          NEWS_MAX_AGE_DAYS: '14'
+          NEWS_HOST_MIN_INTERVAL_MS: '1000'
+          NEWS_HOST_COOLDOWN_MS: '60000'
+          NEWS_SITEMAP_MAX_BYTES: '4194304'
+          NEWS_RECHECK_INTERVAL: '21600000'
+          VERIFICATION_MIN_SCORE: '90'
+
+          # ── Security ───────────────────────────────────────────────────────
+          # CRON_SECRET is NOT used by this workflow.  The pipeline runs as a
+          # local Bun process and never calls the HTTP endpoint, so the secret
+          # is irrelevant here.  It must remain configured on Vercel so that
+          # the /api/cron/news endpoint stays protected for any direct callers.
+
+        run: bun run scripts/run-news-pipeline.ts

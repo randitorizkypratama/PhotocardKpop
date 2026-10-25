@@ -3,13 +3,27 @@ import { createClient, type Client } from '@libsql/client'
 let client: Client | null = null
 let authTablesReady = false
 
+/**
+ * Returns the shared Turso client. Reading credentials from `process.env`
+ * directly (rather than Nitro's `useRuntimeConfig()`) so this module can be
+ * imported by plain-Node.js / Bun scripts (e.g. the GitHub Actions news
+ * pipeline) in addition to Nitro server handlers.
+ *
+ * In a Nitro context, `nuxt.config.ts` already populates
+ * `runtimeConfig.tursoDatabaseUrl / tursoAuthToken` from the same environment
+ * variables, so both paths read the identical values at runtime.
+ */
 export function getTursoClient(): Client {
   if (!client) {
-    const config = useRuntimeConfig()
-    client = createClient({
-      url: config.tursoDatabaseUrl,
-      authToken: config.tursoAuthToken,
-    })
+    const url = process.env.TURSO_DATABASE_URL || ''
+    const authToken = process.env.TURSO_AUTH_TOKEN || ''
+    if (!url) {
+      throw new Error(
+        'TURSO_DATABASE_URL is not set. '
+        + 'Add it to your .env file (local) or as a GitHub Actions secret / Vercel environment variable (CI/production).',
+      )
+    }
+    client = createClient({ url, authToken })
   }
   return client
 }
