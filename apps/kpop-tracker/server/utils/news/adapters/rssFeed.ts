@@ -7,6 +7,13 @@ import { validateExternalUrl } from '../url'
  * it carries is already the original article URL, on the publisher's host, so
  * nothing has to be resolved through a redirector that we may not even be
  * allowed to fetch.
+ *
+ * EUC-KR handling: some Korean publishers (e.g. Newsen) send `Content-Type:
+ * text/xml` without a charset parameter, causing the HTTP layer to default to
+ * UTF-8. The XML prolog may declare `encoding="euc-kr"`, which means the
+ * string is garbled. `parseFeedItems` accepts an optional `rawBytes` argument;
+ * when present, it checks the prolog and re-decodes through TextDecoder if
+ * the encoding differs from what was assumed at the HTTP layer.
  */
 
 export interface FeedItem {
@@ -48,7 +55,38 @@ function usableLink(raw: string | null): string | null {
   return check.ok ? check.url.toString() : null
 }
 
-export function parseFeedItems(xml: string): FeedItem[] {
+/**
+ * Extract the encoding declared in an XML prolog (e.g. `<?xml version="1.0" encoding="EUC-KR"?>`).
+ * Returns the encoding name lowercased, or null if not declared.
+ */
+export function extractXmlEncoding(xmlString: string): string | null {
+  const match = xmlString.match(/<\?xml[^>]+encoding=['"]([^'"]+)['"]/i)
+  return match?.[1]?.toLowerCase() ?? null
+}
+
+/**
+ * Re-decode raw bytes using the specified encoding.
+ * Falls back to UTF-8 if the declared encoding is not supported.
+ */
+export function reencodeXmlFromBytes(bytes: Uint8Array, declaredEncoding: string): string {
+  try {
+    return new TextDecoder(declaredEncoding).decode(bytes)
+  } catch {
+    return new TextDecoder('utf-8').decode(bytes)
+  }
+}
+
+export function parseFeedItems(xml: string, rawBytes?: Uint8Array): FeedItem[] {
+  // If rawBytes are provided, check whether the XML declares a non-UTF-8
+  // encoding (e.g. EUC-KR from Newsen). If so, re-decode from the raw bytes
+  // so we parse the correctly-encoded text instead of the garbled UTF-8 string.
+  if (rawBytes && rawBytes.byteLength > 0) {
+    const enc = extractXmlEncoding(xml)
+    if (enc && enc !== 'utf-8' && enc !== 'utf8') {
+      xml = reencodeXmlFromBytes(rawBytes, enc)
+    }
+  }
+
   const items: FeedItem[] = []
 
   const rssBlocks = xml.match(/<item[\s>][\s\S]*?<\/item>/gi) || []

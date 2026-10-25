@@ -152,6 +152,7 @@ async function pacedFetch(url: string, ctx: RunContext, options: SafeFetchOption
       redirected: false,
       contentType: '',
       body: '',
+      rawBytes: new Uint8Array(),
       bytes: 0,
       error: `host cooling down after 429 (${Math.ceil((coolDownUntil - now) / 1000)}s left)`,
       attempts: 0,
@@ -424,7 +425,7 @@ async function collectFeedCandidates(
         continue
       }
       success = true
-      const items = parseFeedItems(result.body)
+      const items = parseFeedItems(result.body, result.rawBytes)
       itemCount = Math.max(itemCount, items.length)
 
       for (const item of items) {
@@ -506,7 +507,7 @@ async function collectSitemapCandidates(
       }
       success = true
       const entries = parseSitemap(result.body).entries
-      itemCount = Math.max(itemCount, entries.length)
+      let dateFilteredCount = 0
 
       for (const entry of entries) {
         if (out.length >= limit || outOfBudget(ctx)) break
@@ -521,6 +522,8 @@ async function collectSitemapCandidates(
         // sitemap without dates offers no way to prove it.
         if (!published) continue
         if (new Date(published.iso.length === 10 ? `${published.iso}T00:00:00Z` : published.iso).getTime() < cutoff) continue
+
+        dateFilteredCount++
 
         const haystack = `${entry.title || ''} ${slugAsText(entry.loc)}`
         const matched = matchArtist(haystack, {
@@ -540,6 +543,7 @@ async function collectSitemapCandidates(
           discoveredAt: nowIso(),
         })
       }
+      itemCount = Math.max(itemCount, dateFilteredCount)
     }
 
     await store.recordSourceStatus({

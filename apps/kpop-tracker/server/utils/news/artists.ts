@@ -44,7 +44,7 @@ export const ARTISTS: Record<ArtistId, ArtistProfile> = {
   hearts2hearts: {
     id: 'hearts2hearts',
     displayName: 'Hearts2Hearts',
-    aliases: ['Hearts2Hearts', 'Hearts 2 Hearts', '하츠투하츠', 'H2H'],
+    aliases: ['Hearts2Hearts', 'Hearts 2 Hearts', '하츠투하츠', '하츠 투 하츠', 'H2H'],
     ambiguousAliases: ['h2h'],
     googleNewsQuery: '"Hearts2Hearts"',
     agency: 'SM Entertainment',
@@ -94,6 +94,10 @@ const KPOP_CONTEXT_TERMS = [
   '컴백', '앨범', '음원', '음반', '발매', '신곡', '타이틀곡', '무대', '콘서트',
   '공연', '팬미팅', '팬싸인', '아이돌', '걸그룹', '보이그룹', '멤버', '소속사',
   '뮤직비디오', '차트', '쇼케이스', '활동', '데뷔', '선공개', '수록곡',
+  // Additional Korean entertainment terms
+  '스케줄', '활동재개', '티저', '예고', '확정', '발표', '공개', '진행',
+  '음악방송', '음방', '방송', '인기가요', '뮤직뱅크', '엠카운트다운',
+  '하이브', '에스엠', '카카오', '와이지', '제이와이피', '스타쉽',
 ]
 
 export interface ArtistMatch {

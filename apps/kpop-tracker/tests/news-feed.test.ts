@@ -49,7 +49,7 @@ function row(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   }
 }
 
-describe('the feed exposes VERIFIED rows only — enforced in the query itself', () => {
+describe('the feed exposes VERIFIED rows only � enforced in the query itself', () => {
   it('PUBLIC_FEED_STATUS is VERIFIED', () => {
     expect(PUBLIC_FEED_STATUS).toBe('VERIFIED')
   })
@@ -106,10 +106,10 @@ describe('the feed exposes VERIFIED rows only — enforced in the query itself',
     expect(query.sql).toContain('ESCAPE')
   })
 
-  it('bounds pagination: limit 1–50, page ≥ 1', () => {
+  it('bounds pagination: limit 1�50, page = 1', () => {
     expect(buildFeedQuery({ limit: 999 }).limit).toBe(50)
     expect(buildFeedQuery({ limit: -5 }).limit).toBe(1)
-    expect(buildFeedQuery({ limit: 0 }).limit).toBe(12) // falsy → default page size
+    expect(buildFeedQuery({ limit: 0 }).limit).toBe(12) // falsy ? default page size
     expect(buildFeedQuery({ page: -4 }).page).toBe(1)
     expect(buildFeedQuery({ page: 2, limit: 10 }).args.slice(-2)).toEqual([10, 10])
   })
@@ -229,7 +229,7 @@ describe('source registry', () => {
     expect(isKpopContextSource('reuters.com')).toBe(false)
   })
 
-  it('every configured feed URL sits on its own publisher’s domain', () => {
+  it('every configured feed URL sits on its own publisher�s domain', () => {
     const withFeeds = SOURCE_REGISTRY.filter(source => source.feedUrls?.length)
     expect(withFeeds.map(source => source.id)).toEqual([
       'yonhap_en',
@@ -240,6 +240,8 @@ describe('source registry', () => {
       'billboard',
       'asianjunkie',
       'korea_herald',
+      'newsen',
+      'hankyung_ent',
     ])
     for (const source of withFeeds) {
       for (const feedUrl of source.feedUrls!) {
@@ -253,7 +255,7 @@ describe('source registry', () => {
 
   it('registers every source from the configured source list', () => {
     const ids = SOURCE_REGISTRY.map(source => source.id)
-    for (const id of ['soompi', 'naver_news', 'yonhap_en', 'korea_joongang_daily', 'korea_herald', 'google_news', 'sm_entertainment', 'starship_entertainment']) {
+    for (const id of ['soompi', 'naver_news', 'yonhap_en', 'korea_joongang_daily', 'korea_herald', 'google_news', 'sm_entertainment', 'starship_entertainment', 'newsen', 'hankyung_ent', 'mydaily']) {
       expect(ids).toContain(id)
     }
     expect(SOURCE_REGISTRY.find(source => source.id === 'soompi')?.officialProfileUrls).toContain('https://www.soompi.com/')
