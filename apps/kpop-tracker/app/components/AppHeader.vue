@@ -4,7 +4,7 @@ import { Activity, ArrowLeft, Heart, LogIn, LogOut, Search } from 'lucide-vue-ne
 withDefaults(
   defineProps<{
     back?: boolean
-    active?: 'home' | 'browse' | 'collection' | 'shop' | 'releases'
+    active?: 'home' | 'browse' | 'collection' | 'shop' | 'releases' | 'news'
   }>(),
   {
     back: false,
@@ -30,6 +30,7 @@ const navLinks = [
   { to: '/#groups', label: 'nav.groups', key: 'groups', cls: 'hidden lg:block' },
   { to: '/#card-types', label: 'nav.cardTypes', key: 'card-types', cls: 'hidden xl:block' },
   { to: '/releases', label: 'nav.releases', key: 'releases', cls: '' },
+  { to: '/news', label: 'nav.news', key: 'news', cls: '' },
   { to: '/collection', label: 'nav.collection', key: 'collection', cls: '' },
   { to: '/shop', label: 'nav.shop', key: 'shop', cls: '' },
 ]

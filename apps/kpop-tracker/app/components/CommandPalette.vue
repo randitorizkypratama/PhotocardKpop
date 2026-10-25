@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Activity, CalendarDays, Heart, Home, LayoutGrid, Search, ShoppingBag } from 'lucide-vue-next'
+import { Activity, CalendarDays, Heart, Home, LayoutGrid, Newspaper, Search, ShoppingBag } from 'lucide-vue-next'
 
 const open = useState('command-palette-open', () => false)
 const query = ref('')
@@ -14,6 +14,7 @@ const navItems = computed(() => {
     { to: '/', label: 'palette.nav.home', icon: Home },
     { to: '/browse', label: 'palette.nav.browse', icon: LayoutGrid },
     { to: '/releases', label: 'palette.nav.releases', icon: CalendarDays },
+    { to: '/news', label: 'palette.nav.news', icon: Newspaper },
     { to: '/collection', label: 'palette.nav.collection', icon: Heart },
     { to: '/collection?tab=wishlist', label: 'palette.nav.wishlist', icon: Heart },
     { to: '/shop', label: 'palette.nav.shop', icon: ShoppingBag },

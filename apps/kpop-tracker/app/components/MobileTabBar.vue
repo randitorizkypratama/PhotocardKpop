@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Home, LayoutGrid, Music2, ShoppingBag, Heart } from 'lucide-vue-next'
+import { Home, LayoutGrid, Music2, Newspaper, ShoppingBag, Heart } from 'lucide-vue-next'
 
 const route = useRoute()
 const { t } = useLocale()
@@ -8,6 +8,7 @@ const tabs = [
   { to: '/', label: 'tab.home', icon: Home },
   { to: '/browse', label: 'tab.catalog', icon: LayoutGrid },
   { to: '/releases', label: 'tab.releases', icon: Music2 },
+  { to: '/news', label: 'tab.news', icon: Newspaper },
   { to: '/shop', label: 'tab.shop', icon: ShoppingBag },
   { to: '/collection', label: 'tab.collection', icon: Heart },
 ]
@@ -22,6 +23,7 @@ function isActive(to: string) {
     )
   }
   if (to === '/releases') return route.path.startsWith('/releases')
+  if (to === '/news') return route.path.startsWith('/news')
   if (to === '/shop') return route.path.startsWith('/shop')
   return route.path.startsWith(to)
 }
