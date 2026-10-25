@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+﻿import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   PUBLIC_FEED_STATUS,
   buildFeedQuery,
@@ -7,7 +7,7 @@ import {
   type PublicArticle,
 } from '../server/utils/news/feed'
 import { newsConfig } from '../server/utils/news/config'
-import { agencyForArtist, classifySource, isKpopContextSource, SOURCE_REGISTRY } from '../server/utils/news/sources'
+import { agencyForArtist, classifySource, isKpopContextSource, SOURCE_REGISTRY, sourceRecordCoversHost } from '../server/utils/news/sources'
 import { NEWS_STATUSES, SCORE_COMPONENTS } from '../server/utils/news/types'
 import { SCORE_MAX } from '../server/utils/news/scoring'
 
@@ -231,12 +231,22 @@ describe('source registry', () => {
 
   it('every configured feed URL sits on its own publisher’s domain', () => {
     const withFeeds = SOURCE_REGISTRY.filter(source => source.feedUrls?.length)
-    expect(withFeeds.map(source => source.id)).toEqual(['yonhap_en', 'soompi', 'billboard', 'korea_herald'])
+    expect(withFeeds.map(source => source.id)).toEqual([
+      'yonhap_en',
+      'soompi',
+      'soompi_aespa',
+      'soompi_ive',
+      'soompi_hearts2hearts',
+      'billboard',
+      'asianjunkie',
+      'korea_herald',
+    ])
     for (const source of withFeeds) {
       for (const feedUrl of source.feedUrls!) {
         expect(feedUrl.startsWith('https://')).toBe(true)
         const host = new URL(feedUrl).hostname.replace(/^www\./, '')
-        expect(classifySource(host)?.id).toBe(source.id)
+        // Use sourceRecordCoversHost: multiple entries can share a domain (e.g. soompi / soompi_aespa)
+        expect(sourceRecordCoversHost(source, host)).toBe(true)
       }
     }
   })

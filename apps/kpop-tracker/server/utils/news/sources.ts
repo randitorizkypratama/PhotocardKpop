@@ -113,6 +113,45 @@ export const SOURCE_REGISTRY: SourceRecord[] = [
     notes: 'K-pop-native publisher; its feed is the main discovery path for all three artists.',
   },
   {
+    id: 'soompi_aespa',
+    displayName: 'Soompi — aespa',
+    domains: ['soompi.com'],
+    type: 'news_publisher',
+    trust: 'secondary_reputable',
+    supportedArtists: ['aespa'],
+    retrieval: 'rss',
+    officialProfileUrls: ['https://www.soompi.com/tag/aespa/'],
+    credibilityPoints: 18,
+    feedUrls: ['https://www.soompi.com/tag/aespa/feed'],
+    notes: 'Artist-specific Soompi tag feed — pre-filtered for aespa, 60 most recent articles.',
+  },
+  {
+    id: 'soompi_ive',
+    displayName: 'Soompi — IVE',
+    domains: ['soompi.com'],
+    type: 'news_publisher',
+    trust: 'secondary_reputable',
+    supportedArtists: ['ive'],
+    retrieval: 'rss',
+    officialProfileUrls: ['https://www.soompi.com/tag/ive/'],
+    credibilityPoints: 18,
+    feedUrls: ['https://www.soompi.com/tag/ive/feed'],
+    notes: 'Artist-specific Soompi tag feed — pre-filtered for IVE, 60 most recent articles.',
+  },
+  {
+    id: 'soompi_hearts2hearts',
+    displayName: 'Soompi — Hearts2Hearts',
+    domains: ['soompi.com'],
+    type: 'news_publisher',
+    trust: 'secondary_reputable',
+    supportedArtists: ['hearts2hearts'],
+    retrieval: 'rss',
+    officialProfileUrls: ['https://www.soompi.com/tag/hearts2hearts/'],
+    credibilityPoints: 18,
+    feedUrls: ['https://www.soompi.com/tag/hearts2hearts/feed'],
+    notes: 'Artist-specific Soompi tag feed — pre-filtered for Hearts2Hearts, 60 most recent articles.',
+  },
+  {
     id: 'billboard',
     displayName: 'Billboard',
     domains: ['billboard.com'],
@@ -124,6 +163,23 @@ export const SOURCE_REGISTRY: SourceRecord[] = [
     credibilityPoints: 18,
     feedUrls: ['https://www.billboard.com/feed/'],
     notes: 'Chart and comeback coverage; English-language.',
+  },
+  {
+    id: 'asianjunkie',
+    displayName: 'Asian Junkie',
+    domains: ['asianjunkie.com'],
+    type: 'news_publisher',
+    trust: 'secondary_reputable',
+    supportedArtists: 'all',
+    retrieval: 'rss',
+    officialProfileUrls: ['https://www.asianjunkie.com/'],
+    credibilityPoints: 15,
+    feedUrls: [
+      'https://www.asianjunkie.com/tag/aespa/feed',
+      'https://www.asianjunkie.com/tag/ive/feed',
+      'https://www.asianjunkie.com/tag/hearts2hearts/feed',
+    ],
+    notes: 'K-pop-native English publisher. Artist-specific tag feeds — robots.txt allows all paths.',
   },
   {
     id: 'naver_news',
@@ -221,4 +277,25 @@ export function agencyForArtist(artistId: ArtistId): SourceRecord | null {
 /** Registry entry for a known K-pop publisher, if any. */
 export function sourceForDomain(hostname: string | null | undefined): SourceRecord | null {
   return classifySource(hostname)
+}
+
+/**
+ * Returns true when `hostname` resolves to one of `record`'s own domains.
+ *
+ * Used in `collectFeedCandidates` / `collectSitemapCandidates` to verify that
+ * an article link inside a feed really lives on that publisher's host — even
+ * when multiple registry entries share the same domain (e.g. `soompi` and
+ * `soompi_aespa` both own `soompi.com`).  A direct domain check is more
+ * correct here than `classifySource(host)?.id === record.id` because the
+ * latter would always resolve to the *first* matching registry entry and
+ * silently drop every subsequent entry that shares the same domain.
+ */
+export function sourceRecordCoversHost(record: SourceRecord, hostname: string | null | undefined): boolean {
+  if (!hostname) return false
+  const host = hostname.toLowerCase().replace(/^www\./, '').replace(/\.$/, '')
+  const registrable = registrableDomain(host)
+  for (const domain of record.domains) {
+    if (host === domain || registrable === domain) return true
+  }
+  return false
 }

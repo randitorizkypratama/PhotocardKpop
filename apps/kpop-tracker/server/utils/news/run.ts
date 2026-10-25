@@ -11,7 +11,7 @@ import { extractClaims } from './claims'
 import { canonicalizeUrl, hostnameOf, validateExternalUrl } from './url'
 import { articleIdFor, detectPromptInjection, normalizeNewsTitle, storyKey } from './text'
 import { isPlausiblePublicationDate, parsePublicationDate } from './dates'
-import { agencyForArtist, classifySource, isKpopContextSource, SOURCE_REGISTRY, type SourceRecord } from './sources'
+import { agencyForArtist, classifySource, isKpopContextSource, SOURCE_REGISTRY, sourceRecordCoversHost, type SourceRecord } from './sources'
 import { findDuplicate, isIndependentCorroboration, isSameEvent, type ExistingStory } from './dedupe'
 import { buildAuditRecord, verifyCandidate } from './verify'
 import { parseRobots, robotsAllows, type RobotsPolicy } from './robots'
@@ -437,7 +437,7 @@ async function collectFeedCandidates(
         if (!host) continue
         // The entry's link must live on this publisher's own host: a feed is
         // a publisher's word about itself, not a licence to quote anyone.
-        if (classifySource(host)?.id !== record.id) continue
+        if (!sourceRecordCoversHost(record, host)) continue
 
         const matched = matchArtist(`${item.title} ${item.summary || ''}`, {
           publisherIsKpopSource: isKpopContextSource(host),
@@ -514,7 +514,7 @@ async function collectSitemapCandidates(
         if (!host) continue
         // A sitemap is a publisher's word about itself — its entries must
         // stay on that publisher's host, exactly like a feed's links.
-        if (classifySource(host)?.id !== record.id) continue
+        if (!sourceRecordCoversHost(record, host)) continue
 
         const published = parsePublicationDate(entry.publishedAt || entry.lastmod)
         // Undated entries are skipped: recency is part of discovery, and a
