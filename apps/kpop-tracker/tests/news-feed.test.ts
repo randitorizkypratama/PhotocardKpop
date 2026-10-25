@@ -242,6 +242,7 @@ describe('source registry', () => {
       'korea_herald',
       'newsen',
       'hankyung_ent',
+      'starnews',
     ])
     for (const source of withFeeds) {
       for (const feedUrl of source.feedUrls!) {
@@ -255,7 +256,7 @@ describe('source registry', () => {
 
   it('registers every source from the configured source list', () => {
     const ids = SOURCE_REGISTRY.map(source => source.id)
-    for (const id of ['soompi', 'naver_news', 'yonhap_en', 'korea_joongang_daily', 'korea_herald', 'google_news', 'sm_entertainment', 'starship_entertainment', 'newsen', 'hankyung_ent', 'mydaily']) {
+    for (const id of ['soompi', 'naver_news', 'yonhap_en', 'korea_joongang_daily', 'korea_herald', 'google_news', 'sm_entertainment', 'starship_entertainment', 'newsen', 'hankyung_ent', 'mydaily', 'sportschosun', 'starnews', 'xportsnews']) {
       expect(ids).toContain(id)
     }
     expect(SOURCE_REGISTRY.find(source => source.id === 'soompi')?.officialProfileUrls).toContain('https://www.soompi.com/')
