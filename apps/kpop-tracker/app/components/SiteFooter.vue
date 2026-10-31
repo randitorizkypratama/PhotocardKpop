@@ -28,6 +28,7 @@
           <NuxtLink to="/#groups" class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">{{ t('nav.groups') }}</NuxtLink>
           <NuxtLink to="/shop" class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">{{ t('nav.shop') }}</NuxtLink>
           <NuxtLink to="/collection" class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">{{ t('nav.collection') }}</NuxtLink>
+          <NuxtLink v-if="isAdmin" to="/admin/news" class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">{{ t('nav.newsReview') }}</NuxtLink>
           <NuxtLink v-if="isAdmin" to="/status" class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">{{ t('nav.status') }}</NuxtLink>
         </nav>
 

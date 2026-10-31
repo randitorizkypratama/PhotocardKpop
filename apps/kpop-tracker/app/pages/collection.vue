@@ -30,10 +30,16 @@ const removeTargetName = ref('')
 const removing = ref(false)
 const exchangeRates = ref<any>(null)
 const groupTotals = ref<Record<string, number>>({})
+/** Total card count per release, keyed as "GroupName::ReleaseName". */
+const releaseTotals = ref<Record<string, number>>({})
 
 onMounted(async () => {
   await refreshAuth()
-  if (user.value) fetchCollection(true)
+  if (user.value) {
+    await fetchCollection(true)
+    loadReleaseTotals()
+    loadTrend()
+  }
   loadExchangeRates()
   loadGroupTotals()
 })
@@ -59,6 +65,35 @@ async function loadGroupTotals() {
     groupTotals.value = next
   } catch (e) {
     console.error('Failed to load group totals:', e)
+  }
+}
+
+/** Load total card count per release for owned releases in the collection. */
+async function loadReleaseTotals() {
+  try {
+    // Collect unique group+release combos from owned items only.
+    const releaseSet = new Set<string>()
+    for (const item of items.value) {
+      if (item.status === 'owned' && item.release_name) {
+        releaseSet.add(`${item.group_name}::${item.release_name}`)
+      }
+    }
+    if (releaseSet.size === 0) return
+
+    const results = await Promise.all(
+      [...releaseSet].map(async (key) => {
+        const [group, release] = key.split('::')
+        const res = await $fetch<any>(
+          `/api/cards?group=${encodeURIComponent(group!)}&release=${encodeURIComponent(release!)}&page=1&limit=1`,
+        )
+        return [key, res?.pagination?.total ?? 0] as const
+      }),
+    )
+    const next: Record<string, number> = { ...releaseTotals.value }
+    for (const [key, total] of results) next[key] = total
+    releaseTotals.value = next
+  } catch (e) {
+    console.error('Failed to load release totals:', e)
   }
 }
 
@@ -124,12 +159,30 @@ const groupedItems = computed(() => {
       const name = item.member_name || '—'
       if (!memberNames.includes(name)) memberNames.push(name)
     }
+
+    // Per-release progress: unique releases from owned items in this group.
+    const releaseNames: string[] = []
+    for (const item of items.value) {
+      if (item.group_name === group && item.status === 'owned' && item.release_name) {
+        if (!releaseNames.includes(item.release_name)) releaseNames.push(item.release_name)
+      }
+    }
+    const releases = releaseNames.map((release) => {
+      const key = `${group}::${release}`
+      const ownedInRelease = items.value.filter(
+        i => i.group_name === group && i.status === 'owned' && i.release_name === release,
+      ).length
+      const totalInRelease = releaseTotals.value[key] ?? 0
+      return { release, owned: ownedInRelease, total: totalInRelease }
+    }).filter(r => r.owned > 0)
+
     return {
       group,
       count: groupItems.length,
       ownedCount,
       total,
       hasProgress: total > 0,
+      releases,
       members: memberNames.map(member => ({
         member,
         items: groupItems.filter(item => (item.member_name || '—') === member),
@@ -166,6 +219,7 @@ function mapForCard(item: any) {
     member_name: item.member_name,
     group_name: item.group_name,
     card_type: item.card_type,
+    release_name: item.release_name,
     price: item.last_price,
     discounted_price: item.last_discounted_price,
   }
@@ -190,6 +244,71 @@ const tabDefs = computed(() => [
   { key: 'owned' as const, label: t('collection.tabOwned'), count: stats.value.totalOwned },
   { key: 'wishlist' as const, label: t('collection.tabWishlist'), count: stats.value.totalWishlist },
 ])
+
+// --- Collection Value Trend ---
+interface TrendPoint {
+  date: string
+  value: number
+}
+
+const trendData = ref<TrendPoint[]>([])
+const trendLoading = ref(false)
+
+async function loadTrend() {
+  if (stats.value.totalOwned === 0) return
+  trendLoading.value = true
+  try {
+    const res = await $fetch<{ success: boolean, data: TrendPoint[] }>('/api/collection/trend')
+    if (res.success) trendData.value = res.data
+  } catch (e) {
+    console.error('Failed to load collection trend:', e)
+  } finally {
+    trendLoading.value = false
+  }
+}
+
+// Chart dimensions
+const CHART_W = 600
+const CHART_H = 160
+const CHART_PAD = 8
+
+const hasTrend = computed(() => trendData.value.length >= 2)
+
+const chartPoints = computed(() => {
+  const pts = trendData.value
+  if (pts.length < 2) return [] as { x: number, y: number, date: string, value: number }[]
+  const minV = Math.min(...pts.map(p => p.value))
+  const maxV = Math.max(...pts.map(p => p.value))
+  const range = maxV - minV || 1
+  const n = pts.length
+  return pts.map((p, i) => ({
+    x: CHART_PAD + (i / (n - 1)) * (CHART_W - 2 * CHART_PAD),
+    y: CHART_PAD + (1 - (p.value - minV) / range) * (CHART_H - 2 * CHART_PAD),
+    date: p.date,
+    value: p.value,
+  }))
+})
+
+const chartPath = computed(() => {
+  const pts = chartPoints.value
+  if (pts.length < 2) return ''
+  return pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')
+})
+
+const chartAreaPath = computed(() => {
+  const pts = chartPoints.value
+  if (pts.length < 2) return ''
+  const base = CHART_H - CHART_PAD
+  return `M ${pts[0]!.x.toFixed(1)} ${base} ` + pts.map(p => `L ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ') + ` L ${pts[pts.length - 1]!.x.toFixed(1)} ${base} Z`
+})
+
+const trendStartDay = computed(() => trendData.value[0]?.date ?? '')
+const latestTrendValue = computed(() => trendData.value[trendData.value.length - 1]?.value ?? 0)
+const firstTrendValue = computed(() => trendData.value[0]?.value ?? 0)
+const trendChangePct = computed(() => {
+  if (firstTrendValue.value === 0) return null
+  return ((latestTrendValue.value - firstTrendValue.value) / firstTrendValue.value) * 100
+})
 </script>
 
 <template>
@@ -287,6 +406,82 @@ const tabDefs = computed(() => [
       <p v-if="stats.ownedWithoutCost > 0" class="-mt-4 mb-5 text-xs text-muted-foreground sm:-mt-6 sm:mb-8">
         {{ t('collection.spentPartial', { count: stats.ownedWithoutCost }) }}
       </p>
+
+      <!-- Value trend chart -->
+      <div
+        v-if="stats.totalOwned > 0"
+        class="mb-5 rounded-xl border border-border bg-card p-4 sm:mb-8"
+      >
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+          <div>
+            <h2 class="text-sm font-semibold text-foreground">{{ t('collection.trendTitle') }}</h2>
+            <p class="text-xs text-muted-foreground">{{ t('collection.trendDesc') }}</p>
+          </div>
+          <div v-if="hasTrend && trendChangePct !== null" class="flex items-center gap-2">
+            <span class="text-sm font-semibold tabular-nums text-foreground">{{ formatUSD(latestTrendValue) }}</span>
+            <span
+              class="text-xs font-medium tabular-nums"
+              :class="trendChangePct >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'"
+            >
+              {{ trendChangePct >= 0 ? '▲' : '▼' }}{{ Math.abs(Math.round(trendChangePct * 10) / 10) }}%
+            </span>
+          </div>
+        </div>
+
+        <!-- Loading skeleton -->
+        <div v-if="trendLoading" class="h-40 w-full animate-pulse rounded-lg bg-muted" />
+
+        <!-- Chart -->
+        <div v-else-if="hasTrend" class="w-full overflow-x-auto">
+          <svg
+            :viewBox="`0 0 ${CHART_W} ${CHART_H}`"
+            class="h-40 w-full min-w-[400px]"
+            preserveAspectRatio="none"
+            role="img"
+            :aria-label="t('collection.trendAria')"
+          >
+            <defs>
+              <linearGradient id="trend-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="currentColor" stop-opacity="0.2" />
+                <stop offset="100%" stop-color="currentColor" stop-opacity="0" />
+              </linearGradient>
+            </defs>
+            <!-- Area fill -->
+            <path
+              :d="chartAreaPath"
+              fill="url(#trend-grad)"
+              class="text-foreground"
+            />
+            <!-- Line -->
+            <path
+              :d="chartPath"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linejoin="round"
+              stroke-linecap="round"
+              class="text-foreground"
+            />
+            <!-- Dots -->
+            <circle
+              v-for="(pt, i) in chartPoints"
+              :key="i"
+              :cx="pt.x"
+              :cy="pt.y"
+              r="2.5"
+              class="fill-foreground"
+            />
+          </svg>
+          <p class="mt-1.5 text-xs text-muted-foreground">
+            {{ t('collection.trendSince', { day: trendStartDay }) }}
+          </p>
+        </div>
+
+        <!-- Single data point -->
+        <div v-else class="flex h-40 items-center justify-center">
+          <p class="text-center text-xs text-muted-foreground">{{ t('collection.trendStart', { day: trendStartDay || '—' }) }}</p>
+        </div>
+      </div>
 
       <!-- Tabs -->
       <Tabs v-model="activeTab" class="mb-5">
@@ -399,6 +594,35 @@ const tabDefs = computed(() => [
                   }"
                 />
               </div>
+            </div>
+          </div>
+
+          <!-- Per-release completion bars -->
+          <div v-if="section.releases.length > 0" class="mb-6 space-y-2.5">
+            <div
+              v-for="rel in section.releases"
+              :key="rel.release"
+              class="flex items-center gap-2.5 text-xs sm:gap-3"
+            >
+              <p class="w-28 shrink-0 truncate text-muted-foreground sm:w-40">{{ rel.release }}</p>
+              <div
+                class="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-muted"
+                role="progressbar"
+                :aria-valuenow="rel.owned"
+                :aria-valuemin="0"
+                :aria-valuemax="rel.total"
+                :aria-label="t('collection.progressAria', { group: rel.release })"
+              >
+                <div
+                  class="h-full rounded-full bg-foreground/70 transition-all duration-300"
+                  :style="{
+                    width: `${rel.total > 0 ? Math.min(100, Math.round((rel.owned / rel.total) * 100)) : 0}%`,
+                  }"
+                />
+              </div>
+              <span class="shrink-0 tabular-nums text-muted-foreground">
+                {{ rel.total > 0 ? `${rel.owned}/${fmt(rel.total)}` : `${rel.owned} ${t('collection.ownedLabel')}` }}
+              </span>
             </div>
           </div>
 

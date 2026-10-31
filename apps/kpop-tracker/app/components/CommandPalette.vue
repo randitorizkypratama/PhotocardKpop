@@ -20,6 +20,7 @@ const navItems = computed(() => {
     { to: '/shop', label: 'palette.nav.shop', icon: ShoppingBag },
   ]
   if (user.value?.role === 'admin') {
+    items.push({ to: '/admin/news', label: 'palette.nav.newsReview', icon: Newspaper })
     items.push({ to: '/status', label: 'palette.nav.status', icon: Activity })
   }
   return items

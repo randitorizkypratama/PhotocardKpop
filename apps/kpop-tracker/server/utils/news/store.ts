@@ -523,7 +523,8 @@ export async function articleCountsByStatus(): Promise<Record<NewsStatus, number
 export async function listUnverifiedArticles(limit = 50): Promise<Array<Record<string, unknown>>> {
   const db = getTursoClient()
   const result = await db.execute({
-    sql: `SELECT id, artist_id, original_title, original_url, publisher_domain, published_at,
+    sql: `SELECT id, artist_id, original_title, summary, category, original_url,
+                 publisher_name, publisher_domain, published_at,
                  verification_status, verification_score, verification_reasons, failed_gates,
                  first_discovered_at, last_checked_at
           FROM news_articles

@@ -16,7 +16,7 @@ export type SourceType =
   | 'news_publisher'
   | 'wire'
 
-export type RetrievalMethod = 'rss' | 'http_html' | 'youtube_api' | 'none'
+export type RetrievalMethod = 'rss' | 'http_html' | 'youtube_api' | 'naver_api' | 'none'
 
 export interface SourceRecord {
   id: string
@@ -192,6 +192,18 @@ export const SOURCE_REGISTRY: SourceRecord[] = [
     officialProfileUrls: ['https://news.naver.com/'],
     credibilityPoints: 18,
     notes: 'Aggregator with robots.txt `Disallow: /` for every agent — no request is made to it. Registered only so a naver.com URL is recognised (and its fetch refused) rather than treated as an unknown host.',
+  },
+  {
+    id: 'naver_openapi',
+    displayName: 'Naver Search API',
+    domains: ['openapi.naver.com'],
+    type: 'discovery',
+    trust: 'discovery_only',
+    supportedArtists: 'all',
+    retrieval: 'naver_api',
+    officialProfileUrls: ['https://developers.naver.com/docs/serviceapi/search/news/news.md'],
+    credibilityPoints: 0,
+    notes: 'Korean news discovery through the official Search API (the query is the artist\u2019s Hangul name). Discovery only — the JSON carries headlines and links, and the publisher\u2019s own page is fetched, robots-checked and verified like any other candidate. This is the working replacement for Google News RSS, which `news.google.com` blocks for our agent.',
   },
   {
     id: 'korea_joongang_daily',

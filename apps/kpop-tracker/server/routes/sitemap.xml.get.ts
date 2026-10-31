@@ -28,11 +28,33 @@ export default cachedEventHandler(async (event) => {
   const staticPages: Array<[string, string]> = [
     ['/', '1.0'],
     ['/browse', '0.9'],
+    ['/news', '0.9'],
     ['/releases', '0.8'],
     ['/collection', '0.5'],
     ['/shop', '0.5'],
   ]
   for (const [path, priority] of staticPages) entries.push(urlEntry(`${SITE}${path}`, null, priority))
+
+  // Published blog articles. The rewrite tables are created by the weekly AI
+  // run, so on a brand-new database this query can legitimately fail — a
+  // missing table must not take the whole sitemap down.
+  try {
+    const rewrites = await db.execute(`
+      SELECT slug, MAX(updated_at) AS lastmod
+      FROM news_rewrites
+      WHERE status = 'published'
+      GROUP BY slug
+    `)
+    for (const row of rewrites.rows) {
+      entries.push(urlEntry(
+        `${SITE}/news/${encodeURIComponent(String(row.slug))}`,
+        row.lastmod ? String(row.lastmod) : null,
+        '0.7',
+      ))
+    }
+  } catch {
+    /* rewrite tables not created yet */
+  }
 
   for (const group of DISCOGRAPHY_GROUPS) {
     entries.push(urlEntry(`${SITE}/groups/${encodeURIComponent(group)}`, null, '0.7'))

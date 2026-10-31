@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowRight, AlertCircle, Music2 } from 'lucide-vue-next'
+import { ArrowRight, AlertCircle, Music2, Check } from 'lucide-vue-next'
 import { formatIDR, formatUSD, groupDot } from '@/lib/catalog'
 import { cardTypeLabel } from '@/lib/cardTypes'
 import { ART_CARD_WIDTHS, artworkSrcset, gridSrcset, onImageError } from '@/lib/imageVariants'
@@ -15,7 +15,14 @@ const page = ref(1)
 const totalPages = ref(1)
 const cardsLoading = ref(false)
 
-const { fetchCollection, wishlistIds, toggleWishlist } = useCollection()
+// Full-release slot list for the binder section — separate from `cards`,
+// which is the paginated, full-detail grid below.
+const binder = ref<any[]>([])
+const binderLoading = ref(false)
+const binderFilter = ref<'all' | 'missing'>('all')
+
+const { fetchCollection, wishlistIds, ownedIds, toggleWishlist } = useCollection()
+const { user } = useAuth()
 
 // Detail + rate ship with the SSR HTML. Neither handler throws: a dead or
 // rate-limited API must render the error state, never abort the render. A 404
@@ -47,7 +54,7 @@ const loadError = computed(() => detailRes.value == null)
 const rate = computed(() => ratesRes.value?.data?.usd?.rate || 17800)
 
 // The card list depends on the release, so it cannot join the parallel batch.
-if (detail.value?.count > 0) await loadCards(1)
+if (detail.value?.count > 0) await Promise.all([loadCards(1), loadBinder()])
 
 useHead({
   title: computed(() =>
@@ -76,7 +83,23 @@ async function load() {
   await reloadDetail()
   cards.value = []
   page.value = 1
-  if (detail.value?.count > 0) await loadCards(1)
+  binder.value = []
+  if (detail.value?.count > 0) await Promise.all([loadCards(1), loadBinder()])
+}
+
+async function loadBinder() {
+  binderLoading.value = true
+  try {
+    const response = await $fetch<any>('/api/releases/binder', {
+      query: { group, release: detail.value.release_name },
+    })
+    if (response?.success) binder.value = response.data || []
+  } catch (e) {
+    // Non-fatal: the section simply stays hidden (it renders on binder.length).
+    console.error('Failed to load binder:', e)
+  } finally {
+    binderLoading.value = false
+  }
 }
 
 async function loadCards(nextPage: number) {

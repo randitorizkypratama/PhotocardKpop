@@ -4,7 +4,7 @@ export default defineEventHandler(async (event) => {
 
   const result = await db.execute({
     sql: `SELECT c.*, cards.name, cards.image, cards.group_name, cards.member_name,
-           cards.card_type, cards.last_price, cards.last_discounted_price
+           cards.card_type, cards.release_name, cards.last_price, cards.last_discounted_price
     FROM collections c
     JOIN cards ON c.card_id = cards.id
     WHERE c.user_id = ?

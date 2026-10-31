@@ -9,6 +9,7 @@ interface CollectionItem {
   group_name: string
   member_name: string
   card_type: string
+  release_name: string | null
   last_price: number
   last_discounted_price: number
 }

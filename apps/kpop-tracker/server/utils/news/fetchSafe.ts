@@ -16,6 +16,14 @@ export interface SafeFetchOptions extends ValidateUrlOptions {
   /** Returns false when robots.txt disallows the path for us. */
   isAllowedByRobots?: (url: URL) => boolean
   headers?: Record<string, string>
+  /**
+   * HTTP method; defaults to GET. A non-GET request never follows a redirect —
+   * re-sending a body to a redirect target is not a safe default, so a 3xx on a
+   * POST is reported as a failure instead.
+   */
+  method?: 'GET' | 'POST'
+  /** Request body (sent only for non-GET). */
+  body?: string
   fetchImpl?: typeof fetch
   /** Injected for tests; defaults to a real timer. */
   sleep?: (ms: number) => Promise<void>
@@ -29,6 +37,8 @@ export interface SafeFetchResult {
   redirected: boolean
   contentType: string
   body: string
+  /** Raw bytes from the response body, available for charset transcoding. */
+  rawBytes: Uint8Array
   bytes: number
   error: string | null
   attempts: number
@@ -131,9 +141,10 @@ export async function safeFetch(rawUrl: string, options: SafeFetchOptions = {}):
   const maxRedirects = options.maxRedirects ?? 5
   const accept = options.acceptContentTypes ?? DEFAULT_ACCEPT
   const sleep = options.sleep || defaultSleep
+  const method = options.method ?? 'GET'
 
   const failure = (error: string, url = rawUrl, attempts = 1): SafeFetchResult => ({
-    ok: false, status: null, url, redirected: false, contentType: '', body: '', bytes: 0, error, attempts,
+    ok: false, status: null, url, redirected: false, contentType: '', body: '', rawBytes: new Uint8Array(), bytes: 0, error, attempts,
   })
 
   let currentUrl = rawUrl
@@ -155,10 +166,11 @@ export async function safeFetch(rawUrl: string, options: SafeFetchOptions = {}):
     let response: Response
     try {
       response = await fetchImpl(target.toString(), {
-        method: 'GET',
+        method,
         redirect: 'manual',
         signal: controller.signal,
         headers: { ...DEFAULT_HEADERS, ...(options.headers || {}) },
+        ...(method !== 'GET' && options.body !== undefined ? { body: options.body } : {}),
       })
     } catch (error) {
       clearTimeout(timer)
@@ -171,6 +183,11 @@ export async function safeFetch(rawUrl: string, options: SafeFetchOptions = {}):
     clearTimeout(timer)
 
     if (isRedirect(response.status)) {
+      // A body is never re-sent to a redirect target: for a POST that would
+      // turn one request into two, so a 3xx is terminal instead.
+      if (method !== 'GET') {
+        return failure(`upstream status ${response.status} (redirect on ${method})`, target.toString(), attempts)
+      }
       const location = response.headers.get('location')
       if (!location) return failure('redirect without location', target.toString(), attempts)
       redirects += 1
@@ -221,6 +238,7 @@ export async function safeFetch(rawUrl: string, options: SafeFetchOptions = {}):
       redirected: redirects > 0,
       contentType,
       body,
+      rawBytes: bytes,
       bytes: bytes.byteLength,
       error: null,
       attempts,

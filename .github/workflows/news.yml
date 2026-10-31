@@ -24,7 +24,7 @@ on:
         required: false
         default: ''
       budget_ms:
-        description: 'Override NEWS_RUN_BUDGET_MS in ms (default: 120000)'
+        description: 'Override NEWS_RUN_BUDGET_MS in ms (default: 240000)'
         required: false
         default: ''
 
@@ -82,18 +82,26 @@ jobs:
           TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
 
-          # ── Optional: YouTube Data API key for official-channel discovery ──
+          # ── Optional: official-channel + Korean discovery ──────────────────
+          # All three may be empty — the pipeline then runs exactly as before.
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          YOUTUBE_CHANNELS: ${{ secrets.YOUTUBE_CHANNELS }}
+          NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
+          NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
 
           # ── Optional: manually-overridable knobs (workflow_dispatch) ───────
+          # max_articles caps how many *stories are processed*; discovery is
+          # deliberately wider (NEWS_DISCOVERY_CANDIDATES_PER_ARTIST below) so
+          # the same event can be found at several publishers and corroborated.
           NEWS_MAX_ARTICLES_PER_RUN: ${{ inputs.max_articles || '9' }}
-          NEWS_RUN_BUDGET_MS: ${{ inputs.budget_ms || '120000' }}
+          NEWS_RUN_BUDGET_MS: ${{ inputs.budget_ms || '240000' }}
 
           # ── Pipeline behaviour — kept in sync with .env.example defaults ──
           NEWS_FETCH_TIMEOUT: '6000'
           NEWS_MAX_RETRIES: '1'
           NEWS_MAX_RESPONSE_BYTES: '1048576'
           NEWS_MAX_AGE_DAYS: '14'
+          NEWS_DISCOVERY_CANDIDATES_PER_ARTIST: '12'
           NEWS_HOST_MIN_INTERVAL_MS: '1000'
           NEWS_HOST_COOLDOWN_MS: '60000'
           NEWS_SITEMAP_MAX_BYTES: '4194304'

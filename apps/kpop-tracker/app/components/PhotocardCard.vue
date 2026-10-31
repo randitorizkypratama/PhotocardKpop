@@ -18,6 +18,8 @@ interface PhotocardCardData {
   discounted_price?: number | null
   discount_rate?: number
   is_in_promotion?: boolean
+  /** Effective-price change vs the previous snapshot, % — null when unknown or unchanged. */
+  delta_pct?: number | null
 }
 
 const props = withDefaults(
@@ -63,6 +65,21 @@ const promoRate = computed(() => {
   const price = Number(props.card.price) || 0
   if (!price || !discounted || discounted >= price) return 0
   return Math.round((1 - discounted / price) * 100)
+})
+
+/** null = no recent movement to show; otherwise the signed % vs the previous snapshot. */
+const trendPct = computed(() => {
+  const raw = props.card.delta_pct
+  if (raw == null) return null
+  const value = Number(raw)
+  if (!Number.isFinite(value) || value === 0) return null
+  return value
+})
+
+/** Absolute value, one decimal max — "12%" or "0.4%", never "12.0000000001%". */
+const trendLabel = computed(() => {
+  const value = Math.abs(trendPct.value ?? 0)
+  return String(Number.isInteger(value) ? value : Math.round(value * 10) / 10)
 })
 
 const typeLabel = computed(() => cardTypeLabel(props.card.card_type))
@@ -140,6 +157,16 @@ const metaLine = computed(() => {
               </span>
               <span v-if="showPromo" class="text-[11px] font-medium tabular-nums text-emerald-700 dark:text-emerald-400">
                 −{{ promoRate }}%
+              </span>
+              <!-- Red = up, emerald = down: this is a buyer's reference, the
+                   same convention as the movers panel and the card chart. -->
+              <span
+                v-if="trendPct !== null"
+                class="text-[11px] font-medium tabular-nums"
+                :class="trendPct > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-700 dark:text-emerald-400'"
+              >
+                <span aria-hidden="true">{{ trendPct > 0 ? '▲' : '▼' }}{{ trendLabel }}%</span>
+                <span class="sr-only">{{ trendPct > 0 ? t('card.trendUp', { pct: trendLabel }) : t('card.trendDown', { pct: trendLabel }) }}</span>
               </span>
             </div>
           </template>

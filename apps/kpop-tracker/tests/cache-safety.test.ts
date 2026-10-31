@@ -46,6 +46,9 @@ describe('routeRules cache safety', () => {
   const PER_USER: Array<[string, RegExp]> = [
     ['/status', /['"]\/status['"]/],
     ['/collection', /['"]\/collection['"]/],
+    // The admin news review list renders against the session too: caching it
+    // would serve the unreviewed-news list (and its reasons) to anyone.
+    ['/admin/news', /['"]\/admin\/news['"]/],
   ]
   const PUBLIC: Array<[string, RegExp]> = [
     ['/', /['"]\/['"]/],

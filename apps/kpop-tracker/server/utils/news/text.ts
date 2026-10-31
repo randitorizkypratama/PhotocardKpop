@@ -15,7 +15,7 @@ const STOPWORDS = new Set([
   'why', 'how', 'not', 'no', 'you', 'your', 'we', 'our', 'us', 'more', 'most',
 ])
 
-function decodeEntities(value: string): string {
+export function decodeEntities(value: string): string {
   return value
     .replace(/&nbsp;/gi, ' ')
     .replace(/&amp;/gi, '&')

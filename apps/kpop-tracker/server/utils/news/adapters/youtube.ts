@@ -39,6 +39,90 @@ export function youtubeSearchUrl(query: string, options: { channelId?: string, m
   return `https://www.googleapis.com/youtube/v3/search?${params.toString()}`
 }
 
+// ── Uploads playlist (the cheap path: 1 quota unit per call) ───────────────
+
+export interface YouTubeUpload {
+  videoId: string
+  title: string
+  description: string
+  channelId: string
+  channelTitle: string
+  publishedAt: string | null
+  url: string
+  thumbnail: string | null
+}
+
+/**
+ * A channel's uploads live in a playlist whose ID is the channel ID with `UC`
+ * replaced by `UU`. Reading it costs 1 unit, where a `search` call costs 100 —
+ * which is why discovery uses this instead of searching.
+ */
+export function uploadsPlaylistId(channelId: string): string | null {
+  const clean = (channelId || '').trim()
+  if (!/^UC[\w-]{20,}$/.test(clean)) return null
+  return `UU${clean.slice(2)}`
+}
+
+/** The API key is appended by the caller so this stays a pure URL builder. */
+export function playlistItemsUrl(
+  playlistId: string,
+  options: { maxResults?: number, pageToken?: string } = {},
+): string {
+  const params = new URLSearchParams({
+    part: 'snippet,contentDetails',
+    playlistId,
+    maxResults: String(Math.min(50, Math.max(1, options.maxResults ?? 10))),
+  })
+  if (options.pageToken) params.set('pageToken', options.pageToken)
+  return `https://www.googleapis.com/youtube/v3/playlistItems?${params.toString()}`
+}
+
+export function parsePlaylistItems(payload: unknown): {
+  uploads: YouTubeUpload[]
+  nextPageToken: string | null
+  error: string | null
+} {
+  const body = payload as {
+    items?: unknown[]
+    nextPageToken?: unknown
+    error?: { message?: unknown }
+  } | null
+
+  if (body?.error?.message) return { uploads: [], nextPageToken: null, error: String(body.error.message) }
+  if (!body || !Array.isArray(body.items)) {
+    return { uploads: [], nextPageToken: null, error: 'unexpected YouTube API payload' }
+  }
+
+  const uploads: YouTubeUpload[] = []
+  for (const raw of body.items) {
+    const item = raw as {
+      snippet?: Record<string, any>
+      contentDetails?: Record<string, any>
+    }
+    const snippet = item?.snippet
+    const videoId = String(item?.contentDetails?.videoId || snippet?.resourceId?.videoId || '')
+    if (!videoId || !snippet) continue
+
+    const thumbnails = snippet.thumbnails as Record<string, { url?: string }> | undefined
+    uploads.push({
+      videoId,
+      title: String(snippet.title || '').trim(),
+      description: String(snippet.description || '').trim(),
+      channelId: String(snippet.channelId || ''),
+      channelTitle: String(snippet.channelTitle || ''),
+      publishedAt: snippet.publishedAt ? String(snippet.publishedAt) : null,
+      url: `https://www.youtube.com/watch?v=${videoId}`,
+      thumbnail: thumbnails?.maxres?.url || thumbnails?.high?.url || thumbnails?.medium?.url || null,
+    })
+  }
+
+  return {
+    uploads,
+    nextPageToken: typeof body.nextPageToken === 'string' ? body.nextPageToken : null,
+    error: null,
+  }
+}
+
 export function parseAllowlist(raw: string | null | undefined): string[] {
   return (raw || '')
     .split(',')

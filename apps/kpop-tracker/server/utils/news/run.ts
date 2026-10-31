@@ -6,6 +6,8 @@ import { safeFetch, type SafeFetchOptions, type SafeFetchResult } from './fetchS
 import { decodeGoogleNewsUrl, googleNewsFeedUrl, parseGoogleNewsRss } from './adapters/googleNews'
 import { parseFeedItems } from './adapters/rssFeed'
 import { parseSitemap, slugAsText } from './adapters/sitemap'
+import { naverNewsUrl, naverSearchHeaders, parseNaverNews } from './adapters/naver'
+import { parsePlaylistItems, playlistItemsUrl, uploadsPlaylistId } from './adapters/youtube'
 import { extractOfficialLinks, parseArticleMeta, type ArticleMeta } from './adapters/publisherPage'
 import { extractClaims } from './claims'
 import { canonicalizeUrl, hostnameOf, validateExternalUrl } from './url'
@@ -98,6 +100,16 @@ function nowIso(date = new Date()): string {
 
 /** A failed translation is retried after this long, not on every run. */
 const RETRY_FAILED_TRANSLATION_MS = 6 * 60 * 60 * 1000
+
+/**
+ * How many of a story's sources are inspected in one run.
+ *
+ * Independent corroboration needs three publishers besides the primary before
+ * a secondary source can clear `min_score` (18 + 25 + 20 + 15 + 10 + 5 = 93),
+ * so the primary plus three others is the smallest inspection set that can
+ * ever publish a story the agency did not announce itself.
+ */
+const MAX_INSPECTED_SOURCES = 4
 
 function outOfBudget(ctx: RunContext): boolean {
   return Date.now() > ctx.deadline
@@ -221,11 +233,18 @@ function trustRank(record: SourceRecord | null): number {
 }
 
 function sortSources(sources: SourcePage[]): SourcePage[] {
-  return [...sources].sort((a, b) => {
-    const rank = trustRank(b.record) - trustRank(a.record)
-    if (rank !== 0) return rank
-    return a.url.localeCompare(b.url)
-  })
+  return [...sources]
+    .filter(source => !source.error)
+    .sort((a, b) => {
+      const rank = trustRank(b.record) - trustRank(a.record)
+      if (rank !== 0) return rank
+      return a.url.localeCompare(b.url)
+    })
+}
+
+/** Distinct publishing hosts a story was seen at — the corroboration ceiling. */
+function distinctHosts(story: RunStory): number {
+  return new Set(story.sources.map(source => source.host)).size
 }
 
 /** Fetch an original article page and normalize everything we can from it. */
@@ -408,17 +427,25 @@ async function collectFeedCandidates(
   if (limit <= 0) return out
   const cutoff = Date.now() - ctx.cfg.maxArticleAgeMs
 
+  // Every matching publisher's feed is read and its artist-matched items are
+  // queued; candidates are then drawn *one per publisher per pass*.  Drawing
+  // round-robin is what stops the first publisher in the registry (Soompi,
+  // with its large general feed) from consuming the whole discovery budget
+  // before the others are consulted — without it a single run can only ever
+  // see one publisher's wording, and §12 corroboration is unreachable.
+  const queues: Array<{ record: SourceRecord, items: DiscoveryCandidate[] }> = []
+
   for (const record of SOURCE_REGISTRY) {
-    if (out.length >= limit || outOfBudget(ctx)) break
     if (!record.feedUrls?.length) continue
     if (record.supportedArtists !== 'all' && !record.supportedArtists.includes(artistId)) continue
+    if (outOfBudget(ctx)) break
 
     let itemCount = 0
     let lastError: string | null = null
     let success = false
+    const matched: DiscoveryCandidate[] = []
 
     for (const feedUrl of record.feedUrls) {
-      if (out.length >= limit || outOfBudget(ctx)) break
       const result = await fetchPage(feedUrl, ctx)
       if (!result.ok) {
         lastError = result.error
@@ -429,7 +456,6 @@ async function collectFeedCandidates(
       itemCount = Math.max(itemCount, items.length)
 
       for (const item of items) {
-        if (out.length >= limit) break
         const published = parsePublicationDate(item.published)
         // The feed's own date decides recency — never the discovery time.
         if (published && new Date(published.iso.length === 10 ? `${published.iso}T00:00:00Z` : published.iso).getTime() < cutoff) continue
@@ -440,12 +466,12 @@ async function collectFeedCandidates(
         // a publisher's word about itself, not a licence to quote anyone.
         if (!sourceRecordCoversHost(record, host)) continue
 
-        const matched = matchArtist(`${item.title} ${item.summary || ''}`, {
+        const matchedArtist = matchArtist(`${item.title} ${item.summary || ''}`, {
           publisherIsKpopSource: isKpopContextSource(host),
         })
-        if (!matched.match || matched.match.artistId !== artistId) continue
+        if (!matchedArtist.match || matchedArtist.match.artistId !== artistId) continue
 
-        out.push({
+        matched.push({
           artistId,
           title: item.title,
           url: item.link,
@@ -467,6 +493,20 @@ async function collectFeedCandidates(
       lastError: success ? null : lastError,
       itemCount,
     })
+
+    if (matched.length) queues.push({ record, items: matched })
+  }
+
+  while (out.length < limit && !outOfBudget(ctx)) {
+    let drawn = 0
+    for (const queue of queues) {
+      if (out.length >= limit) break
+      const next = queue.items.shift()
+      if (!next) continue
+      out.push(next)
+      drawn += 1
+    }
+    if (drawn === 0) break
   }
 
   return out
@@ -632,24 +672,133 @@ async function collectGoogleNewsCandidates(
   return candidates
 }
 
+/**
+ * Korean discovery through the official Naver Search API.
+ *
+ * This is not a crawl and needs no robots check: Naver answers a JSON list of
+ * headlines and links for a keyword (the artist's Hangul name), and each
+ * result then goes through the normal path — the publisher's own page is
+ * fetched, robots-checked and verified like every other candidate.
+ */
+async function collectNaverCandidates(
+  artistId: ArtistId,
+  ctx: RunContext,
+  limit: number,
+): Promise<DiscoveryCandidate[]> {
+  const out: DiscoveryCandidate[] = []
+  if (limit <= 0) return out
+  if (!ctx.cfg.naverClientId || !ctx.cfg.naverClientSecret) return out
+
+  const profile = ARTISTS[artistId]
+  // The Hangul alias first: it is what Korean newsrooms actually print.
+  const query = profile.aliases.find(alias => /[가-힯]/.test(alias)) || profile.displayName
+  const result = await pacedFetch(naverNewsUrl(query, { display: 50, sort: 'date' }), ctx, {
+    timeoutMs: ctx.cfg.fetchTimeoutMs,
+    retries: ctx.cfg.maxRetries,
+    maxBytes: ctx.cfg.maxResponseBytes,
+    acceptContentTypes: ['application/json', 'text/plain', '*/*'],
+    headers: naverSearchHeaders(ctx.cfg.naverClientId, ctx.cfg.naverClientSecret),
+  })
+
+  if (!result.ok) {
+    await store.recordSourceStatus({
+      id: 'naver_openapi',
+      displayName: 'Naver Search API',
+      availability: 'error',
+      lastAttempt: nowIso(),
+      lastError: result.error,
+      itemCount: 0,
+    })
+    return out
+  }
+
+  let payload: unknown
+  try {
+    payload = JSON.parse(result.body)
+  } catch {
+    payload = null
+  }
+  const parsed = parseNaverNews(payload)
+  if (parsed.error) {
+    await store.recordSourceStatus({
+      id: 'naver_openapi',
+      displayName: 'Naver Search API',
+      availability: 'error',
+      lastAttempt: nowIso(),
+      lastError: parsed.error,
+      itemCount: 0,
+    })
+    return out
+  }
+
+  const cutoff = Date.now() - ctx.cfg.maxArticleAgeMs
+  for (const item of parsed.items) {
+    if (out.length >= limit || outOfBudget(ctx)) break
+
+    const published = parsePublicationDate(item.publishedAt)
+    if (published && new Date(published.iso.length === 10 ? `${published.iso}T00:00:00Z` : published.iso).getTime() < cutoff) continue
+
+    const host = hostnameOf(item.url)
+    if (!host) continue
+
+    const matchedArtist = matchArtist(`${item.title} ${item.description}`, {
+      publisherIsKpopSource: isKpopContextSource(host),
+    })
+    if (!matchedArtist.match || matchedArtist.match.artistId !== artistId) continue
+
+    out.push({
+      artistId,
+      title: item.title,
+      url: item.url,
+      host,
+      pubDate: item.publishedAt,
+      // Naver gives no publisher name; the article page supplies it.
+      declaredName: null,
+      summary: item.description || null,
+      discoveredAt: nowIso(),
+    })
+  }
+
+  await store.recordSourceStatus({
+    id: 'naver_openapi',
+    displayName: 'Naver Search API',
+    availability: 'ok',
+    lastAttempt: nowIso(),
+    lastSuccess: nowIso(),
+    itemCount: parsed.items.length,
+  })
+
+  return out
+}
+
 /** Every discovery path for one artist, grouped into deduplicated stories. */
 async function discoverForArtist(
   artistId: ArtistId,
   ctx: RunContext,
   limit: number,
 ): Promise<ReturnType<typeof groupIntoStories>> {
+  // Three discovery paths share the budget, each with a guaranteed slice:
+  // feeds 50%, sitemaps 30%, Naver (Korean) 20%.  Without a reserved slice the
+  // first publisher to answer fills the whole quota and the paths that add
+  // variety never get read.  Google News takes whatever is left — it normally
+  // records `blocked`, so it rarely consumes anything.
+  const feedLimit = Math.max(1, Math.ceil(limit * 0.5))
+  const sitemapLimit = Math.max(0, Math.round(limit * 0.3))
+  const naverLimit = Math.max(0, limit - feedLimit - sitemapLimit)
+
   const candidates: DiscoveryCandidate[] = []
 
-  const fromFeeds = await collectFeedCandidates(artistId, ctx, limit)
-  candidates.push(...fromFeeds)
+  candidates.push(...(await collectFeedCandidates(artistId, ctx, feedLimit)))
 
-  let remaining = Math.max(0, limit - candidates.length)
-  if (remaining > 0 && !outOfBudget(ctx)) {
-    const fromSitemaps = await collectSitemapCandidates(artistId, ctx, remaining)
-    candidates.push(...fromSitemaps)
-    remaining = Math.max(0, limit - candidates.length)
+  if (sitemapLimit > 0 && !outOfBudget(ctx)) {
+    candidates.push(...(await collectSitemapCandidates(artistId, ctx, sitemapLimit)))
   }
 
+  if (naverLimit > 0 && !outOfBudget(ctx)) {
+    candidates.push(...(await collectNaverCandidates(artistId, ctx, naverLimit)))
+  }
+
+  const remaining = Math.max(0, limit - candidates.length)
   if (remaining > 0 && !outOfBudget(ctx)) {
     candidates.push(...(await collectGoogleNewsCandidates(artistId, ctx, remaining)))
   }
@@ -696,6 +845,170 @@ async function discoverOfficialSourceUrls(artistId: ArtistId, ctx: RunContext, l
   })
 
   return matched.slice(0, limit).map(link => link.url)
+}
+
+/**
+ * Official-channel YouTube uploads (teasers, MVs, behind-the-scenes).
+ *
+ * A video has no article body, so it cannot pass `source_accessible`. Instead
+ * of pretending otherwise, the upload is stored directly as a
+ * `PENDING_VERIFICATION` article with one traceable `official_video` evidence
+ * row — honest about what it is, visible in the admin review list, and picked
+ * up by the rewrite pipeline, while the public VERIFIED feed is untouched.
+ *
+ * Only allowlisted channel IDs are accepted; a display name never grants
+ * "official" status.
+ */
+async function ingestYouTubeVideos(
+  artistId: ArtistId,
+  ctx: RunContext,
+  summary: IngestionSummary,
+): Promise<void> {
+  if (!ctx.cfg.youtubeApiKey) return
+  const channelId = ctx.cfg.youtubeChannels[artistId]
+  if (!channelId) return
+  const playlistId = uploadsPlaylistId(channelId)
+  if (!playlistId) return
+
+  const url = `${playlistItemsUrl(playlistId, { maxResults: 10 })}&key=${encodeURIComponent(ctx.cfg.youtubeApiKey)}`
+  const result = await pacedFetch(url, ctx, {
+    timeoutMs: ctx.cfg.fetchTimeoutMs,
+    retries: ctx.cfg.maxRetries,
+    maxBytes: ctx.cfg.maxResponseBytes,
+    acceptContentTypes: ['application/json', 'text/plain', '*/*'],
+  })
+
+  if (!result.ok) {
+    await store.recordSourceStatus({
+      id: 'youtube_official',
+      displayName: 'YouTube (official channels)',
+      availability: 'error',
+      lastAttempt: nowIso(),
+      lastError: result.error,
+      itemCount: 0,
+    })
+    return
+  }
+
+  let payload: unknown
+  try {
+    payload = JSON.parse(result.body)
+  } catch {
+    payload = null
+  }
+  const parsed = parsePlaylistItems(payload)
+  if (parsed.error) {
+    await store.recordSourceStatus({
+      id: 'youtube_official',
+      displayName: 'YouTube (official channels)',
+      availability: 'error',
+      lastAttempt: nowIso(),
+      lastError: parsed.error,
+      itemCount: 0,
+    })
+    return
+  }
+
+  const cutoff = Date.now() - ctx.cfg.maxArticleAgeMs
+  let stored = 0
+
+  for (const upload of parsed.uploads) {
+    if (outOfBudget(ctx)) break
+    if (!upload.title) continue
+
+    const published = parsePublicationDate(upload.publishedAt)
+    // The channel is the artist's own, so the upload is about that artist by
+    // definition — recency is the only filter.
+    if (published && new Date(published.iso.length === 10 ? `${published.iso}T00:00:00Z` : published.iso).getTime() < cutoff) continue
+
+    const canonical = canonicalizeUrl(upload.url) || upload.url
+    const articleId = articleIdFor(canonical)
+    if (await store.getArticleById(articleId)) continue
+
+    const now = nowIso()
+    const category: NewsArticle['category'] = /music video|\bmv\b|teaser|trailer|album|single|comeback|debut|pre-?release/i
+      .test(`${upload.title} ${upload.description}`)
+      ? 'release'
+      : 'media'
+
+    const article: NewsArticle = {
+      id: articleId,
+      story_key: storyKey(artistId, upload.title),
+      artist_id: artistId,
+      original_title: upload.title,
+      normalized_title: normalizeNewsTitle(upload.title, upload.channelTitle),
+      summary: upload.description.slice(0, 600) || null,
+      language: detectLanguage(`${upload.title} ${upload.description}`),
+      category,
+      original_url: upload.url,
+      canonical_url: canonical,
+      publisher_name: upload.channelTitle || 'YouTube',
+      publisher_domain: 'youtube.com',
+      published_at: published?.iso || null,
+      published_at_timezone: published?.hasTime ? 'UTC' : (published ? 'date-only' : null),
+      published_at_has_time: published?.hasTime || false,
+      first_discovered_at: now,
+      last_checked_at: now,
+      event_date: null,
+      verification_status: 'PENDING_VERIFICATION',
+      verification_score: 0,
+      verification_reasons: [
+        'official channel upload — no article body to verify',
+        `allowlisted channel ${channelId}`,
+      ],
+      verification_version: 1,
+      evidence_complete: Boolean(upload.thumbnail),
+      created_at: now,
+      updated_at: now,
+    }
+
+    const evidence: NewsEvidence[] = upload.thumbnail
+      ? [{
+          id: `${articleId}:e0`,
+          article_id: articleId,
+          evidence_type: 'official_video',
+          source_url: upload.url,
+          canonical_source_url: upload.url,
+          image_url: upload.thumbnail,
+          thumbnail_url: upload.thumbnail,
+          video_url: upload.url,
+          video_id: upload.videoId,
+          source_name: upload.channelTitle || 'YouTube',
+          source_domain: 'youtube.com',
+          creator_or_publisher: upload.channelTitle || null,
+          published_at: article.published_at,
+          retrieved_at: now,
+          original_caption: null,
+          evidence_description: 'Official channel upload — thumbnail linked, never rehosted',
+          supports_claim_ids: [],
+          rights_status: 'linked_to_origin_not_rehosted',
+          attribution_text: `${upload.channelTitle || 'YouTube'} — official video`,
+          content_hash: null,
+          verification_status: 'traceable',
+        }]
+      : []
+
+    await store.upsertArticle(article, {
+      scoreBreakdown: JSON.stringify({}),
+      failedGates: ['source_accessible', 'min_score'],
+      corroborations: [],
+    })
+    await store.replaceArticleEvidence(articleId, evidence, [])
+    stored += 1
+  }
+
+  await store.recordSourceStatus({
+    id: 'youtube_official',
+    displayName: 'YouTube (official channels)',
+    availability: 'ok',
+    lastAttempt: nowIso(),
+    lastSuccess: nowIso(),
+    itemCount: parsed.uploads.length,
+  })
+
+  if (stored > 0) {
+    summary.messages.push(`YouTube ${artistId}: ${stored} official upload(s) stored for review`)
+  }
 }
 
 function evidenceFromPage(page: SourcePage, articleId: string, claimIds: string[], category: NewsArticle['category']): NewsEvidence[] {
@@ -1303,11 +1616,16 @@ export async function runNewsIngestion(options: IngestionOptions = {}): Promise<
   await store.ensureNewsTables()
   const logId = await store.beginIngestLog(summary.startedAt)
   const artists = options.artists?.length ? options.artists : [...ARTIST_IDS]
-  const perArtist = Math.max(1, Math.floor((options.maxArticles ?? cfg.maxArticlesPerRun) / artists.length))
+  // How many stories are *processed* per artist stays bounded by the configured
+  // article budget; how many are *discovered* is deliberately wider, because
+  // corroboration needs the same event to be seen at several publishers before
+  // any single story can pass the hard gates.
+  const publishPerArtist = Math.max(1, Math.ceil((options.maxArticles ?? cfg.maxArticlesPerRun) / artists.length))
+  const discoveryPerArtist = Math.max(publishPerArtist, cfg.discoveryCandidatesPerArtist)
 
   try {
     for (const artistId of artists) {
-      const stories = await discoverForArtist(artistId, ctx, perArtist)
+      const stories = await discoverForArtist(artistId, ctx, discoveryPerArtist)
 
       // Attach official agency announcements as sources (or as new stories).
       const officialUrls = await discoverOfficialSourceUrls(artistId, ctx)
@@ -1354,19 +1672,36 @@ export async function runNewsIngestion(options: IngestionOptions = {}): Promise<
         }
       }
 
+      // Official channel uploads are stored directly (a video has no body to
+      // fetch), so they are not part of `discoverForArtist`.
+      await ingestYouTubeVideos(artistId, ctx, summary)
+
       if (outOfBudget(ctx)) {
         summary.messages.push('run budget reached during discovery — remaining work moves to the next run')
         break
       }
 
+      // Spend the per-artist processing budget on the stories most likely to
+      // verify: the ones several publishers already cover. A story with four
+      // sources is one step from the corroboration gate; a single-source story
+      // cannot reach it at all.
+      const ranked = [...stories]
+        .sort((a, b) => {
+          const bySources = distinctHosts(b) - distinctHosts(a)
+          if (bySources !== 0) return bySources
+          return (Date.parse(b.feedPubDate || '') || 0) - (Date.parse(a.feedPubDate || '') || 0)
+        })
+        .slice(0, publishPerArtist)
+
       const existing = await store.listStoriesForArtist(artistId)
 
-      for (const story of stories) {
+      for (const story of ranked) {
         if (outOfBudget(ctx)) break
 
-        // Inspect the primary source and enough others to corroborate it.
+        // Inspect the primary source and enough others to corroborate it —
+        // three independent ones is what a secondary source needs to score.
         const ordered = sortSources(story.sources)
-        for (let index = 0; index < ordered.length && index < 3; index++) {
+        for (let index = 0; index < ordered.length && index < MAX_INSPECTED_SOURCES; index++) {
           const source = ordered[index]!
           if (source.fetched) continue
           const page = await loadSourcePage({

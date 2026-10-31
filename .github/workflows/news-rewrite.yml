@@ -1,0 +1,103 @@
+name: News Rewrite Run
+
+# Weekly AI pass over the articles the news pipeline collected: Gemini writes
+# Indonesian fanbase-blog DRAFTS straight into Turso. Nothing is published by
+# this workflow — an admin reviews and approves every draft in /admin/news.
+#
+# Weekly on purpose: the volume is tiny (a handful of articles per run), so the
+# free Gemini quota is never a factor, and a weekly cadence keeps the blog
+# curated instead of noisy.
+
+on:
+  schedule:
+    # Monday 11:00 UTC = Monday 18:00 WIB
+    - cron: '0 11 * * 1'
+  workflow_dispatch:
+    inputs:
+      max_articles:
+        description: 'Override REWRITE_MAX_PER_RUN (default: 5)'
+        required: false
+        default: ''
+      dry_run:
+        description: 'Generate but write nothing to the database'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: news-rewrite-${{ github.event_name }}
+  cancel-in-progress: false
+
+jobs:
+  rewrite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          # Pin to a specific version that satisfies `engines.bun >= 1.1.0`.
+          bun-version: '1.1.38'
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+        working-directory: apps/kpop-tracker
+
+      - name: Validate required secrets
+        run: |
+          if [ -z "${TURSO_DATABASE_URL:-}" ]; then
+            echo "::error::TURSO_DATABASE_URL secret is not set."
+            exit 1
+          fi
+          if [ -z "${TURSO_AUTH_TOKEN:-}" ]; then
+            echo "::error::TURSO_AUTH_TOKEN secret is not set."
+            exit 1
+          fi
+          if [ -z "${GEMINI_API_KEYS:-}" ]; then
+            echo "::error::GEMINI_API_KEYS secret is not set (comma-separate several keys to fail over on quota)."
+            exit 1
+          fi
+          echo "Secrets present — proceeding."
+        env:
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+          GEMINI_API_KEYS: ${{ secrets.GEMINI_API_KEYS }}
+
+      - name: Run rewrite pipeline
+        working-directory: apps/kpop-tracker
+        env:
+          # ── Required ───────────────────────────────────────────────────────
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+          GEMINI_API_KEYS: ${{ secrets.GEMINI_API_KEYS }}
+
+          # ── Optional overrides (workflow_dispatch) ─────────────────────────
+          REWRITE_MAX_PER_RUN: ${{ inputs.max_articles || '5' }}
+
+          # ── Behaviour — kept in sync with .env.example defaults ────────────
+          REWRITE_ENABLED: 'true'
+          # The `-latest` alias tracks the current model: a pinned version
+          # eventually answers 404 "no longer available". Lite is the default
+          # because it answers in seconds where the full Flash tier can take a
+          # minute or get cut off.
+          GEMINI_MODEL: 'gemini-flash-lite-latest'
+          REWRITE_TIMEOUT_MS: '90000'
+          REWRITE_MAX_TOKENS: '4096'
+          REWRITE_KEY_COOLDOWN_MS: '900000'
+          REWRITE_RETRY_FAILED_MS: '21600000'
+          REWRITE_MAX_INPUT_CHARS: '6000'
+          REWRITE_TEMPERATURE: '0.7'
+
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            bun run scripts/run-news-rewrite.ts --dry
+          else
+            bun run scripts/run-news-rewrite.ts
+          fi

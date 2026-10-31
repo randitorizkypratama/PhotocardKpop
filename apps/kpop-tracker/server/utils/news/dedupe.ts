@@ -125,8 +125,13 @@ export interface EventIdentity {
   eventDate?: string | null
 }
 
-/** Content words two differently worded articles must share to be one event. */
-export const SAME_EVENT_MIN_SHARED_TOKENS = 3
+/**
+ * Content words two differently worded articles must share to be one event.
+ * Kept low — two independent outlets rarely reuse a third of each other's
+ * wording, and the artist/time/date guards below already exclude unrelated
+ * stories about the same group.
+ */
+export const SAME_EVENT_MIN_SHARED_TOKENS = 2
 /** …and this much of the shorter headline must be covered by them. */
 export const SAME_EVENT_MIN_OVERLAP = 0.4
 

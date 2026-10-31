@@ -121,7 +121,7 @@ function evidenceLabel(type: string): string {
           <p class="mt-4 text-sm font-medium text-foreground">{{ t('news.detail.notFound') }}</p>
           <p class="mt-1 text-sm text-muted-foreground">{{ t('news.detail.notFoundHint') }}</p>
           <Button variant="outline" size="sm" class="mt-5 rounded-lg" as-child>
-            <NuxtLink to="/news">
+            <NuxtLink to="/news/verified">
               <ArrowLeft class="mr-1.5 h-4 w-4" />
               {{ t('news.detail.back') }}
             </NuxtLink>
@@ -144,7 +144,7 @@ function evidenceLabel(type: string): string {
       <template v-else-if="article">
         <section class="border-b border-border">
           <div class="page-shell py-8 sm:py-10">
-            <NuxtLink to="/news" class="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground">
+            <NuxtLink to="/news/verified" class="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground">
               <ArrowLeft class="h-3.5 w-3.5" aria-hidden="true" />
               {{ t('news.detail.back') }}
             </NuxtLink>
@@ -209,7 +209,7 @@ function evidenceLabel(type: string): string {
                 </a>
               </Button>
               <Button variant="outline" size="sm" class="rounded-lg" as-child>
-                <NuxtLink to="/news">{{ t('news.detail.back') }}</NuxtLink>
+                <NuxtLink to="/news/verified">{{ t('news.detail.back') }}</NuxtLink>
               </Button>
             </div>
           </div>

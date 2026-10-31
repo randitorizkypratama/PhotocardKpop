@@ -77,8 +77,56 @@ export default cachedEventHandler(
     ], 'read')
 
     const total = Number(countResult?.rows[0]?.total) || 0
+    const pageRows = cardsResult?.rows ?? []
 
-    const cards = (cardsResult?.rows ?? []).map((card) => {
+    // Recent price movement for the trend badge on each card. Scoped to this
+    // page's ids (never the whole table) and to snapshots from the last 7
+    // days, so the badge reads "recently moved" instead of "moved sometime".
+    // The (latest, previous) pair and the discounted-price precedence mirror
+    // /api/movers. One extra round trip, collapsed by the 60s SWR cache below;
+    // the ids only exist after the page query, so it cannot join the batch.
+    const deltas = new Map<number, number>()
+    if (pageRows.length > 0) {
+      try {
+        const ids = pageRows.map(row => Number(row.id))
+        const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+        const history = await db.execute({
+          sql: `WITH snaps AS (
+                  SELECT card_id, price, discounted_price, recorded_at,
+                         ROW_NUMBER() OVER (PARTITION BY card_id ORDER BY recorded_at DESC, id DESC) AS rn
+                  FROM price_history
+                  WHERE card_id IN (${ids.map(() => '?').join(', ')})
+                )
+                SELECT card_id, price, discounted_price, recorded_at, rn
+                FROM snaps WHERE rn <= 2`,
+          args: ids,
+        })
+        const byCard = new Map<number, Array<{ rn: number, eff: number, at: string }>>()
+        for (const row of history.rows) {
+          const cardId = Number(row.card_id)
+          const discounted = row.discounted_price == null ? 0 : Number(row.discounted_price)
+          const price = Number(row.price) || 0
+          const entry = { rn: Number(row.rn), eff: discounted > 0 ? discounted : price, at: String(row.recorded_at) }
+          const list = byCard.get(cardId) ?? []
+          list.push(entry)
+          byCard.set(cardId, list)
+        }
+        for (const [cardId, list] of byCard) {
+          const latest = list.find(snap => snap.rn === 1)
+          const previous = list.find(snap => snap.rn === 2)
+          // ISO timestamps compare lexicographically. A stale latest snapshot
+          // (cron skipped) means the "movement" is not recent — no badge.
+          if (!latest || !previous || latest.at < cutoff) continue
+          if (!(latest.eff > 0) || !(previous.eff > 0) || latest.eff === previous.eff) continue
+          deltas.set(cardId, Math.round(((latest.eff - previous.eff) * 1000) / previous.eff) / 10)
+        }
+      } catch {
+        // price_history missing or window functions unsupported — the badge
+        // is decoration; the page must still render every card.
+      }
+    }
+
+    const cards = pageRows.map((card) => {
       const price = Number(card.last_price) || 0
       const discounted = card.last_discounted_price == null ? 0 : Number(card.last_discounted_price)
       const hasDiscount = discounted > 0 && price > 0 && discounted < price
@@ -99,6 +147,7 @@ export default cachedEventHandler(
         wish_count: card.last_wish_count,
         sales_volume: card.last_sales_volume,
         stocked_count: card.last_stocked_count,
+        delta_pct: deltas.get(Number(card.id)) ?? null,
       }
     })
 

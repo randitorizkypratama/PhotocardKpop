@@ -8,7 +8,7 @@
  * so the values are resolved at runtime, not baked into the build.
  */
 
-function intFromEnv(name: string, fallback: number, min: number, max: number): number {
+export function intFromEnv(name: string, fallback: number, min: number, max: number): number {
   const raw = process.env[name]
   if (!raw) return fallback
   const parsed = Number.parseInt(raw, 10)
@@ -16,11 +16,33 @@ function intFromEnv(name: string, fallback: number, min: number, max: number): n
   return Math.min(max, Math.max(min, parsed))
 }
 
-function listFromEnv(name: string): string[] {
+/**
+ * Comma-separated list, lowercased. Deliberately case-folding because it is
+ * only ever used for hostnames — never for secrets (see `listRawFromEnv`).
+ */
+export function listFromEnv(name: string): string[] {
   return (process.env[name] || '')
     .split(',')
     .map(value => value.trim().toLowerCase().replace(/^www\./, ''))
     .filter(Boolean)
+}
+
+/**
+ * `artist:channelId` pairs from `YOUTUBE_CHANNELS`.
+ *
+ * Only a well-formed channel ID (`UC` + at least 20 word chars) is accepted —
+ * a display name or a handle can never grant official status, so a malformed
+ * entry is dropped instead of guessed at.
+ */
+export function parseYoutubeChannels(raw: string | undefined): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const entry of (raw || '').split(',')) {
+    const [artist, channel] = entry.split(':').map(part => part.trim())
+    if (!artist || !channel) continue
+    if (!/^UC[\w-]{20,}$/.test(channel)) continue
+    out[artist.toLowerCase()] = channel
+  }
+  return out
 }
 
 export interface NewsConfig {
@@ -37,8 +59,23 @@ export interface NewsConfig {
   allowedSourceDomains: string[]
   /** YouTube Data API key — server-side only, never shipped to the client. */
   youtubeApiKey: string
+  /**
+   * Allowlisted official YouTube channels, keyed by artist id.
+   * `YOUTUBE_CHANNELS=aespa:UC…,ive:UC…` — a channel ID is the only thing that
+   * can grant "official" status; a display name never does.
+   */
+  youtubeChannels: Record<string, string>
+  /** Naver Search API credentials — empty disables Korean discovery. */
+  naverClientId: string
+  naverClientSecret: string
   /** Max candidates processed in a single cron invocation (bounded work). */
   maxArticlesPerRun: number
+  /**
+   * Max candidates *discovered* per artist before grouping. Deliberately wider
+   * than the publish budget: independent corroboration (§12) needs the same
+   * event to be seen at several publishers before it can be linked.
+   */
+  discoveryCandidatesPerArtist: number
   /** Retries per outbound request before the source is marked unavailable. */
   maxRetries: number
   /** Largest response body we will read (bytes). */
@@ -65,7 +102,11 @@ export function newsConfig(): NewsConfig {
     minScore: intFromEnv('VERIFICATION_MIN_SCORE', 90, 0, 100),
     allowedSourceDomains: listFromEnv('ALLOWED_SOURCE_DOMAINS'),
     youtubeApiKey: process.env.YOUTUBE_API_KEY || '',
+    youtubeChannels: parseYoutubeChannels(process.env.YOUTUBE_CHANNELS),
+    naverClientId: process.env.NAVER_CLIENT_ID || '',
+    naverClientSecret: process.env.NAVER_CLIENT_SECRET || '',
     maxArticlesPerRun: intFromEnv('NEWS_MAX_ARTICLES_PER_RUN', 9, 1, 100),
+    discoveryCandidatesPerArtist: intFromEnv('NEWS_DISCOVERY_CANDIDATES_PER_ARTIST', 12, 1, 60),
     maxRetries: intFromEnv('NEWS_MAX_RETRIES', 1, 0, 5),
     maxResponseBytes: intFromEnv('NEWS_MAX_RESPONSE_BYTES', 1048576, 4096, 5242880),
     maxArticleAgeMs: intFromEnv('NEWS_MAX_AGE_DAYS', 14, 1, 90) * 86400000,

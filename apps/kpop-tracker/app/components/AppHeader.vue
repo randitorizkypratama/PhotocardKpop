@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Activity, ArrowLeft, Heart, LogIn, LogOut, Search } from 'lucide-vue-next'
+import { Activity, ArrowLeft, Heart, LogIn, LogOut, Newspaper, Search } from 'lucide-vue-next'
 
 withDefaults(
   defineProps<{
@@ -188,6 +188,12 @@ function submitSearch() {
                 <NuxtLink to="/collection?tab=wishlist">
                   <Heart class="mr-2 h-4 w-4" />
                   {{ t('palette.nav.wishlist') }}
+                </NuxtLink>
+              </DropdownMenuItem>
+              <DropdownMenuItem v-if="user.role === 'admin'" as-child>
+                <NuxtLink to="/admin/news">
+                  <Newspaper class="mr-2 h-4 w-4" />
+                  {{ t('nav.newsReview') }}
                 </NuxtLink>
               </DropdownMenuItem>
               <DropdownMenuItem v-if="user.role === 'admin'" as-child>
