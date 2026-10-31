@@ -12,7 +12,8 @@
     "test": "bun run --cwd apps/kpop-tracker test",
     "smoke": "bun run --cwd apps/kpop-tracker smoke",
     "typecheck": "bun run --cwd apps/kpop-tracker typecheck",
-    "news-pipeline": "bun run --cwd apps/kpop-tracker news-pipeline"
+    "news-pipeline": "bun run --cwd apps/kpop-tracker news-pipeline",
+    "news-rewrite": "bun run --cwd apps/kpop-tracker news-rewrite"
   },
   "engines": {
     "bun": ">=1.1.0"

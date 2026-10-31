@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "typecheck": "nuxt typecheck",
     "smoke": "node scripts/smoke.mjs",
-    "news-pipeline": "bun run scripts/run-news-pipeline.ts"
+    "news-pipeline": "bun run scripts/run-news-pipeline.ts",
+    "news-rewrite": "bun run scripts/run-news-rewrite.ts"
   },
   "dependencies": {
     "@huggingface/transformers": "4.3.0",
