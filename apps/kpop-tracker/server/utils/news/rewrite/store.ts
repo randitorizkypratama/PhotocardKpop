@@ -3,6 +3,7 @@ import { sha256 } from '../text'
 import { isRenderableMediaUrl } from '../url'
 import type {
   NewsRewrite,
+  RecapArticle,
   RewriteDraft,
   RewriteImage,
   RewriteImageInput,
@@ -481,6 +482,63 @@ export async function listRewriteCandidates(limit: number, failedBefore: string)
   }))
 
   return interleaveByPublisher(rows, limit)
+}
+
+/**
+ * One artist's articles inside a recap window, newest first.
+ *
+ * Same status filter as the rewrite candidates (verified first-class, pending
+ * allowed — the recap narrates what was *collected*, and every draft still
+ * passes human review before publication). The time basis falls back to
+ * discovery time because a feed item can lack a publication timestamp; a recap
+ * must not silently drop such a row.
+ */
+export async function listRecapArticles(artistId: string, sinceIso: string, untilIso: string): Promise<RecapArticle[]> {
+  const db = getTursoClient()
+  const result = await db.execute({
+    sql: `SELECT a.id, a.original_title, a.summary, a.language, a.category,
+                 a.original_url, a.canonical_url, a.publisher_name, a.publisher_domain,
+                 a.published_at, a.first_discovered_at
+          FROM news_articles a
+          WHERE a.artist_id = ?
+            AND a.verification_status IN ('VERIFIED', 'PENDING_VERIFICATION')
+            AND COALESCE(a.published_at, a.first_discovered_at) >= ?
+            AND COALESCE(a.published_at, a.first_discovered_at) < ?
+          ORDER BY COALESCE(a.published_at, a.first_discovered_at) DESC`,
+    args: [artistId, sinceIso, untilIso],
+  })
+
+  return (result.rows as unknown as Array<Record<string, unknown>>)
+    .map(row => ({
+      id: String(row.id),
+      title: String(row.original_title || ''),
+      summary: row.summary ? String(row.summary) : null,
+      language: row.language ? String(row.language) : null,
+      category: row.category ? String(row.category) : null,
+      publisherName: row.publisher_name ? String(row.publisher_name) : null,
+      publisherDomain: row.publisher_domain ? String(row.publisher_domain) : null,
+      url: String(row.original_url || row.canonical_url || ''),
+      publishedAt: row.published_at
+        ? String(row.published_at)
+        : (row.first_discovered_at ? String(row.first_discovered_at) : null),
+    }))
+    .filter(article => article.title && article.url)
+}
+
+/**
+ * Remove one rewrite with its children.
+ *
+ * Only used to clear a `failed` recap row so a re-run can retry it in the same
+ * window — a row that was ever drafted, approved or published is never deleted
+ * here (the caller checks the status first).
+ */
+export async function deleteRewrite(id: string): Promise<void> {
+  const db = getTursoClient()
+  await db.batch([
+    { sql: 'DELETE FROM news_rewrite_sources WHERE rewrite_id = ?', args: [id] },
+    { sql: 'DELETE FROM news_rewrite_images WHERE rewrite_id = ?', args: [id] },
+    { sql: 'DELETE FROM news_rewrites WHERE id = ?', args: [id] },
+  ] as any)
 }
 
 export async function updateRewriteStatus(entry: {

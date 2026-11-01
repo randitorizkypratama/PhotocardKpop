@@ -94,6 +94,10 @@ jobs:
           REWRITE_RETRY_FAILED_MS: '21600000'
           REWRITE_MAX_INPUT_CHARS: '6000'
           REWRITE_TEMPERATURE: '0.7'
+          # Weekly per-artist recap (runs inside this same job; drafts are
+          # reviewed in /admin/news like any other).
+          RECAP_ENABLED: 'true'
+          RECAP_MIN_ARTICLES: '3'
 
         run: |
           if [ "${{ inputs.dry_run }}" = "true" ]; then

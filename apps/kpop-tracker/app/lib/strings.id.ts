@@ -524,6 +524,7 @@ export const STRINGS_ID: Record<string, string> = {
     'news.category.media': 'Media',
     'news.category.personnel': 'Personel',
     'news.category.other': 'Lainnya',
+    'news.category.recap': 'Rekap Pekan',
     'news.loading': 'Memeriksa kabar terbaru…',
     'news.empty.title': 'Belum ada berita terverifikasi.',
     'news.empty.hint': 'Sebuah berita muncul di sini hanya setelah lulus dua belas gate verifikasi.',

@@ -104,10 +104,12 @@ const RETRY_FAILED_TRANSLATION_MS = 6 * 60 * 60 * 1000
 /**
  * How many of a story's sources are inspected in one run.
  *
- * Independent corroboration needs three publishers besides the primary before
- * a secondary source can clear `min_score` (18 + 25 + 20 + 15 + 10 + 5 = 93),
- * so the primary plus three others is the smallest inspection set that can
- * ever publish a story the agency did not announce itself.
+ * With `min_score` at 83, a secondary publisher (18) plus ONE independent
+ * corroborating source (15) already clears the gate when every other
+ * component is perfect (18 + 15 + 20 + 15 + 10 + 5 = 83). Four is still the
+ * right inspection set: each further independent corroboration buys points in
+ * the 25-point component, which is what lets a story publish when one weaker
+ * component (visual, date, transparency) falls short of perfect.
  */
 const MAX_INSPECTED_SOURCES = 4
 

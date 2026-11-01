@@ -174,7 +174,7 @@ describe('news configuration', () => {
     vi.stubEnv('ALLOWED_SOURCE_DOMAINS', '')
     vi.stubEnv('YOUTUBE_API_KEY', '')
     const config = newsConfig()
-    expect(config.minScore).toBe(90)
+    expect(config.minScore).toBe(83)
     expect(config.fetchTimeoutMs).toBe(6000)
     expect(config.recheckIntervalMs).toBe(21600000)
     expect(config.maxArticlesPerRun).toBe(9)
@@ -198,7 +198,7 @@ describe('news configuration', () => {
 
   it('ignores garbage rather than crashing the pipeline', () => {
     vi.stubEnv('VERIFICATION_MIN_SCORE', 'not-a-number')
-    expect(newsConfig().minScore).toBe(90)
+    expect(newsConfig().minScore).toBe(83)
   })
 })
 

@@ -126,7 +126,7 @@ const { data: reviewRes, pending: loading, refresh: reload } = review
 const articles = computed<ReviewArticle[]>(() => reviewRes.value?.unverified ?? [])
 const drafts = computed<AiDraft[]>(() => reviewRes.value?.drafts ?? [])
 const awaiting = computed(() => Number(reviewRes.value?.counts?.PENDING_VERIFICATION ?? 0))
-const minScore = computed(() => Number(reviewRes.value?.policy?.min_score ?? 90))
+const minScore = computed(() => Number(reviewRes.value?.policy?.min_score ?? 83))
 const loadError = computed(() => isAdmin && !loading.value && reviewRes.value === null)
 
 // ── Draft review actions ───────────────────────────────────────────────────

@@ -74,3 +74,78 @@ export function buildPrompt(material: RewriteMaterial, options: { maxInputChars?
     sources,
   ].join('\n')
 }
+
+/** The exact JSON shape a recap reply must have, quoted verbatim in the prompt. */
+export const RECAP_JSON_SCHEMA = `{
+  "title": "string — judul bahasa Indonesia, maksimal 90 karakter, gaya \"{Artis} Pekan Ini: …\"",
+  "dek": "string — ringkasan 2 sampai 3 kalimat, maksimal 320 karakter",
+  "body_markdown": "string — isi rekap 5 sampai 9 paragraf, sub-judul ## per topik, minimal 400 karakter"
+}`
+
+export interface RecapPromptTopic {
+  label: string
+  articles: Array<{ index: number, title: string, publisher: string, publishedAt: string | null }>
+}
+
+export interface RecapPromptInput {
+  artistName: string
+  /** `YYYY-MM-DD` of the window start. */
+  weekKey: string
+  /** `YYYY-MM-DD` of the window end. */
+  weekEnd: string
+  topics: RecapPromptTopic[]
+}
+
+/**
+ * The weekly recap prompt — same contract as `buildPrompt` (facts only, no
+ * URLs, one JSON object back), but the material is *bucketed* per topic and
+ * the per-topic credit is a citation convention instead of an index list:
+ *
+ *   every section ends with `Sumber: [n], [m]` pointing at the numbered
+ *   article list below — `renderRecapCredits` later swaps each marker for the
+ *   publisher's real name, so a credit can only ever name a source we hold.
+ */
+export function buildRecapPrompt(input: RecapPromptInput, options: { maxInputChars?: number } = {}): string {
+  const maxChars = options.maxInputChars ?? 6000
+
+  let budget = maxChars
+  const topicBlocks: string[] = []
+  const articleLines: string[] = []
+
+  for (const topic of input.topics) {
+    const lines: string[] = [`## ${topic.label}`]
+    for (const article of topic.articles) {
+      const title = article.title.slice(0, Math.max(0, Math.min(200, budget)))
+      budget -= title.length
+      if (title.length === 0) continue
+      const when = article.publishedAt ? article.publishedAt.slice(0, 10) : 'tanggal tidak diketahui'
+      lines.push(`- [${article.index}] ${title} — ${article.publisher} — ${when}`)
+      articleLines.push(`${article.index}. ${article.publisher} — ${title}`)
+    }
+    topicBlocks.push(lines.join('\n'))
+  }
+
+  return [
+    'Kamu adalah admin fanbase K-Pop yang menulis rekap mingguan blog berbahasa Indonesia.',
+    `Tulis REKAP PEKAN untuk ${input.artistName} atas berita-berita di bawah, yang terbit ${input.weekKey} s/d ${input.weekEnd}.`,
+    'Gabungkan berita-berita serupa menjadi satu bahasakan per topik — inilah gunanya rekap: pembaca tidak perlu membaca ratusan judul yang saling mengulang.',
+    '',
+    'ATURAN WAJIB:',
+    '1. Seluruh rekap berbahasa Indonesia, gaya admin fanbase: hangat, antusias, tapi tetap faktual dan sopan.',
+    '2. HANYA gunakan fakta dari daftar artikel di bawah. JANGAN mengarang kutipan, angka, tanggal, nama lagu, atau kejadian apa pun.',
+    '3. Sebutkan tanggal dan angka persis seperti tertulis di daftar — jangan menghitung ulang dan jangan mengubah satuan.',
+    '4. Setiap sub-judul ## adalah satu topik dari daftar; tulis ulang isinya menjadi 1 sampai 3 paragraf mengalir, bukan daftar poin.',
+    '5. Setiap sub-judul ## wajib diakhiri satu baris dengan format persis: "Sumber: [n], [m]" memakai nomor-nomor artikel yang menjadi dasar bagian itu. Semua nomor harus dari daftar; jangan mengarang nomor di luar daftar.',
+    '6. Jangan menuliskan URL apa pun di dalam body_markdown.',
+    '7. Kalau satu minggu hanya punya sedikit berita, tulis apa adanya — lebih baik singkat daripada mengarang.',
+    '',
+    'Balas HANYA dengan satu objek JSON yang valid — tanpa penjelasan tambahan, tanpa code fence markdown — dengan skema:',
+    RECAP_JSON_SCHEMA,
+    '',
+    '=== TOPIK & ARTIKEL ===',
+    topicBlocks.join('\n\n') || '(tidak ada artikel)',
+    '',
+    'NOMOR SUMBER (untuk baris "Sumber:"):',
+    articleLines.join('\n') || '(tidak ada)',
+  ].join('\n')
+}

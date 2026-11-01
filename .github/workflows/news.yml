@@ -106,7 +106,10 @@ jobs:
           NEWS_HOST_COOLDOWN_MS: '60000'
           NEWS_SITEMAP_MAX_BYTES: '4194304'
           NEWS_RECHECK_INTERVAL: '21600000'
-          VERIFICATION_MIN_SCORE: '90'
+          # 83 = source (18) + ONE independent corroborating source (15) with
+          # everything else perfect; the old 90 needed three independent
+          # publishers and left /news/verified permanently empty.
+          VERIFICATION_MIN_SCORE: '83'
 
           # ── Security ───────────────────────────────────────────────────────
           # CRON_SECRET is NOT used by this workflow.  The pipeline runs as a

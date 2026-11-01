@@ -530,6 +530,7 @@ export const STRINGS_EN: Record<string, string> = {
     'news.category.media': 'Media',
     'news.category.personnel': 'Personnel',
     'news.category.other': 'Other',
+    'news.category.recap': 'Weekly Recap',
     'news.loading': 'Checking the latest stories…',
     'news.empty.title': 'No verified stories yet.',
     'news.empty.hint': 'A story appears here only after it passes all twelve verification gates.',

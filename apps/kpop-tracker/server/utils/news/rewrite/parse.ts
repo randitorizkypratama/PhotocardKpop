@@ -157,3 +157,59 @@ export function parseArticleJson(raw: string, options: ParseArticleOptions): Par
     },
   }
 }
+
+export interface ParsedRecap {
+  title: string
+  dek: string
+  bodyMarkdown: string
+  readingMinutes: number
+}
+
+export type ParseRecapResult =
+  | { ok: true, value: ParsedRecap }
+  | { ok: false, error: string }
+
+/**
+ * Validate a weekly recap reply (pure) — the same rules as a single-article
+ * rewrite minus images and source indexes: a recap cites sources per topic
+ * with `[n]` markers inside the body, and the marker-to-publisher mapping is
+ * applied afterwards by `digest.renderRecapCredits`, never trusted from the
+ * model's wording.
+ */
+export function parseRecapJson(raw: string): ParseRecapResult {
+  const json = extractJsonObject(raw)
+  if (!json) return { ok: false, error: 'model reply contained no JSON object' }
+
+  let payload: Record<string, unknown>
+  try {
+    const parsed = JSON.parse(json)
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return { ok: false, error: 'model JSON was not an object' }
+    }
+    payload = parsed as Record<string, unknown>
+  } catch {
+    return { ok: false, error: 'model JSON could not be parsed' }
+  }
+
+  const title = asString(payload.title).slice(0, MAX_TITLE)
+  if (!title) return { ok: false, error: 'model reply had no title' }
+
+  const dek = asString(payload.dek).slice(0, MAX_DEK)
+  if (!dek) return { ok: false, error: 'model reply had no dek' }
+
+  const bodyMarkdown = sanitizeBody(asString(payload.body_markdown))
+  if (bodyMarkdown.length < MIN_BODY) {
+    return { ok: false, error: `recap body was too short (${bodyMarkdown.length} chars, minimum ${MIN_BODY})` }
+  }
+  const trimmedBody = bodyMarkdown.slice(0, MAX_BODY)
+
+  return {
+    ok: true,
+    value: {
+      title,
+      dek,
+      bodyMarkdown: trimmedBody,
+      readingMinutes: estimateReadingMinutes(trimmedBody),
+    },
+  }
+}

@@ -21,7 +21,8 @@
  */
 
 import { runRewrite } from '../server/utils/news/rewrite/run'
-import { rewriteConfig } from '../server/utils/news/rewrite/config'
+import { runWeeklyRecaps } from '../server/utils/news/rewrite/recap'
+import { rewriteConfig, recapConfig } from '../server/utils/news/rewrite/config'
 
 const dryRun = process.argv.includes('--dry')
 
@@ -52,6 +53,7 @@ function section(title: string) {
 section('News rewrite starting')
 log(`Model:      ${rewriteConfig().geminiModel}`)
 log(`Max/run:    ${process.env.REWRITE_MAX_PER_RUN ?? '5'}`)
+log(`Recap:      ${recapConfig().enabled ? 'on' : 'off'} (min ${process.env.RECAP_MIN_ARTICLES ?? '3'} artikel/artis/pekan)`)
 log(`Keys:       ${rewriteConfig().geminiApiKeys.length}`)
 log(`Dry run:    ${dryRun ? 'yes (nothing is written)' : 'no'}`)
 
@@ -59,6 +61,9 @@ let exitCode = 0
 
 try {
   const summary = await runRewrite({ dryRun })
+  // The weekly per-artist recap rides the same run: same keys, same model,
+  // same review queue — it only changes how articles are grouped.
+  const recap = await runWeeklyRecaps({ dryRun })
 
   section('Rewrite complete')
   log(`Status:      ${summary.status}`)
@@ -73,6 +78,15 @@ try {
     section('Details')
     for (const message of summary.messages) log(`  ${message}`)
   }
+
+  section('Weekly recap')
+  log(`Window:      ${recap.window.weekKey} → ${recap.window.endIso.slice(0, 10)}`)
+  log(`Status:      ${recap.status}`)
+  log(`Considered:  ${recap.considered} artis dengan cukup berita`)
+  log(`Drafts:      ${recap.generated}`)
+  log(`Skipped:     ${recap.skipped}`)
+  log(`Failed:      ${recap.failed}`)
+  for (const message of recap.messages) log(`  ${message}`)
 
   // A dry run writes nothing, so print what it would have written.
   if (dryRun && summary.previews.length) {
@@ -95,6 +109,22 @@ try {
     }
   }
 
+  if (dryRun && recap.previews.length) {
+    for (const draft of recap.previews) {
+      section(`REKAP — ${draft.title}`)
+      log(`dek        : ${draft.dek}`)
+      log(`waktu baca : ${draft.readingMinutes} menit`)
+      log(`artis      : ${draft.artistId} · kategori: ${draft.category}`)
+      log('')
+      for (const line of draft.bodyMarkdown.split('\n')) log(`  ${line}`)
+      log('')
+      log('Sumber (semua artikel yang dirangkum):')
+      for (const source of draft.sources) {
+        log(`  - ${source.publisherName || source.publisherDomain || '?'} | ${source.sourceUrl}`)
+      }
+    }
+  }
+
   const summaryPath = process.env.GITHUB_STEP_SUMMARY
   if (summaryPath) {
     const lines: string[] = [
@@ -110,19 +140,35 @@ try {
       `| keys_used | ${summary.keys.used.join(', ') || '—'} |`,
       `| keys_cooling | ${summary.keys.cooling.join(', ') || '—'} |`,
       `| dry_run | ${dryRun} |`,
+      '',
+      '### Weekly recap',
+      '',
+      '| Field | Value |',
+      '| --- | --- |',
+      `| window | ${recap.window.weekKey} → ${recap.window.endIso.slice(0, 10)} |`,
+      `| status | ${recap.status} |`,
+      `| considered | ${recap.considered} |`,
+      `| drafts | ${recap.generated} |`,
+      `| skipped | ${recap.skipped} |`,
+      `| failed | ${recap.failed} |`,
     ]
     if (summary.messages.length) {
       lines.push('', '#### Details', '```', ...summary.messages.slice(0, 50), '```')
+    }
+    if (recap.messages.length) {
+      lines.push('', '#### Recap details', '```', ...recap.messages.slice(0, 50), '```')
     }
     const { appendFileSync } = await import('node:fs')
     appendFileSync(summaryPath, lines.join('\n') + '\n')
   }
 
-  if (summary.status === 'error') {
-    log('❌  Rewrite reported status=error — see details above.')
+  const rewriteFailed = summary.status === 'error'
+  const recapFailed = recap.status === 'error'
+  if (rewriteFailed || recapFailed) {
+    log('❌  A pass reported status=error — see details above.')
     exitCode = 1
-  } else if (summary.status === 'skipped') {
-    log('⚠️  Nothing to do (rewrite disabled or unconfigured).')
+  } else if (summary.status === 'skipped' && recap.status === 'skipped') {
+    log('⚠️  Nothing to do (rewrite/recap disabled or unconfigured).')
   } else {
     log('✅  Rewrite finished.')
   }

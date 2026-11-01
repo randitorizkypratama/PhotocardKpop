@@ -23,7 +23,7 @@ const ARTIST_NAME: Record<string, string> = Object.fromEntries(ARTISTS.map(entry
 
 const CATEGORIES = [
   'release', 'schedule', 'performance', 'award', 'chart',
-  'business', 'media', 'personnel', 'other',
+  'business', 'media', 'personnel', 'recap', 'other',
 ]
 
 function queryText(name: string): string {

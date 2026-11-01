@@ -8,6 +8,7 @@ import { parseArticleMeta, extractOfficialLinks } from '../server/utils/news/ada
 import { decodeGoogleNewsUrl, googleNewsFeedUrl, parseGoogleNewsRss } from '../server/utils/news/adapters/googleNews'
 import { parseFeedItems } from '../server/utils/news/adapters/rssFeed'
 import { parseSitemap, slugAsText } from '../server/utils/news/adapters/sitemap'
+import { conceptsIn, quotedPhrases } from '../server/utils/news/eventLexicon'
 
 /**
  * Retrieval, robots.txt, SSRF, dates, canonicalization and duplicate
@@ -554,6 +555,130 @@ describe('same event, different wording (§12 — what makes corroboration possi
       publisherDomain: 'koreaherald.com',
       publishedAt: '2026-10-24T00:00:00Z',
     })).toBe(false)
+  })
+})
+
+describe('cross-language event match (§12 — the bilingual bridge)', () => {
+  // The pairs below are modelled on real coverage of one occurrence: a Korean
+  // outlet and an English outlet that share no content word at all, so only
+  // the shared context + subject signal can ever link them.
+  const mvMilestoneKo = {
+    artistId: 'aespa' as const,
+    title: "에스파 '더티워크' 뮤직비디오 1억뷰 돌파",
+    publisherDomain: 'mydaily.co.kr',
+    publishedAt: '2026-10-26T03:00:00Z',
+    eventDate: null,
+  }
+
+  it('links a Korean and an English headline about one MV milestone', () => {
+    const mvMilestoneEn = {
+      artistId: 'aespa' as const,
+      title: 'aespa\'s "Dirty Work" Becomes Their 10th MV To Hit 100 Million Views',
+      publisherDomain: 'soompi.com',
+      publishedAt: '2026-10-26T09:00:00Z',
+      eventDate: null,
+    }
+    // No shared core token — this merge only exists because both titles name
+    // the music-video context and the same 100-million-view milestone.
+    expect(isSameEvent(mvMilestoneKo, mvMilestoneEn)).toBe(true)
+    expect(isSameEvent(mvMilestoneEn, mvMilestoneKo)).toBe(true)
+  })
+
+  it('links the same music-show win when both outlets quote the same song', () => {
+    const winKo = {
+      artistId: 'ive' as const,
+      title: "아이브, 'Magnetic'로 뮤직뱅크 1위",
+      publisherDomain: 'sportschosun.co.kr',
+      publishedAt: '2026-10-24T12:00:00Z',
+      eventDate: null,
+    }
+    const winEn = {
+      artistId: 'ive' as const,
+      title: 'IVE takes 1st win on Music Bank with "Magnetic"',
+      publisherDomain: 'soompi.com',
+      publishedAt: '2026-10-24T15:00:00Z',
+      eventDate: null,
+    }
+    expect(isSameEvent(winKo, winEn)).toBe(true)
+  })
+
+  it('refuses two different wins on the same show (context alone proves nothing)', () => {
+    const winKo = {
+      artistId: 'ive' as const,
+      title: "아이브, 'Magnetic'로 뮤직뱅크 1위",
+      publisherDomain: 'sportschosun.co.kr',
+      publishedAt: '2026-10-24T12:00:00Z',
+      eventDate: null,
+    }
+    const otherWinEn = {
+      artistId: 'ive' as const,
+      title: "IVE wins Music Bank with 'Lucky'",
+      publisherDomain: 'newsen.com',
+      publishedAt: '2026-10-24T15:00:00Z',
+      eventDate: null,
+    }
+    expect(isSameEvent(winKo, otherWinEn)).toBe(false)
+  })
+
+  it('refuses the same song reported in two different contexts', () => {
+    const winKo = {
+      artistId: 'ive' as const,
+      title: "아이브, 'Magnetic'로 뮤직뱅크 1위",
+      publisherDomain: 'sportschosun.co.kr',
+      publishedAt: '2026-10-24T12:00:00Z',
+      eventDate: null,
+    }
+    const chartEn = {
+      artistId: 'ive' as const,
+      title: 'IVE\'s "Magnetic" tops Hanteo chart',
+      publisherDomain: 'billboard.com',
+      publishedAt: '2026-10-24T18:00:00Z',
+      eventDate: null,
+    }
+    expect(isSameEvent(winKo, chartEn)).toBe(false)
+  })
+
+  it('never lets the artist\'s own name seal a match, even in quotes', () => {
+    const fanmeetingKo = {
+      artistId: 'ive' as const,
+      title: "아이브, 'IVE' 팬미팅 개최",
+      publisherDomain: 'mydaily.co.kr',
+      publishedAt: '2026-10-23T02:00:00Z',
+      eventDate: null,
+    }
+    const fanmeetingEn = {
+      artistId: 'ive' as const,
+      title: 'IVE to hold "IVE" fan meeting in Seoul',
+      publisherDomain: 'koreaherald.com',
+      publishedAt: '2026-10-23T09:00:00Z',
+      eventDate: null,
+    }
+    // Shared context (fan meeting) and a shared quoted subject — but the
+    // subject is the group itself, which identifies nothing.
+    expect(isSameEvent(fanmeetingKo, fanmeetingEn)).toBe(false)
+  })
+})
+
+describe('event lexicon projection (§12 — how a headline becomes context + subject)', () => {
+  it('reads the milestone both scripts write differently as one concept', () => {
+    expect(conceptsIn("에스파 '더티워크' 뮤직비디오 1억뷰 돌파").subject.has('milestone:views100m')).toBe(true)
+    expect(conceptsIn('aespa MV hits 100 million views').subject.has('milestone:views100m')).toBe(true)
+    expect(conceptsIn('aespa MV hits 100 million views').context.has('media:musicvideo')).toBe(true)
+  })
+
+  it('classifies a quoted show name as context, a quoted song as subject', () => {
+    const show = conceptsIn('IVE wins "Music Bank" this Friday')
+    expect(show.context.has('show:musicbank')).toBe(true)
+    expect([...show.subject].some(subject => subject.startsWith('quoted:'))).toBe(false)
+
+    const song = conceptsIn('IVE wins Music Bank with "Magnetic"')
+    expect(song.subject.has('quoted:magnetic')).toBe(true)
+  })
+
+  it('reads only properly opened quotes as subjects', () => {
+    // A possessive apostrophe glued to a letter is not a publisher quoting.
+    expect(quotedPhrases("aespa's fifth mini album arrives October 20")).toEqual([])
+    expect(quotedPhrases("IVE's 'Magnetic' comeback confirmed")).toEqual(['magnetic'])
   })
 })
 

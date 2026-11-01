@@ -1,4 +1,6 @@
 import type { ArtistId } from './types'
+import { ARTISTS } from './artists'
+import { conceptsIn, normalizeConceptText } from './eventLexicon'
 import { coreTokens, normalizeNewsTitle, newsTitleSimilarity, storyKey } from './text'
 
 /**
@@ -136,14 +138,40 @@ export const SAME_EVENT_MIN_SHARED_TOKENS = 2
 export const SAME_EVENT_MIN_OVERLAP = 0.4
 
 /**
+ * The artist's own name in both scripts, normalised.
+ *
+ * Identity is a *precondition* of the match, never evidence for it: two
+ * headlines about IVE that only agree on the word "IVE" are two stories, so the
+ * alias is dropped from the shared-subject set before anything is counted.
+ */
+function artistIdentityForms(artistId: ArtistId | null): Set<string> {
+  const profile = artistId ? ARTISTS[artistId] : null
+  if (!profile) return new Set()
+  return new Set(profile.aliases.map(alias => normalizeConceptText(alias)))
+}
+
+/**
  * §12 second half: *two URLs reporting the same event* become one story with
  * several source links — and this is what makes component B (independent
  * corroboration) reachable at all, because independent outlets word the same
  * occurrence differently and therefore never look like duplicates.
  *
- * Deliberately conservative: same artist, different publisher, inside the same
- * seven-day window, agreeing event dates when both state one, and enough shared
- * content words that the pair cannot be two unrelated stories about the group.
+ * Two signals are tried, and either is enough:
+ *
+ *  A. **wording** — shared content words inside the seven-day window. This is
+ *     the original rule and still the one that links two English outlets.
+ *
+ *  B. **bilingual event match** — the shared *context* (a music show, a chart,
+ *     a comeback) plus a shared *subject* (a named award, a view milestone, a
+ *     brand, or a phrase the publisher quoted). This is what links a Korean
+ *     headline to its English counterpart, which share no word at all.
+ *
+ * Signal B demands one of each on purpose: context alone would merge two
+ * different wins on the same show, and a subject alone would merge two
+ * unrelated stories that quote the same song.
+ *
+ * Deliberately conservative either way: same artist, different publisher,
+ * inside the same seven-day window, agreeing event dates when both state one.
  */
 export function isSameEvent(a: EventIdentity, b: EventIdentity): boolean {
   if (!a.artistId || !b.artistId || a.artistId !== b.artistId) return false
@@ -160,8 +188,19 @@ export function isSameEvent(a: EventIdentity, b: EventIdentity): boolean {
   if (left.size === 0 || right.size === 0) return false
 
   const shared = [...left].filter(token => right.has(token))
-  if (shared.length < SAME_EVENT_MIN_SHARED_TOKENS) return false
+  const wordingMatch =
+    shared.length >= SAME_EVENT_MIN_SHARED_TOKENS
+    && shared.length / Math.min(left.size, right.size) >= SAME_EVENT_MIN_OVERLAP
+  if (wordingMatch) return true
 
-  const overlap = shared.length / Math.min(left.size, right.size)
-  return overlap >= SAME_EVENT_MIN_OVERLAP
+  const identity = artistIdentityForms(a.artistId)
+  const leftConcepts = conceptsIn(a.title)
+  const rightConcepts = conceptsIn(b.title)
+
+  const sharedContext = [...leftConcepts.context].filter(id => rightConcepts.context.has(id))
+  if (sharedContext.length === 0) return false
+
+  const sharedSubject = [...leftConcepts.subject]
+    .filter(id => rightConcepts.subject.has(id) && !identity.has(id.replace(/^quoted:/, '')))
+  return sharedSubject.length > 0
 }

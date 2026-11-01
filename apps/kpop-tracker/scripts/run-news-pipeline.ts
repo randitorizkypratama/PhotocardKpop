@@ -56,7 +56,7 @@ function section(title: string) {
 section('News pipeline starting')
 log(`Budget: ${process.env.NEWS_RUN_BUDGET_MS ?? '120000'} ms`)
 log(`Max articles: ${process.env.NEWS_MAX_ARTICLES_PER_RUN ?? '9'}`)
-log(`Verification min-score: ${process.env.VERIFICATION_MIN_SCORE ?? '90'}`)
+log(`Verification min-score: ${process.env.VERIFICATION_MIN_SCORE ?? '83'}`)
 
 let exitCode = 0
 

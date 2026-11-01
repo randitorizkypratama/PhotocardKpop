@@ -75,7 +75,14 @@ export function defaultGeminiTransport(): GeminiTransport {
   }
 }
 
-async function generateOne(
+/**
+ * Ask Gemini for one answer, failing over across the key pool.
+ *
+ * Shared with the weekly recap pass (`recap.ts`): both are "one prompt, one
+ * reply, validate before storing" — the quota/overload cooldown behaviour must
+ * not diverge between them.
+ */
+export async function generateOne(
   prompt: string,
   config: RewriteConfig,
   pool: GeminiKeyPool,

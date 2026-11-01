@@ -105,3 +105,40 @@ export interface RewriteMaterial {
   /** Candidate sources (index 0 is always the primary article). */
   sources: RewriteSourceInput[]
 }
+
+/**
+ * One collected article inside a weekly recap window.
+ *
+ * Shaped by the store query and consumed by the pure digest bucketing, so the
+ * grouping rules are testable without a database. Deliberately flat: the recap
+ * summarises what the pipeline collected, and nothing else.
+ */
+export interface RecapArticle {
+  id: string
+  /** The original headline (Korean or English) — the only fact restated. */
+  title: string
+  summary: string | null
+  language: string | null
+  category: string | null
+  publisherName: string | null
+  publisherDomain: string | null
+  url: string
+  publishedAt: string | null
+}
+
+/** A group of the week's articles that belong under one recap heading. */
+export interface RecapTopic {
+  /** Stable key: a lexicon concept id (`show:musicbank`) or a category. */
+  key: string
+  /** Indonesian heading handed to the model. */
+  label: string
+  articles: RecapArticle[]
+}
+
+/** The rolling seven-day window one recap covers. */
+export interface RecapWeekWindow {
+  /** `YYYY-MM-DD` of the window start — half of the recap's idempotency key. */
+  weekKey: string
+  startIso: string
+  endIso: string
+}

@@ -88,3 +88,27 @@ export function rewriteConfig(): RewriteConfig {
 export function isRewriteConfigured(config: RewriteConfig = rewriteConfig()): boolean {
   return config.enabled && config.geminiApiKeys.length > 0
 }
+
+export interface RecapConfig {
+  /** Master switch — off makes the recap pass a no-op. */
+  enabled: boolean
+  /** Minimum articles in the window before a recap is worth drafting. */
+  minArticles: number
+  /** Hard cap on how many topic headings one recap may have. */
+  maxTopics: number
+  /** Hard cap on how many articles one heading may summarise. */
+  maxPerTopic: number
+}
+
+/**
+ * The weekly recap runs on the same keys, model and budget as the rewrite
+ * pass (see `rewriteConfig`) — only its grouping knobs live here.
+ */
+export function recapConfig(): RecapConfig {
+  return {
+    enabled: boolFromEnv('RECAP_ENABLED', true),
+    minArticles: intFromEnv('RECAP_MIN_ARTICLES', 3, 1, 50),
+    maxTopics: intFromEnv('RECAP_MAX_TOPICS', 6, 1, 12),
+    maxPerTopic: intFromEnv('RECAP_MAX_PER_TOPIC', 4, 1, 10),
+  }
+}

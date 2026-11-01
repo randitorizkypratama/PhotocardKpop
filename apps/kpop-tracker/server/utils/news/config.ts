@@ -99,7 +99,12 @@ export function newsConfig(): NewsConfig {
   return {
     fetchTimeoutMs: intFromEnv('NEWS_FETCH_TIMEOUT', 6000, 1000, 30000),
     recheckIntervalMs: intFromEnv('NEWS_RECHECK_INTERVAL', 21600000, 300000, 604800000),
-    minScore: intFromEnv('VERIFICATION_MIN_SCORE', 90, 0, 100),
+    // 83 = a secondary_reputable publisher (18) with ONE independent
+    // corroborating source (15) and every other component perfect
+    // (18 + 15 + 20 + 15 + 10 + 5). The old 90 required three independent
+    // publishers, which cross-language K-pop coverage never produced — the
+    // verified feed stayed permanently empty.
+    minScore: intFromEnv('VERIFICATION_MIN_SCORE', 83, 0, 100),
     allowedSourceDomains: listFromEnv('ALLOWED_SOURCE_DOMAINS'),
     youtubeApiKey: process.env.YOUTUBE_API_KEY || '',
     youtubeChannels: parseYoutubeChannels(process.env.YOUTUBE_CHANNELS),
