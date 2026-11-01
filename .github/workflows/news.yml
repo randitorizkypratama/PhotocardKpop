@@ -15,8 +15,12 @@ name: News Verification Run
 
 on:
   schedule:
-    # 10:00 UTC = 17:00 WIB
-    - cron: '0 10 * * *'
+    # Weekly on Saturday — not daily: the rewrite/recap pass runs Monday and
+    # only needs the week's articles once. 10:00 UTC = 17:00 WIB nominal;
+    # GitHub's scheduler has queued this run 5–6 h late on every observed day,
+    # so in practice it lands Saturday ~22:40–23:45 WIB ("sabtu malem"),
+    # comfortably before Monday's pass.
+    - cron: '0 10 * * 6'
   workflow_dispatch:
     inputs:
       max_articles:
