@@ -40,7 +40,7 @@ export function buildPrompt(material: RewriteMaterial, options: { maxInputChars?
     'Tulis ULANG materi di bawah ini menjadi satu artikel blog fanbase yang menarik, mengalir, dan enak dibaca — bukan rangkuman kering dan bukan terjemahan mentah.',
     '',
     'ATURAN WAJIB:',
-    '1. Seluruh artikel berbahasa Indonesia, gaya admin fanbase: hangat dan antusias, tapi tetap faktual dan sopan.',
+    '1. Seluruh artikel berbahasa Indonesia dengan gaya berita hiburan K-Pop yang hidup, mengalir, dan enak dibaca seperti portal berita entertain — bukan bahasa laporan/resmi yang kaku. Semua kalimat berbahasa Indonesia, dan aksara Hangul/Hanzi tidak boleh muncul sama sekali (transliterasikan ke huruf Latin bila perlu). NAMA RESMI tetap dalam bentuk aslinya dan JANGAN diterjemahkan literal: nama program/acara (Music Bank, Music Core, Inkigayo, M Countdown), nama tangga lagu (Circle Chart), nama grup/member, dan judul lagu.',
     '2. HANYA gunakan fakta dari materi di bawah. JANGAN mengarang kutipan, angka, tanggal, nama, atau kejadian apa pun.',
     '3. Kalau sebuah informasi tidak ada di materi, jangan disimpulkan — tulis saja bahwa hal itu belum dikonfirmasi.',
     '4. Sebutkan nama grup/artis di judul dan di paragraf pertama.',
@@ -77,7 +77,7 @@ export function buildPrompt(material: RewriteMaterial, options: { maxInputChars?
 
 /** The exact JSON shape a recap reply must have, quoted verbatim in the prompt. */
 export const RECAP_JSON_SCHEMA = `{
-  "title": "string — judul bahasa Indonesia, maksimal 90 karakter, gaya \"{Artis} Pekan Ini: …\"",
+  "title": "string — judul bahasa Indonesia, maksimal 90 karakter, menyebut nama artis dan periode rekap",
   "dek": "string — ringkasan 2 sampai 3 kalimat, maksimal 320 karakter",
   "body_markdown": "string — isi rekap 5 sampai 9 paragraf, sub-judul ## per topik, minimal 400 karakter"
 }`
@@ -94,6 +94,11 @@ export interface RecapPromptInput {
   /** `YYYY-MM-DD` of the window end. */
   weekEnd: string
   topics: RecapPromptTopic[]
+  /**
+   * Human label for the covered period ("Oktober 2026", "26 Okt – 1 Nov 2026").
+   * When absent the recap is framed as a weekly one ("Pekan Ini").
+   */
+  periodLabel?: string
 }
 
 /**
@@ -107,6 +112,8 @@ export interface RecapPromptInput {
  */
 export function buildRecapPrompt(input: RecapPromptInput, options: { maxInputChars?: number } = {}): string {
   const maxChars = options.maxInputChars ?? 6000
+  const periodLabel = (input.periodLabel || '').trim()
+  const titleStyle = periodLabel ? `${input.artistName} ${periodLabel}` : `${input.artistName} Pekan Ini`
 
   let budget = maxChars
   const topicBlocks: string[] = []
@@ -126,12 +133,13 @@ export function buildRecapPrompt(input: RecapPromptInput, options: { maxInputCha
   }
 
   return [
-    'Kamu adalah admin fanbase K-Pop yang menulis rekap mingguan blog berbahasa Indonesia.',
-    `Tulis REKAP PEKAN untuk ${input.artistName} atas berita-berita di bawah, yang terbit ${input.weekKey} s/d ${input.weekEnd}.`,
+    'Kamu adalah admin fanbase K-Pop yang menulis rekap blog berbahasa Indonesia.',
+    `Tulis REKAP untuk ${input.artistName} atas berita-berita di bawah, yang terbit ${input.weekKey} s/d ${input.weekEnd}.`,
+    `Judul rekap wajib memakai gaya "${titleStyle}: <ringkasan singkat>".`,
     'Gabungkan berita-berita serupa menjadi satu bahasakan per topik — inilah gunanya rekap: pembaca tidak perlu membaca ratusan judul yang saling mengulang.',
     '',
     'ATURAN WAJIB:',
-    '1. Seluruh rekap berbahasa Indonesia, gaya admin fanbase: hangat, antusias, tapi tetap faktual dan sopan.',
+    '1. Seluruh rekap berbahasa Indonesia dengan gaya berita hiburan K-Pop yang hidup, mengalir, dan enak dibaca seperti portal berita entertain — bukan bahasa laporan/resmi yang kaku. Semua kalimat berbahasa Indonesia, dan aksara Hangul/Hanzi tidak boleh muncul sama sekali (transliterasikan ke huruf Latin bila perlu). NAMA RESMI tetap dalam bentuk aslinya dan JANGAN diterjemahkan literal: nama program/acara (Music Bank, Music Core, Inkigayo, M Countdown), nama tangga lagu (Circle Chart), nama grup/member, dan judul lagu.',
     '2. HANYA gunakan fakta dari daftar artikel di bawah. JANGAN mengarang kutipan, angka, tanggal, nama lagu, atau kejadian apa pun.',
     '3. Sebutkan tanggal dan angka persis seperti tertulis di daftar — jangan menghitung ulang dan jangan mengubah satuan.',
     '4. Setiap sub-judul ## adalah satu topik dari daftar; tulis ulang isinya menjadi 1 sampai 3 paragraf mengalir, bukan daftar poin.',

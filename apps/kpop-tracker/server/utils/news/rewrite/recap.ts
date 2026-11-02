@@ -14,7 +14,8 @@ import { createGeminiKeyPool, maskKey } from './keys'
 import { defaultGeminiTransport, generateOne } from './run'
 import type { GeminiTransport } from './providers/gemini'
 import * as store from './store'
-import type { RecapWeekWindow, RewriteDraft } from './types'
+import type { RecapTopic, RecapWeekWindow, RewriteDraft, RewriteImageInput } from './types'
+import { isRenderableMediaUrl, validateExternalUrl } from '../url'
 
 /**
  * One weekly recap run: for every artist, take the week's collected articles,
@@ -35,6 +36,12 @@ export interface RecapRunOptions {
   now?: Date
   /** Injected transport (tests); defaults to `safeFetch` over POST. */
   transport?: GeminiTransport
+  /** Override the rolling seven-day window (e.g. a monthly recap). */
+  window?: RecapWeekWindow
+  /** Override `RECAP_MIN_ARTICLES` for this run only. */
+  minArticles?: number
+  /** Human label for the covered period ("Oktober 2026") used in prompt + title. */
+  periodLabel?: string
 }
 
 export interface RecapRunSummary {
@@ -60,11 +67,42 @@ function iso(date: Date): string {
   return date.toISOString()
 }
 
+/**
+ * One photo per topic, taken from the first article whose evidence actually
+ * carried a traceable image. The credit is always a publisher we hold a row
+ * for and the link points at the article itself, so a recap can never show an
+ * uncredited or unlinked picture. The model never picks these — a recap's
+ * illustration is a property of the grouping, not of the prose.
+ */
+function recapImages(topics: RecapTopic[]): RewriteImageInput[] {
+  const images: RewriteImageInput[] = []
+  const seen = new Set<string>()
+  for (const topic of topics) {
+    for (const article of topic.articles) {
+      const imageUrl = article.imageUrl
+      if (!imageUrl || seen.has(imageUrl)) continue
+      if (!isRenderableMediaUrl(imageUrl)) continue
+      if (!validateExternalUrl(article.url).ok) continue
+      seen.add(imageUrl)
+      images.push({
+        imageUrl,
+        sourceUrl: article.url,
+        creditText: article.publisherName || article.publisherDomain || null,
+        creditUrl: article.url,
+        caption: article.imageCaption || null,
+      })
+      break
+    }
+  }
+  return images
+}
+
 export async function runWeeklyRecaps(options: RecapRunOptions = {}): Promise<RecapRunSummary> {
   const cfg: RewriteConfig = rewriteConfig()
   const recap = recapConfig()
   const startedAt = options.now || new Date()
-  const window = recapWeekWindow(startedAt)
+  const window = options.window || recapWeekWindow(startedAt)
+  const minArticles = options.minArticles ?? recap.minArticles
 
   const summary: RecapRunSummary = {
     startedAt: iso(startedAt),
@@ -120,9 +158,9 @@ export async function runWeeklyRecaps(options: RecapRunOptions = {}): Promise<Re
       }
 
       const articles = await store.listRecapArticles(artistId, window.startIso, window.endIso)
-      if (articles.length < recap.minArticles) {
+      if (articles.length < minArticles) {
         summary.skipped += 1
-        summary.messages.push(`${artistName}: only ${articles.length} article(s) in the window (need ${recap.minArticles})`)
+        summary.messages.push(`${artistName}: only ${articles.length} article(s) in the window (need ${minArticles})`)
         continue
       }
 
@@ -140,6 +178,7 @@ export async function runWeeklyRecaps(options: RecapRunOptions = {}): Promise<Re
         artistName,
         weekKey: window.weekKey,
         weekEnd: window.endIso.slice(0, 10),
+        periodLabel: options.periodLabel,
         topics: topics.map(topic => ({
           label: topic.label,
           articles: topic.articles.map(article => ({
@@ -187,7 +226,7 @@ export async function runWeeklyRecaps(options: RecapRunOptions = {}): Promise<Re
         readingMinutes: parsed.value.readingMinutes,
         provider: 'gemini',
         model: cfg.geminiModel,
-        images: [],
+        images: recapImages(topics),
         sources: sources.map(article => ({
           sourceUrl: article.url,
           publisherName: article.publisherName,

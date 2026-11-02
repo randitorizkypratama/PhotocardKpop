@@ -498,7 +498,13 @@ export async function listRecapArticles(artistId: string, sinceIso: string, unti
   const result = await db.execute({
     sql: `SELECT a.id, a.original_title, a.summary, a.language, a.category,
                  a.original_url, a.canonical_url, a.publisher_name, a.publisher_domain,
-                 a.published_at, a.first_discovered_at
+                 a.published_at, a.first_discovered_at,
+                 (SELECT e.image_url FROM news_evidence e
+                   WHERE e.article_id = a.id AND e.image_url IS NOT NULL
+                   ORDER BY e.retrieved_at ASC, e.id ASC LIMIT 1) AS image_url,
+                 (SELECT e.original_caption FROM news_evidence e
+                   WHERE e.article_id = a.id AND e.image_url IS NOT NULL
+                   ORDER BY e.retrieved_at ASC, e.id ASC LIMIT 1) AS image_caption
           FROM news_articles a
           WHERE a.artist_id = ?
             AND a.verification_status IN ('VERIFIED', 'PENDING_VERIFICATION')
@@ -521,6 +527,8 @@ export async function listRecapArticles(artistId: string, sinceIso: string, unti
       publishedAt: row.published_at
         ? String(row.published_at)
         : (row.first_discovered_at ? String(row.first_discovered_at) : null),
+      imageUrl: row.image_url ? String(row.image_url) : null,
+      imageCaption: row.image_caption ? String(row.image_caption) : null,
     }))
     .filter(article => article.title && article.url)
 }

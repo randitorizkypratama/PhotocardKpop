@@ -124,6 +124,10 @@ export interface RecapArticle {
   publisherDomain: string | null
   url: string
   publishedAt: string | null
+  /** First traceable image collected for this article, if any. */
+  imageUrl?: string | null
+  /** Caption the publisher attached to that image, if any. */
+  imageCaption?: string | null
 }
 
 /** A group of the week's articles that belong under one recap heading. */
