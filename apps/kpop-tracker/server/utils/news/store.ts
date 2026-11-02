@@ -1,7 +1,6 @@
 import { getTursoClient } from '../turso'
 import type { NewsArticle, NewsClaim, NewsEvidence, NewsStatus } from './types'
 import { NEWS_STATUSES } from './types'
-import { buildFeedQuery, filterPublicFeed, type FeedFilters, type PublicArticle } from './feed'
 
 /**
  * Persistence for the news engine. It reuses the project's existing Turso
@@ -9,8 +8,8 @@ import { buildFeedQuery, filterPublicFeed, type FeedFilters, type PublicArticle 
  * every write idempotent, because the cron that drives it will run again over
  * the same articles.
  *
- * Not imported by tests: those exercise the pure services and the SQL builder
- * in feed.ts instead, exactly like the rest of this repo.
+ * Not imported by tests: those exercise the pure services and adapters instead,
+ * exactly like the rest of this repo.
  */
 
 let tablesReady = false
@@ -390,53 +389,6 @@ export async function listDueForRecheck(sinceIso: string): Promise<Array<Record<
   return result.rows as unknown as Array<Record<string, unknown>>
 }
 
-export interface FeedResult {
-  articles: PublicArticle[]
-  total: number
-  page: number
-  pages: number
-  limit: number
-}
-
-/**
- * The only read path the public API uses. The VERIFIED filter lives inside
- * `buildFeedQuery`, and `filterPublicFeed` re-checks every row on the way out.
- */
-export async function listPublicFeed(filters: FeedFilters): Promise<FeedResult> {
-  const db = getTursoClient()
-  const query = buildFeedQuery(filters)
-  const [rows, count] = await Promise.all([
-    db.execute({ sql: query.sql, args: query.args }),
-    db.execute({ sql: query.countSql, args: query.countArgs }),
-  ])
-  const total = Number((count.rows[0] as any)?.total) || 0
-  const articles = filterPublicFeed(rows.rows as unknown as Array<Record<string, unknown>>)
-  return {
-    articles,
-    total,
-    page: query.page,
-    limit: query.limit,
-    pages: Math.max(1, Math.ceil(total / query.limit)),
-  }
-}
-
-/** Distinct publishers with verified stories — powers the publisher filter. */
-export async function listVerifiedPublishers(): Promise<Array<{ domain: string, name: string, count: number }>> {
-  const db = getTursoClient()
-  const result = await db.execute(`
-    SELECT publisher_domain AS domain, MAX(publisher_name) AS name, COUNT(*) AS count
-    FROM news_articles
-    WHERE verification_status = 'VERIFIED' AND publisher_domain IS NOT NULL
-    GROUP BY publisher_domain
-    ORDER BY count DESC
-  `)
-  return (result.rows as any[]).map(row => ({
-    domain: String(row.domain),
-    name: row.name ? String(row.name) : String(row.domain),
-    count: Number(row.count) || 0,
-  }))
-}
-
 export async function newsStatusCounts(): Promise<Record<string, number>> {
   const db = getTursoClient()
   const result = await db.execute('SELECT verification_status AS status, COUNT(*) AS count FROM news_articles GROUP BY verification_status')
@@ -517,22 +469,6 @@ export async function articleCountsByStatus(): Promise<Record<NewsStatus, number
   const out = {} as Record<NewsStatus, number>
   for (const status of NEWS_STATUSES) out[status] = counts[status] || 0
   return out
-}
-
-/** Non-VERIFIED records, for the optional administration view (§11). */
-export async function listUnverifiedArticles(limit = 50): Promise<Array<Record<string, unknown>>> {
-  const db = getTursoClient()
-  const result = await db.execute({
-    sql: `SELECT id, artist_id, original_title, summary, category, original_url,
-                 publisher_name, publisher_domain, published_at,
-                 verification_status, verification_score, verification_reasons, failed_gates,
-                 first_discovered_at, last_checked_at
-          FROM news_articles
-          WHERE verification_status != 'VERIFIED'
-          ORDER BY last_checked_at DESC LIMIT ?`,
-    args: [limit],
-  })
-  return result.rows as unknown as Array<Record<string, unknown>>
 }
 
 export interface TranslationRow {

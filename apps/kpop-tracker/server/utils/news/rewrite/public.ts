@@ -43,12 +43,6 @@ export interface PublicArticle extends PublicCard {
   body_markdown: string
   images: PublicArticleImage[]
   sources: PublicArticleSource[]
-  transparency: {
-    verification_status: string | null
-    verification_score: number | null
-    publisher_name: string | null
-    publisher_domain: string | null
-  }
 }
 
 function safeLink(value: string | null): string | null {
@@ -80,7 +74,6 @@ export function toPublicArticle(
   rewrite: NewsRewrite,
   images: RewriteImage[],
   sources: RewriteSource[],
-  transparency: PublicArticle['transparency'],
 ): PublicArticle | null {
   if (rewrite.status !== 'published') return null
   const firstImage = images.map(image => safeMedia(image.imageUrl)).find(Boolean) ?? null
@@ -114,6 +107,5 @@ export function toPublicArticle(
         published_at: source.publishedAt,
       }))
       .filter(source => Boolean(source.source_url)),
-    transparency,
   }
 }

@@ -130,21 +130,6 @@ function hideBrokenImage(event: Event) {
           <h1 class="mt-2 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{{ t('news.blog.title') }}</h1>
           <p class="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">{{ t('news.blog.desc') }}</p>
 
-          <!-- Tier switcher: the blog is the front page, the verified feed is one click away. -->
-          <div class="mt-5 inline-flex overflow-hidden rounded-lg border border-border" role="tablist">
-            <span
-              class="px-3.5 py-1.5 text-sm font-medium bg-muted text-foreground"
-              role="tab"
-              aria-selected="true"
-            >{{ t('news.blog.tabArticles') }}</span>
-            <NuxtLink
-              to="/news/verified"
-              class="px-3.5 py-1.5 text-sm font-medium bg-card text-muted-foreground transition-colors hover:text-foreground"
-              role="tab"
-              aria-selected="false"
-            >{{ t('news.blog.tabVerified') }}</NuxtLink>
-          </div>
-
           <div class="mt-4 flex flex-col gap-3">
             <div class="flex flex-wrap items-center gap-2">
               <span class="mr-0.5 text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground">{{ t('news.filterArtist') }}</span>

@@ -1,35 +1,13 @@
 <script setup lang="ts">
-import { BadgeCheck, ExternalLink, Lock, Newspaper, RefreshCw, ShieldAlert, Sparkles } from 'lucide-vue-next'
+import { BadgeCheck, ExternalLink, Lock, RefreshCw, Sparkles } from 'lucide-vue-next'
 
 useHead({
-  title: 'News review — HIBIKISHOP PC',
+  title: 'News drafts — HIBIKISHOP PC',
   meta: [{ name: 'robots', content: 'noindex,nofollow' }],
 })
 
 const { t } = useLocale()
 const { user, checked: authChecked, refresh: refreshAuth } = useAuth()
-
-/**
- * One news record that never became VERIFIED.  This list is admin-only: the
- * public feed at /api/news still serves VERIFIED rows exclusively.
- */
-interface ReviewArticle {
-  id: string
-  artist_id: string
-  title: string
-  summary: string | null
-  category: string
-  original_url: string
-  publisher_name: string | null
-  publisher_domain: string | null
-  published_at: string | null
-  verification_status: string
-  verification_score: number
-  verification_reasons: string[]
-  failed_gates: string[]
-  first_discovered_at: string | null
-  last_checked_at: string | null
-}
 
 interface AiDraftImage {
   image_url: string
@@ -61,27 +39,29 @@ interface AiDraft {
   model: string | null
   error: string | null
   generated_at: string
+  /** Source article's internal verification state — context only. */
+  source_status: string | null
+  source_score: number | null
   images: AiDraftImage[]
   sources: AiDraftSource[]
 }
 
 interface NewsReview {
   counts: Record<string, number>
-  unverified: ReviewArticle[]
+  rewrite_counts: Record<string, number>
   policy: { min_score: number }
   drafts: AiDraft[]
   rewrite_policy: { enabled: boolean, model: string, max_per_run: number, keys: number }
 }
 
 const gate = ref<'checking' | 'guest' | 'forbidden' | 'admin'>('checking')
-const tab = ref<'drafts' | 'review'>('drafts')
 
 /**
  * This page renders against the visitor's own session — the server-rendered
  * self-call needs the cookie forwarded explicitly, exactly like /status.  Like
  * /status it must never be cached (see nuxt.config.ts routeRules and
- * tests/cache-safety.test.ts): a cached copy would hand the admin review list
- * to every visitor.
+ * tests/cache-safety.test.ts): a cached copy would hand the draft queue to
+ * every visitor.
  */
 const reqHeaders = useRequestHeaders(['cookie'])
 const ssrOpts = import.meta.server && reqHeaders.cookie
@@ -102,7 +82,7 @@ const review = useAsyncData<NewsReview | null>(
     const res = await $fetch<{
       success: boolean
       counts: Record<string, number>
-      unverified: ReviewArticle[]
+      rewrite_counts: Record<string, number>
       policy: { min_score: number }
       drafts: AiDraft[]
       rewrite_policy: NewsReview['rewrite_policy']
@@ -111,7 +91,7 @@ const review = useAsyncData<NewsReview | null>(
     return res?.success
       ? {
           counts: res.counts || {},
-          unverified: res.unverified || [],
+          rewrite_counts: res.rewrite_counts || {},
           policy: res.policy,
           drafts: res.drafts || [],
           rewrite_policy: res.rewrite_policy,
@@ -123,9 +103,10 @@ const review = useAsyncData<NewsReview | null>(
 
 const { data: reviewRes, pending: loading, refresh: reload } = review
 
-const articles = computed<ReviewArticle[]>(() => reviewRes.value?.unverified ?? [])
 const drafts = computed<AiDraft[]>(() => reviewRes.value?.drafts ?? [])
-const awaiting = computed(() => Number(reviewRes.value?.counts?.PENDING_VERIFICATION ?? 0))
+const draftCount = computed(() => Number(reviewRes.value?.rewrite_counts?.draft ?? 0))
+const approvedCount = computed(() => Number(reviewRes.value?.rewrite_counts?.approved ?? 0))
+const publishedCount = computed(() => Number(reviewRes.value?.rewrite_counts?.published ?? 0))
 const minScore = computed(() => Number(reviewRes.value?.policy?.min_score ?? 83))
 const loadError = computed(() => isAdmin && !loading.value && reviewRes.value === null)
 
@@ -163,29 +144,6 @@ async function sendAction(
 
 async function saveEdit(draft: AiDraft) {
   await sendAction(draft, 'edit', { ...editForm.value })
-}
-
-/** Chip styling per verification status. */
-const NEWS_STATUS_STYLES: Record<string, { labelKey: string, chip: string }> = {
-  PENDING_VERIFICATION: { labelKey: 'newsReview.status.pending', chip: 'bg-amber-500/10 text-amber-700 ring-amber-500/30 dark:text-amber-400' },
-  FETCH_FAILED: { labelKey: 'newsReview.status.fetchFailed', chip: 'bg-sky-500/10 text-sky-700 ring-sky-500/30 dark:text-sky-400' },
-  REJECTED: { labelKey: 'newsReview.status.rejected', chip: 'bg-red-500/10 text-red-700 ring-red-500/30 dark:text-red-400' },
-  CONFLICTED: { labelKey: 'newsReview.status.conflicted', chip: 'bg-orange-500/10 text-orange-700 ring-orange-500/30 dark:text-orange-400' },
-  REVOKED: { labelKey: 'newsReview.status.revoked', chip: 'bg-red-500/10 text-red-700 ring-red-500/30 dark:text-red-400' },
-  EXPIRED: { labelKey: 'newsReview.status.expired', chip: 'bg-muted text-muted-foreground ring-zinc-500/30' },
-  DISCOVERED: { labelKey: 'newsReview.status.discovered', chip: 'bg-muted text-muted-foreground ring-zinc-500/30' },
-}
-
-function newsStatusStyle(status: string) {
-  const style = NEWS_STATUS_STYLES[status]
-  return style
-    ? { label: t(style.labelKey), chip: style.chip }
-    : { label: status, chip: 'bg-muted text-muted-foreground ring-zinc-500/30' }
-}
-
-/** Human label for a failed verification gate, from the shared string map. */
-function gateLabel(gateId: string): string {
-  return t(`news.gate.${gateId}`)
 }
 
 const ARTIST_NAME: Record<string, string> = {
@@ -226,44 +184,21 @@ function fmtPublished(value: string | null): string {
             <p class="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">{{ t('newsReview.desc') }}</p>
 
             <div class="mt-5 flex flex-wrap items-center gap-2">
-              <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-2.5 py-1 text-[11px] font-medium tabular-nums text-amber-700 ring-1 ring-inset ring-amber-500/30 dark:text-amber-400">
-                <ShieldAlert class="h-3 w-3" aria-hidden="true" />
-                {{ awaiting }} {{ t('newsReview.awaiting') }}
+              <span class="inline-flex items-center gap-1.5 rounded-full bg-violet-500/10 px-2.5 py-1 text-[11px] font-medium tabular-nums text-violet-700 ring-1 ring-inset ring-violet-500/30 dark:text-violet-400">
+                <Sparkles class="h-3 w-3" aria-hidden="true" />
+                {{ draftCount }} {{ t('newsReview.countDraft') }}
               </span>
               <span class="rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium tabular-nums text-muted-foreground">
-                {{ articles.length }} {{ t('newsReview.records') }}
+                {{ approvedCount }} {{ t('newsReview.countApproved') }}
+              </span>
+              <span class="rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium tabular-nums text-emerald-700 ring-1 ring-inset ring-emerald-500/30 dark:text-emerald-400">
+                {{ publishedCount }} {{ t('newsReview.countPublished') }}
               </span>
               <span class="text-[11px] text-muted-foreground">{{ t('newsReview.minScore', { min: minScore }) }}</span>
               <Button variant="outline" size="sm" class="ml-auto rounded-lg" :disabled="loading" @click="reload">
                 <RefreshCw class="mr-1.5 h-3.5 w-3.5" :class="{ 'animate-spin': loading }" />
                 {{ t('newsReview.refresh') }}
               </Button>
-            </div>
-
-            <!-- Two queues: AI drafts waiting for a decision, and news records that never verified. -->
-            <div class="mt-5 inline-flex overflow-hidden rounded-lg border border-border" role="tablist">
-              <button
-                type="button"
-                class="px-3.5 py-1.5 text-sm font-medium transition-colors"
-                :class="tab === 'drafts' ? 'bg-muted text-foreground' : 'bg-card text-muted-foreground hover:text-foreground'"
-                role="tab"
-                :aria-selected="tab === 'drafts'"
-                @click="tab = 'drafts'"
-              >
-                {{ t('newsReview.tabDrafts') }}
-                <span class="ml-1.5 tabular-nums text-[11px] text-muted-foreground">{{ drafts.length }}</span>
-              </button>
-              <button
-                type="button"
-                class="px-3.5 py-1.5 text-sm font-medium transition-colors"
-                :class="tab === 'review' ? 'bg-muted text-foreground' : 'bg-card text-muted-foreground hover:text-foreground'"
-                role="tab"
-                :aria-selected="tab === 'review'"
-                @click="tab = 'review'"
-              >
-                {{ t('newsReview.tabReview') }}
-                <span class="ml-1.5 tabular-nums text-[11px] text-muted-foreground">{{ articles.length }}</span>
-              </button>
             </div>
 
             <p
@@ -276,82 +211,14 @@ function fmtPublished(value: string | null): string {
           </div>
         </section>
 
-        <section v-if="tab === 'review'" class="page-shell py-8">
+        <!-- AI drafts awaiting a decision -->
+        <section class="page-shell py-8">
           <div v-if="loading" class="space-y-3">
-            <div v-for="i in 4" :key="i" class="skeleton-block h-24 rounded-xl" />
+            <div v-for="i in 3" :key="i" class="skeleton-block h-28 rounded-xl" />
           </div>
 
           <div v-else-if="loadError" class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200" role="alert">
             {{ t('newsReview.error') }}
-          </div>
-
-          <div v-else-if="articles.length === 0" class="rounded-xl border border-dashed border-border py-12 text-center">
-            <Newspaper class="mx-auto h-6 w-6 text-muted-foreground" aria-hidden="true" />
-            <p class="mt-3 text-sm font-medium text-foreground">{{ t('newsReview.empty') }}</p>
-            <p class="mt-1 text-sm text-muted-foreground">{{ t('newsReview.emptyHint') }}</p>
-          </div>
-
-          <ul v-else class="space-y-3">
-            <li v-for="row in articles" :key="row.id" class="rounded-xl border border-border bg-card p-4 shadow-sm">
-              <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-                <div class="flex min-w-0 items-center gap-2.5">
-                  <span
-                    class="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium ring-1 ring-inset"
-                    :class="newsStatusStyle(row.verification_status).chip"
-                  >
-                    <ShieldAlert class="h-3 w-3" aria-hidden="true" />
-                    {{ newsStatusStyle(row.verification_status).label }}
-                  </span>
-                  <span class="truncate text-sm font-medium text-foreground">{{ row.title }}</span>
-                </div>
-                <span class="shrink-0 text-xs tabular-nums text-muted-foreground">{{ row.verification_score }}/100</span>
-              </div>
-
-              <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                <span class="font-medium text-foreground">{{ artistName(row.artist_id) }}</span>
-                <span v-if="row.category">{{ t(`news.category.${row.category}`) }}</span>
-                <span v-if="row.publisher_name || row.publisher_domain">{{ row.publisher_name || row.publisher_domain }}</span>
-                <span v-if="row.published_at">{{ fmtPublished(row.published_at) }}</span>
-              </div>
-
-              <div v-if="row.failed_gates.length" class="mt-2 flex flex-wrap items-center gap-1.5">
-                <span class="text-[11px] font-medium text-muted-foreground">{{ t('newsReview.failedGates') }}:</span>
-                <span
-                  v-for="gate in row.failed_gates"
-                  :key="gate"
-                  class="rounded-md bg-muted px-2 py-0.5 text-[11px] text-muted-foreground"
-                >
-                  {{ gateLabel(gate) }}
-                </span>
-              </div>
-
-              <div class="mt-2 flex flex-wrap items-center justify-between gap-2">
-                <p
-                  v-if="row.verification_reasons.length"
-                  class="min-w-0 flex-1 truncate text-[11px] text-muted-foreground"
-                  :title="row.verification_reasons.join(' · ')"
-                >
-                  {{ row.verification_reasons.join(' · ') }}
-                </p>
-                <a
-                  v-if="row.original_url"
-                  :href="row.original_url"
-                  target="_blank"
-                  rel="noopener noreferrer nofollow"
-                  class="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-foreground hover:underline"
-                >
-                  {{ t('newsReview.openOriginal') }}
-                  <ExternalLink class="h-3 w-3" aria-hidden="true" />
-                </a>
-              </div>
-            </li>
-          </ul>
-        </section>
-
-        <!-- AI drafts awaiting a decision -->
-        <section v-if="tab === 'drafts'" class="page-shell py-8">
-          <div v-if="loading" class="space-y-3">
-            <div v-for="i in 3" :key="i" class="skeleton-block h-28 rounded-xl" />
           </div>
 
           <div v-else-if="drafts.length === 0" class="rounded-xl border border-dashed border-border py-12 text-center">
@@ -368,6 +235,12 @@ function fmtPublished(value: string | null): string {
                     <Sparkles class="h-3 w-3" aria-hidden="true" />
                     {{ t('newsReview.draft') }}
                   </span>
+                  <span
+                    v-if="draft.status === 'approved'"
+                    class="inline-flex shrink-0 items-center rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground"
+                  >
+                    {{ t('newsReview.statusApproved') }}
+                  </span>
                   <span class="truncate text-sm font-medium text-foreground">{{ draft.title }}</span>
                 </div>
                 <span class="shrink-0 text-xs tabular-nums text-muted-foreground">
@@ -383,6 +256,13 @@ function fmtPublished(value: string | null): string {
                 <span>{{ fmtPublished(draft.generated_at) }}</span>
                 <span>{{ draft.images.length }} {{ t('newsReview.photos') }}</span>
                 <span>{{ draft.sources.length }} {{ t('newsReview.sources') }}</span>
+                <span
+                  v-if="draft.source_status"
+                  class="rounded-md bg-muted px-2 py-0.5 tabular-nums"
+                  :title="t('newsReview.sourceHint')"
+                >
+                  {{ t('newsReview.sourceContext') }}: {{ draft.source_status }} · {{ draft.source_score }}/100
+                </span>
               </div>
 
               <details class="mt-3">

@@ -1,21 +1,14 @@
 name: News Rewrite Run
 
-# Weekly AI pass over the articles the news pipeline collected: Gemini writes
-# Indonesian fanbase-blog DRAFTS straight into Turso. Nothing is published by
-# this workflow — an admin reviews and approves every draft in /admin/news.
+# Manual re-run of the AI pass over collected articles: Gemini writes Indonesian
+# fanbase-blog DRAFTS into Turso. Nothing is published by this workflow — an
+# admin reviews and approves every draft in /admin/news.
 #
-# Weekly on purpose: the volume is tiny (a handful of articles per run), so the
-# free Gemini quota is never a factor, and a weekly cadence keeps the blog
-# curated instead of noisy.
+# The weekly run no longer lives here: news.yml runs this same pass in the same
+# job, right after the harvest (see .github/workflows/news.yml). This workflow
+# is kept for on-demand re-runs.
 
 on:
-  schedule:
-    # Saturday, right after the news run: that workflow is scheduled for 10:00
-    # UTC but GitHub has queued it 5–6 h late on every observed day, so it lands
-    # ~15:40–16:45 UTC and finishes within ~10 min. 18:00 UTC = Sunday 01:00 WIB
-    # leaves a comfortable buffer — articles are rewritten and recapped the same
-    # night they were harvested ("sabtu malem").
-    - cron: '0 18 * * 6'
   workflow_dispatch:
     inputs:
       max_articles:

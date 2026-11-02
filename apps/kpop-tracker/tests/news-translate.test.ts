@@ -7,40 +7,12 @@ import {
   translateText,
   translationUrl,
 } from '../server/utils/news/translate'
-import { localizeArticle, parseFeedLang, type PublicArticle } from '../server/utils/news/feed'
 
 /**
  * Translation is display-only: the engine may add wording next to the
  * verified original, never replace or invent it. Every failure path must land
  * on the original text.
  */
-
-function article(overrides: Partial<PublicArticle> = {}): PublicArticle {
-  return {
-    id: 'art-1',
-    artist_id: 'aespa',
-    title: 'aespa announces new single',
-    original_title: 'aespa announces new single',
-    summary: 'The agency confirmed a November release.',
-    category: 'release',
-    original_url: 'https://kpopleague.com/news/aespa-single',
-    canonical_url: 'https://kpopleague.com/news/aespa-single',
-    publisher_name: 'KPop League',
-    publisher_domain: 'kpopleague.com',
-    published_at: '2026-10-25T02:30:00.000Z',
-    published_at_has_time: true,
-    event_date: null,
-    language: 'en',
-    verification_status: 'VERIFIED',
-    verification_score: 96,
-    last_checked_at: '2026-10-25T06:00:00.000Z',
-    evidence_count: 3,
-    thumbnail: null,
-    translated: false,
-    translation_lang: 'en',
-    ...overrides,
-  } as PublicArticle
-}
 
 function ok(body: unknown) {
   return { ok: true, body: JSON.stringify(body), error: null }
@@ -263,100 +235,5 @@ describe('translateArticle — headline first, summary optional, original never 
     const { translation } = await translateArticle({ ...input, summary: null }, 'id', { fetchBody })
     expect(fetchBody).toHaveBeenCalledTimes(1)
     expect(translation?.summary).toBeNull()
-  })
-})
-
-describe('parseFeedLang — a malformed value can never widen the response', () => {
-  it('accepts id', () => {
-    expect(parseFeedLang('id')).toBe('id')
-  })
-
-  it('falls back to en for everything else', () => {
-    expect(parseFeedLang('en')).toBe('en')
-    expect(parseFeedLang('ID')).toBe('en')
-    expect(parseFeedLang('ko')).toBe('en')
-    expect(parseFeedLang(undefined)).toBe('en')
-    expect(parseFeedLang(null)).toBe('en')
-    expect(parseFeedLang(['id'])).toBe('id')
-    expect(parseFeedLang(['en', 'id'])).toBe('en')
-    expect(parseFeedLang(42)).toBe('en')
-  })
-})
-
-describe('localizeArticle — swap wording only when a usable translation exists', () => {
-  const original = article()
-
-  it('keeps the verified wording when there is no translation at all', () => {
-    const out = localizeArticle(original, null, 'id')
-    expect(out.title).toBe('aespa announces new single')
-    expect(out.summary).toBe(original.summary)
-    expect(out.translated).toBe(false)
-    expect(out.original_title).toBe('aespa announces new single')
-  })
-
-  it('swaps in a usable translation and keeps the original beside it', () => {
-    const out = localizeArticle(original, {
-      lang: 'id',
-      title: 'aespa mengumumkan single baru',
-      summary: 'Agensi mengonfirmasi rilis November.',
-      status: 'ok',
-    }, 'id')
-    expect(out.title).toBe('aespa mengumumkan single baru')
-    expect(out.summary).toBe('Agensi mengonfirmasi rilis November.')
-    expect(out.original_title).toBe('aespa announces new single')
-    expect(out.translated).toBe(true)
-    expect(out.translation_lang).toBe('id')
-  })
-
-  it('ignores a row stored for another language', () => {
-    const out = localizeArticle(original, {
-      lang: 'en',
-      title: 'judul lain',
-      summary: null,
-      status: 'ok',
-    }, 'id')
-    expect(out.title).toBe(original.title)
-    expect(out.translated).toBe(false)
-  })
-
-  it('ignores a failed row', () => {
-    const out = localizeArticle(original, {
-      lang: 'id',
-      title: null,
-      summary: null,
-      status: 'failed',
-    }, 'id')
-    expect(out.title).toBe(original.title)
-    expect(out.translated).toBe(false)
-  })
-
-  it('does not claim a translation when the wording is identical', () => {
-    const out = localizeArticle(original, {
-      lang: 'id',
-      title: 'aespa announces new single',
-      summary: null,
-      status: 'ok',
-    }, 'id')
-    expect(out.translated).toBe(false)
-    expect(out.title).toBe(original.title)
-  })
-
-  it('keeps the original summary when the translation only has a headline', () => {
-    const out = localizeArticle(original, {
-      lang: 'id',
-      title: 'aespa mengumumkan single baru',
-      summary: null,
-      status: 'ok',
-    }, 'id')
-    expect(out.title).toBe('aespa mengumumkan single baru')
-    expect(out.summary).toBe(original.summary)
-    expect(out.translated).toBe(true)
-  })
-
-  it('carries the source language through untouched', () => {
-    const out = localizeArticle(article({ language: 'ko' }), null, 'en')
-    expect(out.source_language).toBe('ko')
-    expect(out.language).toBe('ko')
-    expect(out.translated).toBe(false)
   })
 })

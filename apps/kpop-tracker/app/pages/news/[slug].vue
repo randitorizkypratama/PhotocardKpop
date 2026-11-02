@@ -238,7 +238,7 @@ function hideBrokenImage(event: Event) {
               </section>
             </div>
 
-            <!-- Sources + transparency -->
+            <!-- Sources -->
             <aside class="space-y-6">
               <section class="rounded-xl border border-border bg-card p-4">
                 <h2 class="flex items-center gap-2 text-sm font-semibold text-foreground">
@@ -263,23 +263,6 @@ function hideBrokenImage(event: Event) {
                     </a>
                   </li>
                 </ul>
-              </section>
-
-              <section v-if="article.transparency" class="rounded-xl border border-border bg-muted/40 p-4">
-                <h2 class="text-sm font-semibold text-foreground">{{ t('news.blog.transparencyTitle') }}</h2>
-                <p class="mt-1 text-[11px] leading-relaxed text-muted-foreground">{{ t('news.blog.transparencyDesc') }}</p>
-                <dl class="mt-3 space-y-1.5 text-xs">
-                  <div class="flex justify-between gap-3">
-                    <dt class="text-muted-foreground">{{ t('news.blog.verificationStatus') }}</dt>
-                    <dd class="font-medium tabular-nums text-foreground">{{ article.transparency.verification_status || '—' }}</dd>
-                  </div>
-                  <div class="flex justify-between gap-3">
-                    <dt class="text-muted-foreground">{{ t('news.blog.verificationScore') }}</dt>
-                    <dd class="font-medium tabular-nums text-foreground">
-                      {{ article.transparency.verification_score == null ? '—' : `${article.transparency.verification_score}/100` }}
-                    </dd>
-                  </div>
-                </dl>
               </section>
             </aside>
           </div>

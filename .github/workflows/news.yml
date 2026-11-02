@@ -2,9 +2,9 @@ name: News Verification Run
 
 # Runs the full fetch → normalize → deduplicate → verify → store pipeline
 # directly on the GitHub Actions runner, with no HTTP call to the Vercel
-# deployment.  The pipeline writes verified articles straight to the Turso
-# database; the Vercel-deployed website reads from the same database, so new
-# articles appear immediately after the run.
+# deployment, and then the Gemini rewrite/recap pass in the same job.  The
+# pipeline writes collected articles straight to the Turso database; the
+# rewrite pass turns them into drafts an admin reviews at /admin/news.
 #
 # Previous approach (curl POST → Vercel /api/cron/news) failed with HTTP 429
 # because Vercel's in-process rate-limiter (ratelimit.ts) counts POST requests
@@ -15,11 +15,11 @@ name: News Verification Run
 
 on:
   schedule:
-    # Weekly on Saturday — not daily: the rewrite/recap pass runs later the same
-    # evening and only needs the week's articles once. 10:00 UTC = 17:00 WIB
-    # nominal; GitHub's scheduler has queued this run 5–6 h late on every
-    # observed day, so in practice it lands Saturday ~22:40–23:45 WIB ("sabtu
-    # malem"), comfortably before the 18:00 UTC rewrite pass.
+    # Weekly on Saturday — not daily: the run harvests, then rewrites/recaps in
+    # the same job, so it only needs the week's articles once. 10:00 UTC =
+    # 17:00 WIB nominal; GitHub's scheduler has queued this run 5–6 h late on
+    # every observed day, so in practice it lands Saturday ~22:40–23:45 WIB
+    # ("sabtu malem") — drafts are ready the same night.
     - cron: '0 10 * * 6'
   workflow_dispatch:
     inputs:
@@ -44,7 +44,8 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # Harvest (~6 min) + the Gemini rewrite/recap pass in the same job.
+    timeout-minutes: 30
 
     steps:
       - name: Checkout repository
@@ -110,9 +111,8 @@ jobs:
           NEWS_HOST_COOLDOWN_MS: '60000'
           NEWS_SITEMAP_MAX_BYTES: '4194304'
           NEWS_RECHECK_INTERVAL: '21600000'
-          # 83 = source (18) + ONE independent corroborating source (15) with
-          # everything else perfect; the old 90 needed three independent
-          # publishers and left /news/verified permanently empty.
+          # Internal only now: the score no longer gates what is shown. It is
+          # stored and surfaced in /admin/news as context for the reviewer.
           VERIFICATION_MIN_SCORE: '83'
 
           # ── Security ───────────────────────────────────────────────────────
@@ -122,3 +122,33 @@ jobs:
           # the /api/cron/news endpoint stays protected for any direct callers.
 
         run: bun run scripts/run-news-pipeline.ts
+
+      # Same job, right after the harvest: turn what was just collected into
+      # Indonesian fanbase-blog drafts in news_rewrites (status 'draft'). An
+      # admin publishes them from /admin/news; nothing here is public yet.
+      - name: Run rewrite pipeline
+        working-directory: apps/kpop-tracker
+        env:
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+          GEMINI_API_KEYS: ${{ secrets.GEMINI_API_KEYS }}
+
+          # Kept in sync with .env.example / news-rewrite.yml defaults.
+          GEMINI_MODEL: 'gemini-flash-lite-latest'
+          REWRITE_ENABLED: 'true'
+          REWRITE_MAX_PER_RUN: '5'
+          REWRITE_TIMEOUT_MS: '90000'
+          REWRITE_MAX_TOKENS: '4096'
+          REWRITE_KEY_COOLDOWN_MS: '900000'
+          REWRITE_RETRY_FAILED_MS: '21600000'
+          REWRITE_MAX_INPUT_CHARS: '6000'
+          REWRITE_TEMPERATURE: '0.7'
+          RECAP_ENABLED: 'true'
+          RECAP_MIN_ARTICLES: '3'
+        run: |
+          # A missing Gemini key must never fail the harvest that just succeeded.
+          if [ -z "${GEMINI_API_KEYS:-}" ]; then
+            echo "::warning::GEMINI_API_KEYS is not set — skipping the rewrite pass. Add it under Settings → Secrets and variables → Actions."
+            exit 0
+          fi
+          bun run scripts/run-news-rewrite.ts

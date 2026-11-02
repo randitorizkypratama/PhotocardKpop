@@ -52,6 +52,15 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 - Currency: IDR primary; rates from Frankfurter with fallback 17800; price `0` renders as "Tidak tersedia".
 - Branding: HIBIKISHOP (`public/hibikishop-logo.png`); outbound POCAMARKET links → `https://pocamarket.com`. Social: Tokopedia/Shopee/TikTok URLs live in `SocialLinks` / footer components; assets under `public/social/`.
 
+## News
+
+- **One path.** `.github/workflows/news.yml` (Saturday `0 10 * * 6`) runs the harvest (`scripts/run-news-pipeline.ts`) **then** the Gemini rewrite/recap pass (`scripts/run-news-rewrite.ts`) in the same job. `.github/workflows/news-rewrite.yml` is manual-only (`workflow_dispatch`) for re-runs.
+- **Tables.** `news_articles` holds harvested rows plus the deterministic `verification_status`/`verification_score` — internal only now. `news_rewrites` holds the AI output; the pipeline writes `status = 'draft'` and only an admin `publish` (`POST /api/news/admin/rewrite/:id`, which also stamps `published_at`) makes a row `published`.
+- **Public surface.** `/news` + `/news/[slug]` read published rewrites via `/api/news/articles*`. The old `VERIFIED` tier was removed (`/news/verified`, `/api/news`, `/api/news/[id]`, `/api/news/sources`, `server/utils/news/feed.ts`) — verification still runs and its score is shown per draft in `/admin/news` as context, never as a publish gate.
+- **Admin.** `/admin/news` lists `draft` + `approved` rewrites (`listRewritesByStatuses`), each with the source article's status/score; actions are publish / approve / edit / reject.
+- **Secrets (GitHub Actions).** Required: `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`. Optional: `GEMINI_API_KEYS` (comma-separate keys; the rewrite step soft-skips when empty), `YOUTUBE_API_KEY`, `YOUTUBE_CHANNELS`, `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET`.
+- **Discovery quirks.** Bing News returns 0 items from GitHub runner IPs (the same feed works from a residential IP); Google News is robots-blocked. Korean outlet sitemaps (edaily, joongang, mydaily, sportchosun, xportsnews…) do the heavy lifting.
+
 ## Platform quirks
 
 - PowerShell: `$home` is read-only; no `Join-String`; prefer `ConvertFrom-Json` for JSON; use the grep tool over complex quoted regex in bash.

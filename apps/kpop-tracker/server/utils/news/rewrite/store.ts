@@ -329,6 +329,44 @@ export async function listRewritesByStatus(status: RewriteStatus, limit = 50): P
   return (result.rows as unknown as Array<Record<string, unknown>>).map(rowToRewrite)
 }
 
+/** A review-queue row: the draft plus its source article's internal verification state. */
+export type ReviewRewrite = NewsRewrite & { sourceStatus: string | null, sourceScore: number | null }
+
+/**
+ * The draft queue for /admin/news. `approved` is included alongside `draft`
+ * because approving does not publish — without it an approved item would
+ * disappear from the panel until it is published or rejected. The source
+ * article's verification state rides along as reviewer context only; it never
+ * gates anything.
+ */
+export async function listRewritesByStatuses(statuses: RewriteStatus[], limit = 50): Promise<ReviewRewrite[]> {
+  if (statuses.length === 0) return []
+  const db = getTursoClient()
+  const placeholders = statuses.map(() => '?').join(', ')
+  const result = await db.execute({
+    sql: `SELECT r.*, a.verification_status AS source_status, a.verification_score AS source_score
+            FROM news_rewrites r
+            LEFT JOIN news_articles a ON a.id = r.article_id
+           WHERE r.status IN (${placeholders})
+           ORDER BY r.generated_at DESC LIMIT ?`,
+    args: [...statuses, limit],
+  })
+  return (result.rows as unknown as Array<Record<string, unknown>>).map(row => ({
+    ...rowToRewrite(row),
+    sourceStatus: row.source_status ? String(row.source_status) : null,
+    sourceScore: row.source_score == null ? null : Number(row.source_score),
+  }))
+}
+
+/** Status histogram for news_rewrites — the admin header summary. */
+export async function rewriteCountsByStatus(): Promise<Record<string, number>> {
+  const db = getTursoClient()
+  const result = await db.execute('SELECT status, COUNT(*) AS count FROM news_rewrites GROUP BY status')
+  const counts: Record<string, number> = {}
+  for (const row of result.rows as any[]) counts[String(row.status)] = Number(row.count) || 0
+  return counts
+}
+
 export interface PublishedFilters {
   artist?: string | null
   category?: string | null

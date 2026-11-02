@@ -378,8 +378,6 @@ describe('public blog shapers', () => {
     updatedAt: '2026-10-26T00:00:00Z',
   }
 
-  const transparency = { verification_status: 'PENDING_VERIFICATION', verification_score: 68, publisher_name: 'Soompi', publisher_domain: 'soompi.com' }
-
   it('exposes a published article', () => {
     const card = toPublicCard({ ...base, thumbnail: 'https://cdn.soompi.com/a.jpg' })
     expect(card?.slug).toBe(base.slug)
@@ -390,7 +388,7 @@ describe('public blog shapers', () => {
   it('never serialises a draft, an approved or a rejected rewrite', () => {
     for (const status of ['draft', 'approved', 'rejected', 'failed'] as const) {
       expect(toPublicCard({ ...base, status, thumbnail: null })).toBeNull()
-      expect(toPublicArticle({ ...base, status }, [], [], transparency)).toBeNull()
+      expect(toPublicArticle({ ...base, status }, [], [])).toBeNull()
     }
   })
 
@@ -429,14 +427,12 @@ describe('public blog shapers', () => {
         publishedAt: '2026-10-25T00:00:00Z',
         createdAt: '2026-10-26T00:00:00Z',
       }],
-      transparency,
     )
 
     expect(article?.images).toHaveLength(1)
     expect(article?.images[0]?.image_url).toBe('https://cdn.soompi.com/a.jpg')
     expect(article?.thumbnail).toBe('https://cdn.soompi.com/a.jpg')
     expect(article?.sources).toHaveLength(1)
-    expect(article?.transparency.verification_score).toBe(68)
   })
 })
 
