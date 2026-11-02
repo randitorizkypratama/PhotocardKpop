@@ -10,8 +10,12 @@ name: News Rewrite Run
 
 on:
   schedule:
-    # Monday 11:00 UTC = Monday 18:00 WIB
-    - cron: '0 11 * * 1'
+    # Saturday, right after the news run: that workflow is scheduled for 10:00
+    # UTC but GitHub has queued it 5–6 h late on every observed day, so it lands
+    # ~15:40–16:45 UTC and finishes within ~10 min. 18:00 UTC = Sunday 01:00 WIB
+    # leaves a comfortable buffer — articles are rewritten and recapped the same
+    # night they were harvested ("sabtu malem").
+    - cron: '0 18 * * 6'
   workflow_dispatch:
     inputs:
       max_articles:
