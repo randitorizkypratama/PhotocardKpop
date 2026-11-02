@@ -133,13 +133,13 @@ export function buildRecapPrompt(input: RecapPromptInput, options: { maxInputCha
   }
 
   return [
-    'Kamu adalah admin fanbase K-Pop yang menulis rekap blog berbahasa Indonesia.',
+    'Kamu adalah admin fanbase K-Pop sekaligus redaksi portal berita yang menulis rekap berbahasa Indonesia.',
     `Tulis REKAP untuk ${input.artistName} atas berita-berita di bawah, yang terbit ${input.weekKey} s/d ${input.weekEnd}.`,
     `Judul rekap wajib memakai gaya "${titleStyle}: <ringkasan singkat>".`,
-    'Gabungkan berita-berita serupa menjadi satu bahasakan per topik — inilah gunanya rekap: pembaca tidak perlu membaca ratusan judul yang saling mengulang.',
+    'RANGKUM berita-berita serupa menjadi satu bahasan per topik — gaya blog fanbase yang sedang merangkum kabar, bukan salinan daftar judul: pembaca tidak perlu membaca ratusan judul yang saling mengulang.',
     '',
     'ATURAN WAJIB:',
-    '1. Seluruh rekap berbahasa Indonesia dengan gaya berita hiburan K-Pop yang hidup, mengalir, dan enak dibaca seperti portal berita entertain — bukan bahasa laporan/resmi yang kaku. Semua kalimat berbahasa Indonesia, dan aksara Hangul/Hanzi tidak boleh muncul sama sekali (transliterasikan ke huruf Latin bila perlu). NAMA RESMI tetap dalam bentuk aslinya dan JANGAN diterjemahkan literal: nama program/acara (Music Bank, Music Core, Inkigayo, M Countdown), nama tangga lagu (Circle Chart), nama grup/member, dan judul lagu.',
+    '1. Seluruh rekap berbahasa Indonesia dengan gaya rangkuman berita hiburan K-Pop ala portal berita / blog fanbase yang sedang merangkum kabar pekan ini — hidup, mengalir, dan enak dibaca, bukan bahasa laporan/resmi yang kaku. Semua kalimat berbahasa Indonesia, dan aksara Hangul/Hanzi tidak boleh muncul sama sekali (transliterasikan ke huruf Latin bila perlu). NAMA RESMI tetap dalam bentuk aslinya dan JANGAN diterjemahkan literal: nama program/acara (Music Bank, Music Core, Inkigayo, M Countdown), nama tangga lagu (Circle Chart), nama grup/member, dan judul lagu.',
     '2. HANYA gunakan fakta dari daftar artikel di bawah. JANGAN mengarang kutipan, angka, tanggal, nama lagu, atau kejadian apa pun.',
     '3. Sebutkan tanggal dan angka persis seperti tertulis di daftar — jangan menghitung ulang dan jangan mengubah satuan.',
     '4. Setiap sub-judul ## adalah satu topik dari daftar; tulis ulang isinya menjadi 1 sampai 3 paragraf mengalir, bukan daftar poin.',
