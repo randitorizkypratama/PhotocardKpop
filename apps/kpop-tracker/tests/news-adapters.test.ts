@@ -6,6 +6,7 @@ import { isPlausiblePublicationDate, parsePublicationDate, dayInTimeZone, format
 import { findDuplicate, isIndependentCorroboration, isSameEvent, withinTimeWindow, type CandidateIdentity, type ExistingStory } from '../server/utils/news/dedupe'
 import { parseArticleMeta, extractOfficialLinks } from '../server/utils/news/adapters/publisherPage'
 import { decodeGoogleNewsUrl, googleNewsFeedUrl, parseGoogleNewsRss } from '../server/utils/news/adapters/googleNews'
+import { bingNewsFeedUrl, decodeBingArticleUrl, parseBingNewsRss } from '../server/utils/news/adapters/bingNews'
 import { parseFeedItems } from '../server/utils/news/adapters/rssFeed'
 import { parseSitemap, slugAsText } from '../server/utils/news/adapters/sitemap'
 import { conceptsIn, quotedPhrases } from '../server/utils/news/eventLexicon'
@@ -787,6 +788,64 @@ describe('Google News RSS is discovery only', () => {
 
     expect(decodeGoogleNewsUrl(`https://news.google.com/rss/articles/${encode('http://169.254.169.254/latest')}`)).toBeNull()
     expect(decodeGoogleNewsUrl('https://news.google.com/rss/search?q=aespa')).toBeNull()
+  })
+})
+
+describe('Bing News RSS is discovery only (Naver stand-in)', () => {
+  const rss = `<?xml version="1.0" encoding="utf-8" ?><rss version="2.0" xmlns:News="https://www.bing.com/news/search?q=%22aespa%22&amp;format=RSS"><channel>
+    <title>&quot;aespa&quot; - BingNews</title>
+    <item>
+      <title>aespa announces new single - KPop League</title>
+      <link>http://www.bing.com/news/apiclick.aspx?ref=FexRss&amp;aid=&amp;tid=abc&amp;url=https%3a%2f%2fkpopleague.com%2fnews%2faespa-comeback&amp;c=1&amp;mkt=en-id</link>
+      <description>aespa is back with a new single next month.</description>
+      <pubDate>Sat, 25 Oct 2026 09:30:00 GMT</pubDate>
+      <News:Source>KPop League</News:Source>
+    </item>
+    <item>
+      <title>IVE fan meeting announced - Soompi</title>
+      <link>http://www.bing.com/news/apiclick.aspx?ref=FexRss&amp;url=https%3a%2f%2fsoompi.com%2fnews%2five-fanmeeting&amp;c=2</link>
+      <pubDate>Sat, 25 Oct 2026 08:00:00 GMT</pubDate>
+      <News:Source>Soompi</News:Source>
+    </item>
+  </channel></rss>`
+
+  it('parses items with the namespaced publisher hint and RFC-822 dates', () => {
+    const items = parseBingNewsRss(rss)
+    expect(items).toHaveLength(2)
+    expect(items[0]!.title).toContain('aespa announces new single')
+    expect(items[0]!.sourceName).toBe('KPop League')
+    expect(items[0]!.pubDate).toBe('Sat, 25 Oct 2026 09:30:00 GMT')
+    expect(items[0]!.description).toContain('new single')
+    expect(items[1]!.sourceName).toBe('Soompi')
+  })
+
+  it('builds the search feed URL with the query encoded', () => {
+    expect(bingNewsFeedUrl('aespa comeback'))
+      .toBe('https://www.bing.com/news/search?q=aespa+comeback&format=RSS')
+    expect(bingNewsFeedUrl('"IVE" K-pop'))
+      .toBe('https://www.bing.com/news/search?q=%22IVE%22+K-pop&format=RSS')
+  })
+
+  it('decodes the apiclick redirect to the publisher URL', () => {
+    expect(decodeBingArticleUrl(
+      'http://www.bing.com/news/apiclick.aspx?ref=FexRss&url=https%3a%2f%2fkpopleague.com%2fnews%2faespa-comeback&c=1',
+    )).toBe('https://kpopleague.com/news/aespa-comeback')
+  })
+
+  it('never hands back a Bing/MSN host, a non-redirect, or a private target', () => {
+    // Interstitials on Bing's own hosts are not articles.
+    expect(decodeBingArticleUrl('https://www.bing.com/news/apiclick.aspx?url=https%3a%2f%2fwww.bing.com%2fnews'))
+      .toBeNull()
+    expect(decodeBingArticleUrl('https://www.bing.com/news/apiclick.aspx?url=https%3a%2f%2fwww.msn.com%2fen-id'))
+      .toBeNull()
+    // Not an apiclick redirect at all.
+    expect(decodeBingArticleUrl('https://kpopleague.com/news/aespa-comeback')).toBeNull()
+    expect(decodeBingArticleUrl('https://www.bing.com/news/search?q=aespa')).toBeNull()
+    // SSRF targets are rejected by the shared URL validator.
+    expect(decodeBingArticleUrl('https://www.bing.com/news/apiclick.aspx?url=http%3a%2f%2f169.254.169.254%2flatest'))
+      .toBeNull()
+    // A malformed payload must not throw.
+    expect(decodeBingArticleUrl('https://www.bing.com/news/apiclick.aspx?url=%E0%A4%A')).toBeNull()
   })
 })
 

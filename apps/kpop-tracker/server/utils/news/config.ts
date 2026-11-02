@@ -114,7 +114,7 @@ export function newsConfig(): NewsConfig {
     discoveryCandidatesPerArtist: intFromEnv('NEWS_DISCOVERY_CANDIDATES_PER_ARTIST', 30, 1, 60),
     maxRetries: intFromEnv('NEWS_MAX_RETRIES', 1, 0, 5),
     maxResponseBytes: intFromEnv('NEWS_MAX_RESPONSE_BYTES', 1048576, 4096, 5242880),
-    maxArticleAgeMs: intFromEnv('NEWS_MAX_AGE_DAYS', 14, 1, 90) * 86400000,
+    maxArticleAgeMs: intFromEnv('NEWS_MAX_AGE_DAYS', 7, 1, 90) * 86400000,
     runBudgetMs: intFromEnv('NEWS_RUN_BUDGET_MS', 120000, 10000, 300000),
     hostMinIntervalMs: intFromEnv('NEWS_HOST_MIN_INTERVAL_MS', 1000, 0, 10000),
     hostCooldownMs: intFromEnv('NEWS_HOST_COOLDOWN_MS', 60000, 1000, 600000),

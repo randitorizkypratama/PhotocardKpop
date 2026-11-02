@@ -243,6 +243,7 @@ describe('source registry', () => {
       'newsen',
       'hankyung_ent',
       'starnews',
+      'news1',
     ])
     for (const source of withFeeds) {
       for (const feedUrl of source.feedUrls!) {

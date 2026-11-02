@@ -84,6 +84,18 @@ export const SOURCE_REGISTRY: SourceRecord[] = [
     notes: 'Discovery mechanism only. Never evidence for a claim. Its robots.txt disallows /rss/search, so the configured per-artist feeds are requested through the robots check and normally record `blocked` instead of being fetched.',
   },
   {
+    id: 'bing_news',
+    displayName: 'Bing News',
+    domains: ['bing.com'],
+    type: 'discovery',
+    trust: 'discovery_only',
+    supportedArtists: 'all',
+    retrieval: 'rss',
+    officialProfileUrls: ['https://www.bing.com/news'],
+    credibilityPoints: 0,
+    notes: 'Discovery mechanism only (stand-in for Naver Search, unobtainable from this region). robots.txt allows /news/search; each item wraps the publisher URL in apiclick.aspx, which the adapter decodes before the normal fetch-and-verify path.',
+  },
+  {
     id: 'yonhap_en',
     displayName: 'Yonhap News Agency',
     domains: ['en.yna.co.kr', 'yna.co.kr'],
@@ -315,10 +327,62 @@ export const SOURCE_REGISTRY: SourceRecord[] = [
     sitemapUrls: ['https://www.xportsnews.com/sitemap/latest_articles_google'],
     notes: 'Korean entertainment publisher. Google News sitemap declared in robots.txt, ~134 recent articles, UTF-8. robots.txt allows all paths.',
   },
+  {
+    id: 'allkpop',
+    displayName: 'allkpop',
+    domains: ['allkpop.com'],
+    type: 'news_publisher',
+    trust: 'secondary_reputable',
+    supportedArtists: 'all',
+    retrieval: 'http_html',
+    officialProfileUrls: ['https://www.allkpop.com/'],
+    credibilityPoints: 15,
+    sitemapUrls: ['https://www.allkpop.com/rss_xml/sitemap_today.xml'],
+    notes: 'English-language K-pop portal (idol-focused, Soompi-sized audience). robots.txt allows all paths; its WordPress `/feed` answers 403, so discovery runs off the daily article sitemap it declares (URLs + lastmod).',
+  },
+  {
+    id: 'newsis',
+    displayName: 'Newsis',
+    domains: ['newsis.com'],
+    type: 'news_publisher',
+    trust: 'secondary_reputable',
+    supportedArtists: 'all',
+    retrieval: 'http_html',
+    officialProfileUrls: ['https://www.newsis.com/'],
+    credibilityPoints: 18,
+    sitemapUrls: ['https://www.newsis.com/newsis_news_google.xml'],
+    notes: 'Major Korean news agency (wire-class coverage incl. entertainment). Google News sitemap declared in robots.txt: recent entries carrying <news:title> and <news:publication_date>. robots.txt allows article paths.',
+  },
+  {
+    id: 'news1',
+    displayName: 'News1',
+    domains: ['news1.kr'],
+    type: 'news_publisher',
+    trust: 'secondary_reputable',
+    supportedArtists: 'all',
+    retrieval: 'rss',
+    officialProfileUrls: ['https://www.news1.kr/'],
+    credibilityPoints: 18,
+    feedUrls: ['https://www.news1.kr/api/feeds/google/'],
+    notes: 'Korean news agency. robots.txt allows article paths; the URL it labels a Google News sitemap is really a 60-item RSS feed (EUC-KR — charset handled by the feed adapter).',
+  },
+  {
+    id: 'edaily',
+    displayName: 'Edaily',
+    domains: ['edaily.co.kr'],
+    type: 'news_publisher',
+    trust: 'secondary_reputable',
+    supportedArtists: 'all',
+    retrieval: 'http_html',
+    officialProfileUrls: ['https://www.edaily.co.kr/'],
+    credibilityPoints: 15,
+    sitemapUrls: ['https://www.edaily.co.kr/sitemap/latest-article.xml'],
+    notes: 'Korean economic daily with a busy entertainment section (comebacks, charts, idols). Google News sitemap with 2,000 recent entries (<news:title> + <news:publication_date>); robots.txt only blocks SEO scrapers.',
+  },
 ]
 
 /** Hosts that are permitted to be discovered but never count as a source. */
-export const DISCOVERY_HOSTS = new Set(['news.google.com'])
+export const DISCOVERY_HOSTS = new Set(['news.google.com', 'bing.com'])
 
 /** K-pop-native publishers — their identity supplies context for §3 matching. */
 const KPOP_CONTEXT_HOSTS = new Set(['soompi.com'])

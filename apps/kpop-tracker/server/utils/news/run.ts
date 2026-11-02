@@ -4,6 +4,7 @@ import type { Corroboration, NewsArticle, NewsClaim, NewsEvidence, NewsStatus, V
 import { newsConfig, type NewsConfig } from './config'
 import { safeFetch, type SafeFetchOptions, type SafeFetchResult } from './fetchSafe'
 import { decodeGoogleNewsUrl, googleNewsFeedUrl, parseGoogleNewsRss } from './adapters/googleNews'
+import { bingNewsFeedUrl, decodeBingArticleUrl, parseBingNewsRss } from './adapters/bingNews'
 import { parseFeedItems } from './adapters/rssFeed'
 import { parseSitemap, slugAsText } from './adapters/sitemap'
 import { naverNewsUrl, naverSearchHeaders, parseNaverNews } from './adapters/naver'
@@ -240,6 +241,11 @@ function sortSources(sources: SourcePage[]): SourcePage[] {
     .sort((a, b) => {
       const rank = trustRank(b.record) - trustRank(a.record)
       if (rank !== 0) return rank
+      // Same trust: the higher-credibility publisher becomes primary. With
+      // corroboration worth 15 points, an 18-point primary + 15 reaches the
+      // 83-point bar while a 15-point primary tops out at 80.
+      const points = (b.record?.credibilityPoints ?? 0) - (a.record?.credibilityPoints ?? 0)
+      if (points !== 0) return points
       return a.url.localeCompare(b.url)
     })
 }
@@ -773,6 +779,84 @@ async function collectNaverCandidates(
   return out
 }
 
+/**
+ * Discovery through Bing News RSS — the stand-in for Naver Search (whose API
+ * cannot be registered from this region). Unlike Google News, Bing's feed is
+ * allowed by its robots.txt, and one query hands back several publishers'
+ * coverage of the same event — the corroboration funnel the score needs. Each
+ * item link wraps the publisher's own URL (decoded here, never a bing.com
+ * page) and the article then takes the normal path: robots check, gates, no
+ * bypass.
+ */
+async function collectBingCandidates(
+  artistId: ArtistId,
+  ctx: RunContext,
+  limit: number,
+): Promise<DiscoveryCandidate[]> {
+  const out: DiscoveryCandidate[] = []
+  if (limit <= 0) return out
+
+  const profile = ARTISTS[artistId]
+  const feedUrl = bingNewsFeedUrl(googleNewsQueryFor(profile))
+  const result = await fetchPage(feedUrl, ctx)
+
+  if (!result.ok) {
+    await store.recordSourceStatus({
+      id: 'bing_news',
+      displayName: 'Bing News',
+      availability: /robots\.txt/.test(result.error || '') ? 'blocked' : 'error',
+      lastAttempt: nowIso(),
+      lastError: result.error,
+      itemCount: 0,
+    })
+    return out
+  }
+
+  const items = parseBingNewsRss(result.body)
+  const cutoff = Date.now() - ctx.cfg.maxArticleAgeMs
+
+  for (const item of items) {
+    if (out.length >= limit || outOfBudget(ctx)) break
+
+    const published = parsePublicationDate(item.pubDate)
+    // Only *recent* items are considered, and the feed's own date is used for
+    // the window — never the discovery time.
+    if (published && new Date(published.iso.length === 10 ? `${published.iso}T00:00:00Z` : published.iso).getTime() < cutoff) continue
+
+    const original = decodeBingArticleUrl(item.link)
+    if (!original) continue
+    const host = hostnameOf(original)
+    if (!host) continue
+
+    const matched = matchArtist(`${item.title} ${item.description || ''}`, {
+      publisherIsKpopSource: isKpopContextSource(host),
+    })
+    if (!matched.match || matched.match.artistId !== artistId) continue
+
+    out.push({
+      artistId,
+      title: item.title,
+      url: original,
+      host,
+      pubDate: item.pubDate,
+      declaredName: item.sourceName,
+      summary: item.description,
+      discoveredAt: nowIso(),
+    })
+  }
+
+  await store.recordSourceStatus({
+    id: 'bing_news',
+    displayName: 'Bing News',
+    availability: 'ok',
+    lastAttempt: nowIso(),
+    lastSuccess: nowIso(),
+    itemCount: items.length,
+  })
+
+  return out
+}
+
 /** Every discovery path for one artist, grouped into deduplicated stories. */
 async function discoverForArtist(
   artistId: ArtistId,
@@ -782,8 +866,9 @@ async function discoverForArtist(
   // Three discovery paths share the budget, each with a guaranteed slice:
   // feeds 50%, sitemaps 30%, Naver (Korean) 20%.  Without a reserved slice the
   // first publisher to answer fills the whole quota and the paths that add
-  // variety never get read.  Google News takes whatever is left — it normally
-  // records `blocked`, so it rarely consumes anything.
+  // variety never get read.  Bing News takes whatever is left (it is allowed
+  // by robots.txt, so it normally consumes real budget); Google News goes last
+  // — it normally records `blocked`, so it rarely consumes anything.
   const feedLimit = Math.max(1, Math.ceil(limit * 0.5))
   const sitemapLimit = Math.max(0, Math.round(limit * 0.3))
   const naverLimit = Math.max(0, limit - feedLimit - sitemapLimit)
@@ -798,6 +883,11 @@ async function discoverForArtist(
 
   if (naverLimit > 0 && !outOfBudget(ctx)) {
     candidates.push(...(await collectNaverCandidates(artistId, ctx, naverLimit)))
+  }
+
+  const afterNaver = Math.max(0, limit - candidates.length)
+  if (afterNaver > 0 && !outOfBudget(ctx)) {
+    candidates.push(...(await collectBingCandidates(artistId, ctx, afterNaver)))
   }
 
   const remaining = Math.max(0, limit - candidates.length)
