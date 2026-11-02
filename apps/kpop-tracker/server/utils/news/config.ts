@@ -111,7 +111,7 @@ export function newsConfig(): NewsConfig {
     naverClientId: process.env.NAVER_CLIENT_ID || '',
     naverClientSecret: process.env.NAVER_CLIENT_SECRET || '',
     maxArticlesPerRun: intFromEnv('NEWS_MAX_ARTICLES_PER_RUN', 9, 1, 100),
-    discoveryCandidatesPerArtist: intFromEnv('NEWS_DISCOVERY_CANDIDATES_PER_ARTIST', 12, 1, 60),
+    discoveryCandidatesPerArtist: intFromEnv('NEWS_DISCOVERY_CANDIDATES_PER_ARTIST', 30, 1, 60),
     maxRetries: intFromEnv('NEWS_MAX_RETRIES', 1, 0, 5),
     maxResponseBytes: intFromEnv('NEWS_MAX_RESPONSE_BYTES', 1048576, 4096, 5242880),
     maxArticleAgeMs: intFromEnv('NEWS_MAX_AGE_DAYS', 14, 1, 90) * 86400000,
