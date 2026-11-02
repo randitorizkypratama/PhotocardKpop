@@ -153,7 +153,7 @@ function reset() {
   <div class="min-h-screen bg-background">
     <AppHeader active="browse" />
 
-    <main class="page-shell py-8 sm:py-12">
+    <main class="page-shell py-8 pb-16 sm:py-12 md:pb-0">
       <div class="mx-auto max-w-3xl">
         <!-- Intro -->
         <div class="text-center">

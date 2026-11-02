@@ -79,7 +79,7 @@ const cardsAsync = useAsyncData(
 await Promise.all([ratesAsync, releasesAsync, cardsAsync])
 
 const { data: ratesRes } = ratesAsync
-const { data: releasesRes } = releasesAsync
+const { data: releasesRes, pending: releasesLoading } = releasesAsync
 const { data: cardsRes, pending: loading, refresh: reloadCards } = cardsAsync
 
 const releases = computed<any[]>(() => releasesRes.value?.data || [])
@@ -172,41 +172,6 @@ async function onWishlist(id: number | string) {
                 {{ t('home.photoSearch') }}
               </NuxtLink>
             </div>
-
-            <div class="mt-5 flex flex-wrap items-center justify-center gap-2">
-              <button
-                v-for="group in groupTabs"
-                :key="group"
-                type="button"
-                class="relative rounded-lg border px-3.5 py-1.5 text-sm font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                :class="
-                  selectedGroup === group
-                    ? groupAccentActive(group)
-                    : 'border-border bg-card text-muted-foreground hover:border-border-strong hover:bg-muted hover:text-foreground'
-                "
-                :aria-pressed="selectedGroup === group"
-                @click="selectedGroup = group"
-              >
-                <span class="inline-flex items-center gap-1.5">
-                  <!-- Pulsing dot: always visible for active group, pulses only while loading -->
-                  <span
-                    class="h-1.5 w-1.5 rounded-full"
-                    :class="[
-                      groupDot(group),
-                      selectedGroup === group && loading ? 'animate-pulse' : '',
-                    ]"
-                  />
-                  {{ group }}
-                </span>
-                <!-- Bottom border pill indicator for active tab -->
-                <span
-                  v-if="selectedGroup === group"
-                  class="absolute inset-x-3 bottom-0.5 h-0.5 rounded-full opacity-70"
-                  :class="groupDot(group)"
-                  aria-hidden="true"
-                />
-              </button>
-            </div>
           </div>
         </div>
       </section>
@@ -250,7 +215,7 @@ async function onWishlist(id: number | string) {
 
       <!-- Explore releases -->
       <section
-        v-if="releases.length > 0"
+        v-if="releasesLoading || releases.length > 0"
         id="releases"
         class="scroll-mt-20 border-b border-border"
       >
@@ -269,7 +234,18 @@ async function onWishlist(id: number | string) {
             </NuxtLink>
           </div>
 
-          <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-6">
+          <!-- Skeleton saat loading -->
+          <div v-if="releasesLoading" class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-6">
+            <div v-for="i in 6" :key="i" class="min-w-0">
+              <div class="skeleton-block aspect-square rounded-lg" />
+              <div class="mt-2 space-y-1.5">
+                <div class="skeleton-block h-3.5 w-3/4 rounded" />
+                <div class="skeleton-block h-3 w-1/2 rounded" />
+              </div>
+            </div>
+          </div>
+
+          <div v-else class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-6">
             <NuxtLink
               v-for="(release, index) in releases"
               :key="release.release_name"
@@ -309,6 +285,7 @@ async function onWishlist(id: number | string) {
               </span>
             </NuxtLink>
           </div>
+          </div><!-- end v-else -->
         </div>
       </section>
 
@@ -328,6 +305,37 @@ async function onWishlist(id: number | string) {
               {{ t('viewAll') }}
               <ArrowRight class="h-4 w-4" />
             </NuxtLink>
+          </div>
+
+          <!-- Group tabs -->
+          <div class="mb-4 flex flex-wrap gap-2">
+            <button
+              v-for="group in groupTabs"
+              :key="group"
+              type="button"
+              class="relative rounded-lg border px-3.5 py-1.5 text-sm font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              :class="
+                selectedGroup === group
+                  ? groupAccentActive(group)
+                  : 'border-border bg-card text-muted-foreground hover:border-border-strong hover:bg-muted hover:text-foreground'
+              "
+              :aria-pressed="selectedGroup === group"
+              @click="selectedGroup = group"
+            >
+              <span class="inline-flex items-center gap-1.5">
+                <span
+                  class="h-1.5 w-1.5 rounded-full"
+                  :class="[groupDot(group), selectedGroup === group && loading ? 'animate-pulse' : '']"
+                />
+                {{ group }}
+              </span>
+              <span
+                v-if="selectedGroup === group"
+                class="absolute inset-x-3 bottom-0.5 h-0.5 rounded-full opacity-70"
+                :class="groupDot(group)"
+                aria-hidden="true"
+              />
+            </button>
           </div>
 
           <div v-if="loading" class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">

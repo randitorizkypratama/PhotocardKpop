@@ -1,5 +1,5 @@
 <template>
-  <footer class="border-t border-border bg-card">
+  <footer class="border-t border-border bg-card mb-14 md:mb-0">
     <div class="page-shell flex flex-col gap-6 py-10 sm:py-12">
       <!-- Top section: logo+tagline and nav in 2-col on mobile, row on sm+ -->
       <div class="grid grid-cols-2 gap-6 sm:flex sm:flex-row sm:items-start sm:justify-between">

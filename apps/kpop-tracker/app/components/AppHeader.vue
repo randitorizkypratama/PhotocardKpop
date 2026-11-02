@@ -69,7 +69,7 @@ function submitSearch() {
         <img src="/hibikishop-logo.png" alt="HIBIKISHOP" class="h-8 w-8 shrink-0 rounded-full object-contain sm:h-9 sm:w-9" />
         <div class="min-w-0 leading-tight">
           <span class="block truncate text-sm font-bold tracking-tight text-foreground sm:text-base">HIBIKISHOP</span>
-          <span class="hidden text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground sm:block">Photocards</span>
+          <span class="block text-[9px] font-medium uppercase tracking-[0.12em] text-muted-foreground sm:text-[10px]">Photocards</span>
         </div>
       </NuxtLink>
 
