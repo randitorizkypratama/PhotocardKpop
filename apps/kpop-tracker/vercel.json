@@ -10,10 +10,5 @@
     "sizes": [320],
     "minimumCacheTTL": 31536000
   },
-  "crons": [
-    {
-      "path": "/api/cron/sync",
-      "schedule": "0 17 * * *"
-    }
-  ]
+  "crons": []
 }

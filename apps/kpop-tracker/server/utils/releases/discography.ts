@@ -260,7 +260,7 @@ export async function writeGroupDiscography(releases: DiscographyRelease[], db?:
  * The MusicBrainz refresh deliberately does NOT run on this path: MB is paced
  * at 1 req/s, so refreshing from inside a page request could hold a render for
  * seconds (exactly what happens when the 30-day cache expires mid-day). The
- * daily cron (`/api/cron/sync` → `loadReleaseIndex(…, { refresh: true })`) is
+ * daily sync (GitHub Actions `sync-pocamarket.yml` → `loadReleaseIndex(…, { refresh: true })`) is
  * the caller that talks to MusicBrainz; this function only serves what is
  * already stored — memory first (see readGroupDiscography), then Turso — and
  * never blocks on an external API.
@@ -315,7 +315,7 @@ function warnStaleOnce(group: string, fetchedAt: number) {
   if (staleWarned.has(group)) return
   staleWarned.add(group)
   const days = Math.max(1, Math.round((Date.now() - fetchedAt) / (24 * 60 * 60 * 1000)))
-  console.warn(`[discography] ${group} cache is ${days}d old — refresh through the daily cron (/api/cron/sync), not a page request.`)
+  console.warn(`[discography] ${group} cache is ${days}d old — refresh through the daily GitHub Actions sync (sync-pocamarket.yml), not a page request.`)
 }
 
 export interface ReleaseMatchEntry {

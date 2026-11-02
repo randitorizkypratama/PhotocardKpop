@@ -112,14 +112,14 @@ await check('GET /api/stores returns stores', async () => {
   await expectApi('/api/stores', { status: 200, validate: requireRows('stores') })
 })
 
-await check('GET /api/sync/group rejects anonymous calls (401)', async () => {
+await check('GET /api/sync/group returns 410 Gone (moved to GitHub Actions)', async () => {
   const { status } = await fetchJson('/api/sync/group?group=IVE')
-  if (status !== 401) throw new Error(`expected 401, got ${status}`)
+  if (status !== 410) throw new Error(`expected 410, got ${status}`)
 })
 
-await check('POST /api/cron/sync rejects anonymous calls (401)', async () => {
+await check('POST /api/cron/sync returns 410 Gone (moved to GitHub Actions)', async () => {
   const { status } = await fetchJson('/api/cron/sync', { method: 'POST' })
-  if (status !== 401) throw new Error(`expected 401, got ${status}`)
+  if (status !== 410) throw new Error(`expected 410, got ${status}`)
 })
 
 for (const page of ['/', '/browse', '/collection', '/releases', '/releases?group=IVE', '/groups/IVE', '/releases/IVE/secret']) {

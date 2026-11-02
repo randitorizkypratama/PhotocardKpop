@@ -22,15 +22,7 @@
           <SocialLinks size="sm" />
         </div>
 
-        <!-- Nav links col -->
-        <nav class="flex flex-col gap-2.5" :aria-label="t('aria.footerNav')">
-          <NuxtLink to="/browse" class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">{{ t('footer.browse') }}</NuxtLink>
-          <NuxtLink to="/#groups" class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">{{ t('nav.groups') }}</NuxtLink>
-          <NuxtLink to="/shop" class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">{{ t('nav.shop') }}</NuxtLink>
-          <NuxtLink to="/collection" class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">{{ t('nav.collection') }}</NuxtLink>
-          <NuxtLink v-if="isAdmin" to="/admin/news" class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">{{ t('nav.newsReview') }}</NuxtLink>
-          <NuxtLink v-if="isAdmin" to="/status" class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">{{ t('nav.status') }}</NuxtLink>
-        </nav>
+
 
         <!-- Social links (sm+ only, inline with logo block) -->
         <div class="mt-4 hidden sm:block">
