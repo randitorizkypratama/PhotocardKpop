@@ -656,5 +656,6 @@ export const STRINGS_EN: Record<string, string> = {
     'news.blog.verificationScore': 'Source verification score',
     'news.blog.originalArticle': 'Open the original article',
     'news.blog.heroAlt': 'Article lead photo',
+    'news.blog.videoNote': 'Official video from the artist’s own channel.',
     'news.blog.photosTitle': 'Photos',
 }

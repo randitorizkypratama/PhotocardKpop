@@ -18,7 +18,8 @@
  *   NEWS_HOST_MIN_INTERVAL_MS NEWS_HOST_COOLDOWN_MS
  *   NEWS_SITEMAP_MAX_BYTES    NEWS_RECHECK_INTERVAL
  *   VERIFICATION_MIN_SCORE    ALLOWED_SOURCE_DOMAINS
- *   YOUTUBE_API_KEY
+ *   YOUTUBE_CHANNELS          NAVER_CLIENT_ID / NAVER_CLIENT_SECRET
+ *       (YouTube needs no API key — uploads come from the public Atom feed.)
  *
  * Exit codes:
  *   0 — pipeline completed (ok or partial — partial means no new articles,

@@ -8,7 +8,7 @@ import { bingNewsFeedUrl, decodeBingArticleUrl, parseBingNewsRss } from './adapt
 import { parseFeedItems } from './adapters/rssFeed'
 import { parseSitemap, slugAsText } from './adapters/sitemap'
 import { naverNewsUrl, naverSearchHeaders, parseNaverNews } from './adapters/naver'
-import { parsePlaylistItems, playlistItemsUrl, uploadsPlaylistId } from './adapters/youtube'
+import { parseYouTubeFeed, youtubeFeedUrl } from './adapters/youtubeRss'
 import { extractOfficialLinks, parseArticleMeta, type ArticleMeta } from './adapters/publisherPage'
 import { extractClaims } from './claims'
 import { canonicalizeUrl, hostnameOf, validateExternalUrl } from './url'
@@ -940,34 +940,35 @@ async function discoverOfficialSourceUrls(artistId: ArtistId, ctx: RunContext, l
 }
 
 /**
- * Official-channel YouTube uploads (teasers, MVs, behind-the-scenes).
+ * Official-channel YouTube uploads (music videos, teasers, Shorts,
+ * behind-the-scenes clips).
  *
  * A video has no article body, so it cannot pass `source_accessible`. Instead
  * of pretending otherwise, the upload is stored directly as a
  * `PENDING_VERIFICATION` article with one traceable `official_video` evidence
- * row — honest about what it is, visible in the admin review list, and picked
- * up by the rewrite pipeline, while the public VERIFIED feed is untouched.
+ * row — honest about what it is, visible in the admin draft queue, and picked
+ * up by the rewrite pipeline so an MV release becomes an article an admin can
+ * publish.
  *
- * Only allowlisted channel IDs are accepted; a display name never grants
- * "official" status.
+ * Discovery reads the channel's public Atom feed, which needs no API key and
+ * no quota; only allowlisted channel IDs are accepted, so a display name never
+ * grants "official" status.
  */
 async function ingestYouTubeVideos(
   artistId: ArtistId,
   ctx: RunContext,
   summary: IngestionSummary,
 ): Promise<void> {
-  if (!ctx.cfg.youtubeApiKey) return
   const channelId = ctx.cfg.youtubeChannels[artistId]
   if (!channelId) return
-  const playlistId = uploadsPlaylistId(channelId)
-  if (!playlistId) return
+  const feedUrl = youtubeFeedUrl(channelId)
+  if (!feedUrl) return
 
-  const url = `${playlistItemsUrl(playlistId, { maxResults: 10 })}&key=${encodeURIComponent(ctx.cfg.youtubeApiKey)}`
-  const result = await pacedFetch(url, ctx, {
+  const result = await pacedFetch(feedUrl, ctx, {
     timeoutMs: ctx.cfg.fetchTimeoutMs,
     retries: ctx.cfg.maxRetries,
     maxBytes: ctx.cfg.maxResponseBytes,
-    acceptContentTypes: ['application/json', 'text/plain', '*/*'],
+    acceptContentTypes: ['application/atom+xml', 'application/xml', 'text/xml', 'application/rss+xml', '*/*'],
   })
 
   if (!result.ok) {
@@ -982,29 +983,12 @@ async function ingestYouTubeVideos(
     return
   }
 
-  let payload: unknown
-  try {
-    payload = JSON.parse(result.body)
-  } catch {
-    payload = null
-  }
-  const parsed = parsePlaylistItems(payload)
-  if (parsed.error) {
-    await store.recordSourceStatus({
-      id: 'youtube_official',
-      displayName: 'YouTube (official channels)',
-      availability: 'error',
-      lastAttempt: nowIso(),
-      lastError: parsed.error,
-      itemCount: 0,
-    })
-    return
-  }
+  const uploads = parseYouTubeFeed(result.body).slice(0, 10)
 
   const cutoff = Date.now() - ctx.cfg.maxArticleAgeMs
   let stored = 0
 
-  for (const upload of parsed.uploads) {
+  for (const upload of uploads) {
     if (outOfBudget(ctx)) break
     if (!upload.title) continue
 
@@ -1095,7 +1079,7 @@ async function ingestYouTubeVideos(
     availability: 'ok',
     lastAttempt: nowIso(),
     lastSuccess: nowIso(),
-    itemCount: parsed.uploads.length,
+    itemCount: uploads.length,
   })
 
   if (stored > 0) {

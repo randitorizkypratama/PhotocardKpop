@@ -57,12 +57,11 @@ export interface NewsConfig {
    * fetched (SSRF guards still apply); non-empty = only these hosts resolve.
    */
   allowedSourceDomains: string[]
-  /** YouTube Data API key — server-side only, never shipped to the client. */
-  youtubeApiKey: string
   /**
    * Allowlisted official YouTube channels, keyed by artist id.
    * `YOUTUBE_CHANNELS=aespa:UC…,ive:UC…` — a channel ID is the only thing that
-   * can grant "official" status; a display name never does.
+   * can grant "official" status; a display name never does. The uploads are
+   * read from the channel's public Atom feed, so no API key is involved.
    */
   youtubeChannels: Record<string, string>
   /** Naver Search API credentials — empty disables Korean discovery. */
@@ -106,7 +105,6 @@ export function newsConfig(): NewsConfig {
     // verified feed stayed permanently empty.
     minScore: intFromEnv('VERIFICATION_MIN_SCORE', 83, 0, 100),
     allowedSourceDomains: listFromEnv('ALLOWED_SOURCE_DOMAINS'),
-    youtubeApiKey: process.env.YOUTUBE_API_KEY || '',
     youtubeChannels: parseYoutubeChannels(process.env.YOUTUBE_CHANNELS),
     naverClientId: process.env.NAVER_CLIENT_ID || '',
     naverClientSecret: process.env.NAVER_CLIENT_SECRET || '',

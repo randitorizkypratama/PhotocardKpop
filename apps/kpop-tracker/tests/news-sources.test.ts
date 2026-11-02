@@ -6,11 +6,7 @@ import {
   naverSearchHeaders,
   parseNaverNews,
 } from '../server/utils/news/adapters/naver'
-import {
-  parsePlaylistItems,
-  playlistItemsUrl,
-  uploadsPlaylistId,
-} from '../server/utils/news/adapters/youtube'
+import { parseYouTubeFeed, youtubeFeedUrl } from '../server/utils/news/adapters/youtubeRss'
 import { parseYoutubeChannels } from '../server/utils/news/config'
 import { interleaveByPublisher } from '../server/utils/news/rewrite/store'
 
@@ -87,57 +83,66 @@ describe('Naver Search adapter', () => {
   })
 })
 
-describe('YouTube uploads adapter', () => {
-  it('turns a channel ID into its uploads playlist', () => {
-    expect(uploadsPlaylistId(CHANNEL_ID)).toBe(`UU${CHANNEL_ID.slice(2)}`)
-    expect(uploadsPlaylistId('not-a-channel')).toBeNull()
-    expect(uploadsPlaylistId('')).toBeNull()
+describe('YouTube channel feed adapter (keyless)', () => {
+  // The real feed shape: Atom entries, namespaced yt:videoId and a media:group
+  // carrying the title, description and thumbnail.
+  const FEED = `<?xml version="1.0" encoding="UTF-8"?>
+    <feed xmlns:yt="http://www.youtube.com/xml/schemas/2015" xmlns:media="http://search.yahoo.com/mrss/">
+      <title>aespa</title>
+      <entry>
+        <id>yt:video:abcdefghijk</id>
+        <yt:videoId>abcdefghijk</yt:videoId>
+        <title>aespa 에스파 'Drama' MV</title>
+        <published>2026-10-27T09:00:00+00:00</published>
+        <author><name>aespa</name><uri>https://www.youtube.com/channel/${CHANNEL_ID}</uri></author>
+        <media:group>
+          <media:title>aespa 에스파 'Drama' MV</media:title>
+          <media:thumbnail url="https://i.ytimg.com/vi/abcdefghijk/hqdefault.jpg" width="480" height="360" />
+          <media:description>Official music video</media:description>
+        </media:group>
+      </entry>
+      <entry>
+        <id>yt:video:zzzzzzzzzzz</id>
+        <yt:videoId>zzzzzzzzzzz</yt:videoId>
+        <title>take the backseat #Shorts</title>
+        <published>2026-10-28T09:00:00+00:00</published>
+        <author><name>aespa</name></author>
+        <media:group>
+          <media:title>take the backseat #Shorts</media:title>
+          <media:description></media:description>
+        </media:group>
+      </entry>
+    </feed>`
+
+  it('builds the public Atom feed URL and rejects a malformed channel id', () => {
+    expect(youtubeFeedUrl(CHANNEL_ID)).toBe(`https://www.youtube.com/feeds/videos.xml?channel_id=${CHANNEL_ID}`)
+    expect(youtubeFeedUrl('not-a-channel')).toBeNull()
+    expect(youtubeFeedUrl('')).toBeNull()
   })
 
-  it('builds a playlistItems URL (1 quota unit), not a search', () => {
-    const url = new URL(playlistItemsUrl(`UU${CHANNEL_ID.slice(2)}`, { maxResults: 5 }))
-    expect(url.pathname).toBe('/youtube/v3/playlistItems')
-    expect(url.searchParams.get('part')).toBe('snippet,contentDetails')
-    expect(url.searchParams.get('maxResults')).toBe('5')
-    expect(url.toString()).not.toContain('/search')
-    // The key is appended by the caller, so it never lands in a fixture.
-    expect(url.searchParams.get('key')).toBeNull()
-  })
-
-  it('parses uploads with their thumbnail and description', () => {
-    const parsed = parsePlaylistItems({
-      nextPageToken: 'next',
-      items: [{
-        snippet: {
-          title: 'aespa 에스파 \'Drama\' MV',
-          description: 'Official music video',
-          channelId: CHANNEL_ID,
-          channelTitle: 'aespa',
-          publishedAt: '2026-10-27T09:00:00Z',
-          thumbnails: {
-            high: { url: 'https://i.ytimg.com/vi/abc/hqdefault.jpg' },
-            medium: { url: 'https://i.ytimg.com/vi/abc/mqdefault.jpg' },
-          },
-        },
-        contentDetails: { videoId: 'abc123' },
-      }],
-    })
-
-    expect(parsed.error).toBeNull()
-    expect(parsed.nextPageToken).toBe('next')
-    expect(parsed.uploads[0]).toMatchObject({
-      videoId: 'abc123',
-      channelId: CHANNEL_ID,
-      channelTitle: 'aespa',
-      url: 'https://www.youtube.com/watch?v=abc123',
-      thumbnail: 'https://i.ytimg.com/vi/abc/hqdefault.jpg',
+  it('parses uploads with their title, description and thumbnail', () => {
+    const uploads = parseYouTubeFeed(FEED)
+    expect(uploads).toHaveLength(2)
+    expect(uploads[0]).toMatchObject({
+      videoId: 'abcdefghijk',
+      title: 'aespa 에스파 \'Drama\' MV',
+      url: 'https://www.youtube.com/watch?v=abcdefghijk',
+      thumbnail: 'https://i.ytimg.com/vi/abcdefghijk/hqdefault.jpg',
       description: 'Official music video',
+      publishedAt: '2026-10-27T09:00:00+00:00',
+      channelTitle: 'aespa',
     })
   })
 
-  it('skips an item with no video id and reports an API error', () => {
-    expect(parsePlaylistItems({ items: [{ snippet: { title: 'x' } }] }).uploads).toHaveLength(0)
-    expect(parsePlaylistItems({ error: { message: 'quotaExceeded' } }).error).toBe('quotaExceeded')
+  it('keeps Shorts and falls back to the per-video thumbnail', () => {
+    const uploads = parseYouTubeFeed(FEED)
+    expect(uploads[1]!.title).toContain('#Shorts')
+    expect(uploads[1]!.thumbnail).toBe('https://i.ytimg.com/vi/zzzzzzzzzzz/hqdefault.jpg')
+  })
+
+  it('skips an entry with no usable video id', () => {
+    expect(parseYouTubeFeed('<feed><entry><title>no id</title></entry></feed>')).toHaveLength(0)
+    expect(parseYouTubeFeed('')).toHaveLength(0)
   })
 })
 

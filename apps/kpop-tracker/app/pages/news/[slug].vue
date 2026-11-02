@@ -169,8 +169,26 @@ function hideBrokenImage(event: Event) {
             </div>
           </section>
 
+          <!-- Official MV/clip: play it here instead of showing the poster twice -->
+          <figure v-if="article.video" class="page-shell pt-6">
+            <div class="overflow-hidden rounded-xl border border-border bg-black">
+              <div class="relative w-full" style="aspect-ratio: 16 / 9">
+                <iframe
+                  :src="`https://www.youtube-nocookie.com/embed/${article.video}`"
+                  :title="article.title"
+                  class="absolute inset-0 h-full w-full"
+                  loading="lazy"
+                  referrerpolicy="strict-origin-when-cross-origin"
+                  allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowfullscreen
+                />
+              </div>
+            </div>
+            <figcaption class="mt-2 text-[11px] text-muted-foreground">{{ t('news.blog.videoNote') }}</figcaption>
+          </figure>
+
           <!-- Hero image, hotlinked and credited -->
-          <figure v-if="hero" class="page-shell pt-6">
+          <figure v-else-if="hero" class="page-shell pt-6">
             <div class="overflow-hidden rounded-xl border border-border bg-muted">
               <img
                 :src="hero.image_url"

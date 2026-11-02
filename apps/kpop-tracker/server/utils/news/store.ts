@@ -337,6 +337,23 @@ export async function getArticleById(id: string): Promise<Record<string, unknown
   return result.rows[0] ? (result.rows[0] as Record<string, unknown>) : null
 }
 
+/**
+ * The official-video id attached to an article, if it is a YouTube upload.
+ * Used to embed the player on the published blog article.
+ */
+export async function getArticleVideoId(articleId: string): Promise<string | null> {
+  if (!articleId) return null
+  const db = getTursoClient()
+  const result = await db.execute({
+    sql: `SELECT video_id FROM news_evidence
+           WHERE article_id = ? AND video_id IS NOT NULL AND video_id <> ''
+           ORDER BY retrieved_at DESC LIMIT 1`,
+    args: [articleId],
+  })
+  const value = (result.rows[0] as Record<string, unknown> | undefined)?.video_id
+  return value ? String(value) : null
+}
+
 /** Existing stories for one artist — the candidate pool for duplicate matching. */
 export async function listStoriesForArtist(artistId: string): Promise<Array<Record<string, unknown>>> {
   const db = getTursoClient()

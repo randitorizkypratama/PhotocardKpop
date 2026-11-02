@@ -650,5 +650,6 @@ export const STRINGS_ID: Record<string, string> = {
     'news.blog.verificationScore': 'Skor verifikasi sumber',
     'news.blog.originalArticle': 'Buka artikel asli',
     'news.blog.heroAlt': 'Foto utama artikel',
+    'news.blog.videoNote': 'Video resmi dari channel artisnya.',
     'news.blog.photosTitle': 'Foto',
 }

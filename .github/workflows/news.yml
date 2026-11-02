@@ -88,8 +88,9 @@ jobs:
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
 
           # ── Optional: official-channel + Korean discovery ──────────────────
-          # All three may be empty — the pipeline then runs exactly as before.
-          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          # All may be empty — the pipeline then runs exactly as before.
+          # YouTube needs no API key: channel uploads come from the public Atom
+          # feed, so only the allowlisted channel IDs are required.
           YOUTUBE_CHANNELS: ${{ secrets.YOUTUBE_CHANNELS }}
           NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
           NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}

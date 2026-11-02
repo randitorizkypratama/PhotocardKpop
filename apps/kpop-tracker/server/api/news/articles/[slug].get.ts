@@ -5,6 +5,7 @@ import {
   listRewriteSources,
 } from '../../../utils/news/rewrite/store'
 import { toPublicArticle } from '../../../utils/news/rewrite/public'
+import { getArticleVideoId } from '../../../utils/news/store'
 
 /**
  * One published blog article, with its images/credits and its sources.
@@ -27,7 +28,11 @@ export default defineEventHandler(async (event) => {
     listRewriteSources(rewrite.id),
   ])
 
-  const article = toPublicArticle(rewrite, images, sources)
+  // An official MV/clip upload carries a video id in its evidence; the article
+  // embeds the player, so the reader never has to leave the page.
+  const video = rewrite.articleId ? await getArticleVideoId(rewrite.articleId) : null
+
+  const article = toPublicArticle(rewrite, images, sources, video)
   if (!article) throw createError({ statusCode: 404, statusMessage: 'Not found' })
 
   return { success: true, data: article }

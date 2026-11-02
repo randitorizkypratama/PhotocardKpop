@@ -43,6 +43,8 @@ export interface PublicArticle extends PublicCard {
   body_markdown: string
   images: PublicArticleImage[]
   sources: PublicArticleSource[]
+  /** YouTube video id when the story is an official MV/clip — embed on the page. */
+  video: string | null
 }
 
 function safeLink(value: string | null): string | null {
@@ -74,9 +76,12 @@ export function toPublicArticle(
   rewrite: NewsRewrite,
   images: RewriteImage[],
   sources: RewriteSource[],
+  video: string | null = null,
 ): PublicArticle | null {
   if (rewrite.status !== 'published') return null
   const firstImage = images.map(image => safeMedia(image.imageUrl)).find(Boolean) ?? null
+  // Only a well-formed id ever reaches the embed URL in the template.
+  const safeVideo = video && /^[\w-]{6,}$/.test(video) ? video : null
 
   return {
     id: rewrite.id,
@@ -89,6 +94,7 @@ export function toPublicArticle(
     published_at: rewrite.publishedAt,
     thumbnail: firstImage,
     body_markdown: rewrite.bodyMarkdown,
+    video: safeVideo,
     images: images
       .map(image => ({
         image_url: safeMedia(image.imageUrl) || '',
