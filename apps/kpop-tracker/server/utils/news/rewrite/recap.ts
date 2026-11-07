@@ -145,7 +145,7 @@ export async function runWeeklyRecaps(options: RecapRunOptions = {}): Promise<Re
     messages: [],
   }
 
-  if (!isRewriteConfigured(cfg)) {
+  if (!cfg.geminiApiKeys.length) {
     summary.status = 'skipped'
     summary.finishedAt = iso(new Date())
     summary.messages.push('no GEMINI_API_KEYS configured — recap skipped')
