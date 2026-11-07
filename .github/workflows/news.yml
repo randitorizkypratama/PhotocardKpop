@@ -136,7 +136,7 @@ jobs:
 
           # Kept in sync with .env.example / news-rewrite.yml defaults.
           GEMINI_MODEL: 'gemini-flash-lite-latest'
-          REWRITE_ENABLED: 'true'
+          REWRITE_ENABLED: 'false'
           REWRITE_MAX_PER_RUN: '5'
           REWRITE_TIMEOUT_MS: '120000'
           REWRITE_MAX_TOKENS: '16384'
