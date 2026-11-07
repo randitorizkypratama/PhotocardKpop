@@ -85,11 +85,11 @@ jobs:
           # because it answers in seconds where the full Flash tier can take a
           # minute or get cut off.
           GEMINI_MODEL: 'gemini-flash-lite-latest'
-          REWRITE_TIMEOUT_MS: '90000'
-          REWRITE_MAX_TOKENS: '4096'
+          REWRITE_TIMEOUT_MS: '120000'
+          REWRITE_MAX_TOKENS: '16384'
           REWRITE_KEY_COOLDOWN_MS: '900000'
           REWRITE_RETRY_FAILED_MS: '21600000'
-          REWRITE_MAX_INPUT_CHARS: '6000'
+          REWRITE_MAX_INPUT_CHARS: '30000'
           REWRITE_TEMPERATURE: '0.7'
           # Weekly per-artist recap (runs inside this same job; drafts are
           # reviewed in /admin/news like any other).
