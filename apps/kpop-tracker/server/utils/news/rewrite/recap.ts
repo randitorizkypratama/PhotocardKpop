@@ -12,9 +12,11 @@ import { buildRecapPrompt } from './prompt'
 import { parseRecapJson } from './parse'
 import { createGeminiKeyPool, maskKey } from './keys'
 import { defaultGeminiTransport, generateOne } from './run'
+import { parseArticleMeta } from '../adapters/publisherPage'
+import { safeFetch } from '../fetchSafe'
 import type { GeminiTransport } from './providers/gemini'
 import * as store from './store'
-import type { RecapTopic, RecapWeekWindow, RewriteDraft, RewriteImageInput } from './types'
+import type { RecapArticle, RecapTopic, RecapWeekWindow, RewriteDraft, RewriteImageInput } from './types'
 import { isRenderableMediaUrl, validateExternalUrl } from '../url'
 
 /**
@@ -65,6 +67,29 @@ export interface RecapRunSummary {
 
 function iso(date: Date): string {
   return date.toISOString()
+}
+
+/**
+ * Fetch the full body text of an article URL. Falls back silently — a recap
+ * that can't reach one publisher still runs with the rest.
+ */
+async function fetchArticleBody(url: string, summary: string | null): Promise<string> {
+  if (!url || url.includes('youtube.com')) return summary || ''
+  try {
+    const result = await safeFetch(url, {
+      timeoutMs: 8000,
+      retries: 1,
+      maxBytes: 1048576,
+      acceptContentTypes: ['text/html', 'application/xhtml+xml', 'text/plain'],
+    })
+    if (result.ok && result.body) {
+      const meta = parseArticleMeta(result.body, url)
+      if (meta.bodyText && meta.bodyText.length > (summary?.length ?? 0)) return meta.bodyText
+    }
+  } catch {
+    // silently fall back
+  }
+  return summary || ''
 }
 
 /**
@@ -170,6 +195,16 @@ export async function runWeeklyRecaps(options: RecapRunOptions = {}): Promise<Re
         maxPerTopic: recap.maxPerTopic,
       })
       const sources = recapSources(topics)
+
+      // Fetch full body text for each source article — same approach as
+      // material.ts for individual rewrites. Failures fall back to summary.
+      const bodyTexts = new Map<string, string>()
+      await Promise.all(
+        sources.map(async article => {
+          const body = await fetchArticleBody(article.url, article.summary)
+          if (body) bodyTexts.set(article.id, body)
+        })
+      )
       // Bucketing drops duplicate URLs, so every topic article is in `sources`
       // — citation numbers are therefore the flat 1-based positions below.
       const indexOf = new Map(sources.map((article, position) => [article.id, position + 1]))
@@ -186,6 +221,7 @@ export async function runWeeklyRecaps(options: RecapRunOptions = {}): Promise<Re
             title: article.title,
             publisher: article.publisherName || article.publisherDomain || 'sumber tidak dikenal',
             publishedAt: article.publishedAt,
+            bodyText: bodyTexts.get(article.id) || null,
           })),
         })),
       }, { maxInputChars: cfg.maxInputChars })

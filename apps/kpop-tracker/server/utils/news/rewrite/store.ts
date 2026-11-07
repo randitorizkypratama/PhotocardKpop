@@ -557,6 +557,7 @@ export async function listRecapArticles(artistId: string, sinceIso: string, unti
       id: String(row.id),
       title: String(row.original_title || ''),
       summary: row.summary ? String(row.summary) : null,
+      bodyText: null, // fetched on demand in recap.ts
       language: row.language ? String(row.language) : null,
       category: row.category ? String(row.category) : null,
       publisherName: row.publisher_name ? String(row.publisher_name) : null,

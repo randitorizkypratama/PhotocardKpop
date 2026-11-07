@@ -84,7 +84,7 @@ export const RECAP_JSON_SCHEMA = `{
 
 export interface RecapPromptTopic {
   label: string
-  articles: Array<{ index: number, title: string, publisher: string, publishedAt: string | null }>
+  articles: Array<{ index: number, title: string, publisher: string, publishedAt: string | null, bodyText?: string | null }>
 }
 
 export interface RecapPromptInput {
@@ -127,6 +127,11 @@ export function buildRecapPrompt(input: RecapPromptInput, options: { maxInputCha
       if (title.length === 0) continue
       const when = article.publishedAt ? article.publishedAt.slice(0, 10) : 'tanggal tidak diketahui'
       lines.push(`- [${article.index}] ${title} — ${article.publisher} — ${when}`)
+      if (article.bodyText) {
+        const body = article.bodyText.slice(0, Math.min(1500, budget))
+        budget -= body.length
+        if (body.length > 0) lines.push(`  Isi: ${body}`)
+      }
       articleLines.push(`${article.index}. ${article.publisher} — ${title}`)
     }
     topicBlocks.push(lines.join('\n'))

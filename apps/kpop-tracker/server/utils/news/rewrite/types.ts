@@ -118,6 +118,8 @@ export interface RecapArticle {
   /** The original headline (Korean or English) — the only fact restated. */
   title: string
   summary: string | null
+  /** Full body text fetched from the publisher page, if available. */
+  bodyText: string | null
   language: string | null
   category: string | null
   publisherName: string | null
