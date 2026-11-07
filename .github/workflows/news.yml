@@ -145,7 +145,7 @@ jobs:
           REWRITE_MAX_INPUT_CHARS: '30000'
           REWRITE_TEMPERATURE: '0.7'
           RECAP_ENABLED: 'true'
-          RECAP_MIN_ARTICLES: '3'
+          RECAP_MIN_ARTICLES: '1'
         run: |
           # A missing Gemini key must never fail the harvest that just succeeded.
           if [ -z "${GEMINI_API_KEYS:-}" ]; then

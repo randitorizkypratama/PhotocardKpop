@@ -94,7 +94,7 @@ jobs:
           # Weekly per-artist recap (runs inside this same job; drafts are
           # reviewed in /admin/news like any other).
           RECAP_ENABLED: 'true'
-          RECAP_MIN_ARTICLES: '3'
+          RECAP_MIN_ARTICLES: '1'
 
         run: |
           if [ "${{ inputs.dry_run }}" = "true" ]; then
