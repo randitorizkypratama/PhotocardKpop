@@ -79,7 +79,7 @@ export function buildPrompt(material: RewriteMaterial, options: { maxInputChars?
 export const RECAP_JSON_SCHEMA = `{
   "title": "string — judul bahasa Indonesia, maksimal 90 karakter, menyebut nama artis dan periode rekap",
   "dek": "string — ringkasan 2 sampai 3 kalimat, maksimal 320 karakter",
-  "body_markdown": "string — isi rekap 5 sampai 9 paragraf, sub-judul ## per topik, minimal 400 karakter"
+  "body_markdown": "string — isi rekap, sub-judul ## per topik, panjang menyesuaikan jumlah berita yang ada"
 }`
 
 export interface RecapPromptTopic {
@@ -142,7 +142,7 @@ export function buildRecapPrompt(input: RecapPromptInput, options: { maxInputCha
     '1. Seluruh rekap berbahasa Indonesia dengan gaya rangkuman berita hiburan K-Pop ala portal berita / blog fanbase yang sedang merangkum kabar pekan ini — hidup, mengalir, dan enak dibaca, bukan bahasa laporan/resmi yang kaku. Semua kalimat berbahasa Indonesia, dan aksara Hangul/Hanzi tidak boleh muncul sama sekali (transliterasikan ke huruf Latin bila perlu). NAMA RESMI tetap dalam bentuk aslinya dan JANGAN diterjemahkan literal: nama program/acara (Music Bank, Music Core, Inkigayo, M Countdown), nama tangga lagu (Circle Chart), nama grup/member, dan judul lagu.',
     '2. HANYA gunakan fakta dari daftar artikel di bawah. JANGAN mengarang kutipan, angka, tanggal, nama lagu, atau kejadian apa pun.',
     '3. Sebutkan tanggal dan angka persis seperti tertulis di daftar — jangan menghitung ulang dan jangan mengubah satuan.',
-    '4. Setiap sub-judul ## adalah satu topik dari daftar; tulis ulang isinya menjadi 1 sampai 3 paragraf mengalir, bukan daftar poin.',
+    '4. Setiap sub-judul ## adalah satu topik dari daftar; tulis ulang isinya menjadi paragraf mengalir sebanyak yang dibutuhkan sesuai jumlah berita — bukan daftar poin.',
     '5. Setiap sub-judul ## wajib diakhiri satu baris dengan format persis: "Sumber: [n], [m]" memakai nomor-nomor artikel yang menjadi dasar bagian itu. Semua nomor harus dari daftar; jangan mengarang nomor di luar daftar.',
     '6. Jangan menuliskan URL apa pun di dalam body_markdown.',
     '7. Kalau satu minggu hanya punya sedikit berita, tulis apa adanya — lebih baik singkat daripada mengarang.',

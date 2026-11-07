@@ -198,8 +198,8 @@ export function parseRecapJson(raw: string): ParseRecapResult {
   if (!dek) return { ok: false, error: 'model reply had no dek' }
 
   const bodyMarkdown = sanitizeBody(asString(payload.body_markdown))
-  if (bodyMarkdown.length < MIN_BODY) {
-    return { ok: false, error: `recap body was too short (${bodyMarkdown.length} chars, minimum ${MIN_BODY})` }
+  if (!bodyMarkdown) {
+    return { ok: false, error: 'recap body was empty' }
   }
   const trimmedBody = bodyMarkdown.slice(0, MAX_BODY)
 
